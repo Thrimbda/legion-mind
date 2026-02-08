@@ -1,5 +1,5 @@
 ---
-description: 从当前任务中提取可复用模式，记录到 context.md 供后续复用
+description: 从当前任务中提取可复用模式，记录到 .legion/playbook.md（并在当前任务 context.md 留痕） 供后续复用
 agent: legion
 ---
 
@@ -7,7 +7,7 @@ agent: legion
 
 ## 前置检查
 
-1) 调用 `skill("legionmind")` 加载指南
+1) 调用 `skill({ name: "legionmind" })` 加载指南
 2) 调用 `legion_get_status` 确认有活跃任务
 
 ## 执行步骤
@@ -21,7 +21,7 @@ agent: legion
 - 测试策略（如"此模块需要 mock 数据库"）
 - 配置或环境要求
 
-2) **记录到 context.md**
+2) **记录到 .legion/playbook.md（并在当前任务 context.md 留痕）**
 
 使用 `legion_update_context` 添加决策记录：
 ```

@@ -1,0 +1,13 @@
+// Example: project-specific MCP configuration
+// Put this in your project root `opencode.json` (recommended).
+// See: https://opencode.ai/docs/mcp-servers/
+
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "legionmind": {
+      "type": "local",
+      "command": ["node", "./path/to/legionmind-mcp/dist/index.js"]
+    }
+  }
+}

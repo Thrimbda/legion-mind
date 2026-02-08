@@ -78,4 +78,8 @@ LegionMind 通过维护 `.legion/` 目录下的三个核心文件来管理长周
 - 当前无专用 MCP 工具：使用 `Write` / `Edit` 追加；并在 `context.md` 的“关键文件”登记。
 
 ---
-*更多资源：[REF_BEST_PRACTICES.md](./references/REF_BEST_PRACTICES.md)*
+*更多资源：*
+- [REF_BEST_PRACTICES.md](./references/REF_BEST_PRACTICES.md)
+- [REF_CONTEXT_SYNC.md](./references/REF_CONTEXT_SYNC.md)
+- [REF_AUTOPILOT.md](./references/REF_AUTOPILOT.md)
+- [REF_RFC_PROFILES.md](./references/REF_RFC_PROFILES.md)

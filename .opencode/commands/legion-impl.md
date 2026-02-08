@@ -1,43 +1,30 @@
 ---
-description: Legion Implementation Phase：实现(Code+Test)→验证→Review→报告
+description: Legion Implementation Phase（实现→验证→Review→报告，不要求显式设计批准）
 agent: legion
 ---
 
 你必须先做：
-1) `skill("legionmind")` 加载指南
-2) `legion_get_status` 获取当前任务状态
-3) **校验设计门禁**：确认 RFC 已存在且用户已批准（检查 tasks.md 或 plan.md 状态）
+1) `skill({ name: "legionmind" })`
+2) `legion_get_status` 获取当前任务状态（无工具则读取 `.legion/tasks/<id>/` 三文件）
 
 然后执行以下流程：
 
-**阶段 A: 工程实现**
-调用 `engineer` agent：
-```
-Task(subagent_type="engineer", prompt="Task Context=... Scope=... RFC=...")
-```
-- 负责：业务代码、单元测试、(可选) Benchmark
-- 要求：严格遵循 Scope 和 RFC
+### 阶段 A: 工程实现
+调用 `engineer` agent（必须传 scope + task-brief/RFC 摘要）。
 
-**阶段 B: 验证与审查** (可并行)
-```
-Task(subagent_type="run-tests", prompt="...")
-Task(subagent_type="review-code", prompt="...")
-Task(subagent_type="review-security", prompt="...")
-```
-- 若测试失败或 Review 发现 blocking 问题：**立即停止**，修复后重试。
+### 阶段 B: 验证与审查
+依次执行：
+- `run-tests`
+- `review-code`
+- （需要时）`review-security`
 
-**阶段 C: 生成报告**
-```
-Task(subagent_type="report-walkthrough", prompt="...")
-```
-- 输出：详细报告 + PR Body 建议（位于 Task 目录下）
+若测试失败或 review 有 blocking：回到实现阶段修复后重试。
 
-**阶段 D: 状态同步**
-- 更新 tasks.md 勾选完成项
-- 更新 context.md 记录最终交付物
+### 阶段 C: 生成报告
+- `report-walkthrough`
 
-完成后必须输出：
-```
-✅ 实现阶段完成
-下一步：运行 /legion-pr 创建 PR
-```
+约束：
+- 不要阻塞追问“是否批准设计”；采用 PR 驱动延迟批准（merge 即批准）
+- 所有阻塞点写进 `.legion/tasks/<id>/tasks.md`，让人类在 PR 一次性处理
+
+完成后输出产物路径（同 /legion）。

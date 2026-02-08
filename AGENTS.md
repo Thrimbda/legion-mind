@@ -1,0 +1,1 @@
+Updated AGENTS.md with automated Heavy RFC profile settings

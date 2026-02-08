@@ -14,13 +14,20 @@
 └── tasks/{task-id}/     # 任务级产物
     ├── plan.md          # 任务目标与设计索引
     ├── context.md       # 进展日志与交接文档
-    └── tasks.md         # 结构化任务清单
-    ├── config.json       # 任务级配置（推荐，含 Scope 结构）
+    ├── tasks.md         # 结构化任务清单
+    ├── config.json      # 任务级配置（推荐，含 Scope 结构）
     ├── docs/            # 设计/评审/报告（推荐）
+    │   ├── task-brief.md
+    │   ├── research.md              # RFC Heavy：证据驱动现状摸底（推荐/强制）
     │   ├── rfc.md
     │   ├── review-rfc.md
     │   ├── review-code.md
     │   ├── review-security.md
+    │   ├── implementation-plan.md   # 可选：从 RFC Milestones 抽取
+    │   ├── risk-register.md         # 可选：风险登记与回滚触发器
+    │   ├── appendix-migration.md    # 可选：迁移细节附录（避免 RFC 主文膨胀）
+    │   ├── appendix-threat-model.md # 可选：威胁模型附录
+    │   ├── test-report.md
     │   ├── report-walkthrough.md
     │   └── pr-body.md
     └── reports/         # 可选：benchmark、profiling、截图等
@@ -69,6 +76,106 @@
 - **设计内容**: 与旧版不同，详细的设计（接口、流程图）**应该**放在 RFC 中。此文件仅提供链接和简要摘要。
 
 ---
+
+
+---
+
+## 2.5 docs/task-brief.md (问题定义与验收)
+
+**目的**：用最少信息固定“问题是什么 / 为什么 / 怎么验收 / 哪些假设”，防止后续 Agent 反复调查、重复提问和上下文污染。  
+**角色**：读多写少（可以在发现新信息时小幅修订，但要在 `context.md` 记录变更原因）。
+
+### 结构（推荐）
+
+```markdown
+# Task Brief
+
+## Problem Statement
+(用 3-8 句话描述：现象、期望、影响范围、复现条件)
+
+## Acceptance Criteria
+- [ ] (可验证的验收条件 1)
+- [ ] (可验证的验收条件 2)
+
+## Constraints
+- (约束：兼容性、性能、安全、依赖、部署等)
+
+## Assumptions
+- (你做了哪些默认假设？哪些信息缺失但你先按某种方式处理？)
+
+## Non-Goals
+- (明确不做什么，避免 scope creep)
+
+## Risks
+- (潜在风险点 + 回滚/缓解方式)
+
+## Verification Plan
+- Commands:
+  - `...`
+- Expected:
+  - (预期现象/输出)
+- Manual checks (如需要):
+  - ...
+
+## References
+- (issue/PR 链接、关键文件路径、相关 ADR/RFC 链接)
+```
+
+### 规则
+- 不要粘贴大段代码；用文件路径/行号或简要片段引用即可。
+- 如果和 RFC 重复，保留 task-brief 的“问题定义 + 验收 + 假设”，其余细节放 RFC。
+
+
+---
+
+## 2.6 docs/research.md（现状摸底，RFC Heavy 推荐/强制）
+
+**目的**：把“现在是什么样 / 历史决策是什么 / 关键坑是什么”用证据驱动的方式快速写清，避免后续实现阶段重复调研、重复阅读与重复推理。  
+**角色**：读多写少（设计阶段可迭代更新，但应保持简短）。
+
+### 结构（推荐）
+参考模板：`.opencode/skills/legionmind/references/TEMPLATE_RESEARCH.md`
+
+核心原则：
+- 不要粘贴大段代码
+- 使用文件路径 + 行号/函数名作为 Evidence
+- 对“不确定结论”明确标注 `Unverified`
+
+---
+
+## 2.7 docs/rfc.md（设计方案）
+
+**目的**：设计 source of truth；供 review 与实现阶段引用。  
+**角色**：中频更新（被 `review-rfc` 驱动收敛）。
+
+### RFC 档位
+- `standard`：适用于 Medium 风险任务（可短，但必须含 Options/Decision/Verification）
+- `heavy`：适用于 Epic/High-risk（必须含 Milestones、Migration/Rollback、Observability 等）
+
+Heavy 模板参考：
+- `.opencode/skills/legionmind/references/TEMPLATE_RFC_HEAVY.md`
+
+---
+
+## 2.8 docs/implementation-plan.md（可选）
+
+**目的**：把 RFC 的 Milestones 抽取成更“工程化”的执行清单，便于 tasks.md 更新与分阶段交付。  
+**角色**：可选；对 Epic 任务强烈建议。
+
+模板参考：
+- `.opencode/skills/legionmind/references/TEMPLATE_IMPLEMENTATION_PLAN.md`
+
+---
+
+## 2.9 docs/risk-register.md / appendix-*.md（可选）
+
+**risk-register.md**
+- 记录风险、触发器、缓解方式、回滚路径
+- 对 High-risk/Epic 任务建议有（但不是强制）
+
+**appendix-*.md**
+- 用于承载易膨胀细节（迁移步骤、威胁模型、benchmark 输出等）
+- 目标：避免 RFC 主文成为长作文，同时保留可追溯证据
 
 ## 3. context.md (上下文与交接)
 
