@@ -137,3 +137,7 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# OpenCode auto-generated files
+.opencode/bun.lock
+.opencode/package.json
