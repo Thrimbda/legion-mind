@@ -1,0 +1,17 @@
+{
+  "name": "legion-mind-opencode",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "legion-mind-opencode": "scripts/setup-opencode.ts"
+  },
+  "scripts": {
+    "opencode:install": "node scripts/setup-opencode.ts install",
+    "opencode:verify": "node scripts/setup-opencode.ts verify --strict",
+    "opencode:rollback": "node scripts/setup-opencode.ts rollback"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  }
+}

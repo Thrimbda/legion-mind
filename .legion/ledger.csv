@@ -23,3 +23,21 @@
 2026-03-03T12:02:04.450Z,legion_update_context,legionmind,编写 LegionMind 使用说明文档,Claude,addFile: .opencode/commands/legion.md,success
 2026-03-03T12:02:04.451Z,legion_update_context,legionmind,编写 LegionMind 使用说明文档,Claude,addFile: skills/legionmind/references/REF_AUTOPILOT.md,success
 2026-03-03T12:02:38.256Z,legion_get_status,legionmind,编写 LegionMind 使用说明文档,Claude,,success
+2026-03-04T09:04:43.608Z,legion_get_status,legionmind,编写 LegionMind 使用说明文档,Claude,,success
+2026-03-04T09:05:06.707Z,legion_create_task,legionmind,编写 LegionMind 使用说明文档,Claude,goal: 完成可行性研究并在可行时实现一键安装与开箱即用流程，产出可直接用于 PR 的文档与脚本。,failed
+2026-03-04T09:05:14.484Z,legion_propose_task,legionmind,编写 LegionMind 使用说明文档,Claude,name: 将 legion-mind 打包为可一键安装的 OpenCode Plugin,success
+2026-03-04T09:05:19.760Z,legion_approve_proposal,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,proposalId: proposal-mmbt9rzl-2ff633,success
+2026-03-04T09:05:22.960Z,legion_get_status,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,,success
+2026-03-04T09:08:43.333Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,,success
+2026-03-04T09:10:40.689Z,legion_update_tasks,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,completeTask: phase 1,success
+2026-03-04T09:10:56.137Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addDecision: 采用“Profile 安装器 + 轻量 Plugin”而非纯 Plugin 化,success
+2026-03-04T09:20:24.289Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addDecision: 本任务按 Medium 风险执行，必须先 RFC + review-rfc PASS 再编码,success
+2026-03-04T13:29:09.336Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addDecision: 将 rollback/uninstall 的状态读取改为受管路径白名单校验并绑定 backupPath 规则,success
+2026-03-04T13:29:13.718Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addFile: scripts/setup-opencode.ts,success
+2026-03-04T13:29:21.703Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addFile: package.json,success
+2026-03-04T13:29:25.201Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addFile: README.md,success
+2026-03-04T13:29:30.718Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addFile: .legion/tasks/legion-mind-opencode-plugin/docs/test-report.md,success
+2026-03-04T13:29:33.952Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addFile: .legion/tasks/legion-mind-opencode-plugin/docs/review-code.md,success
+2026-03-04T13:29:42.803Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addFile: .legion/tasks/legion-mind-opencode-plugin/docs/review-security.md,success
+2026-03-04T13:29:45.807Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addFile: .legion/tasks/legion-mind-opencode-plugin/docs/pr-body.md,success
+2026-03-04T13:29:49.597Z,legion_get_status,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,,success

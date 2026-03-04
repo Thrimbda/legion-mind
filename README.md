@@ -4,14 +4,14 @@
 
 - Primary agent: `legion`（orchestrator）
 - Subagents: `engineer`, `spec-rfc`, `review-rfc`, `review-code`, `review-security`, `run-tests`, `report-walkthrough`
-- Skill: `.opencode/skills/legionmind`
+- Skill: `skills/legionmind`
 
 ## 快速开始（本地）
 
 1) 确保仓库根目录有：
 - `opencode.json`
 - `AGENTS.md`
-- `.opencode/`（agents/commands/skills）
+- `.opencode/`（agents/commands/plugins）
 
 2) 运行 OpenCode：
 ```bash
@@ -28,6 +28,39 @@ opencode
 一站式使用说明：`docs/legionmind-usage.md`
 
 流程产物默认路径：`.legion/tasks/<task-id>/docs/`（根目录 `docs/` 仅保留长期文档）。
+
+## 一键安装（发布就绪）
+
+最短路径（本地仓库）：
+
+```bash
+node scripts/setup-opencode.ts install
+node scripts/setup-opencode.ts verify --strict
+```
+
+回滚到最近一次备份：
+
+```bash
+node scripts/setup-opencode.ts rollback
+```
+
+发布入口（npm 发布后可直接用）：
+
+```bash
+bunx legion-mind-opencode install
+```
+
+说明：
+
+- 默认 `safe-overwrite`：只覆盖“托管且未被用户修改”的文件
+- 若目标是 `user-modified` 或 `unmanaged-existing`，默认跳过；用 `--force` 才覆盖
+- 只同步白名单资产：`.opencode/{agents,commands,plugins}` 与 `skills/legionmind`
+- 安装状态文件位于 `~/.config/opencode/.legionmind/`：
+  - `install-state.v1.json`
+  - `managed-files.v1.json`
+  - `backup-index.v1.json`
+- `verify --strict` 仅两种结果：`READY`（0）或 `E_VERIFY_STRICT`（非 0）
+- 本地隔离测试可使用：`--config-dir <dir> --opencode-home <dir>`
 
 ## GitHub 上使用
 

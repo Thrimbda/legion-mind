@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "currentTask": "legionmind",
+  "currentTask": "legion-mind-opencode-plugin",
   "settings": {
     "autoRemind": true,
     "remindBeforeReset": true,
@@ -10,9 +10,16 @@
     {
       "id": "legionmind",
       "name": "编写 LegionMind 使用说明文档",
-      "status": "active",
+      "status": "paused",
       "createdAt": "2026-03-03T11:27:53.827Z",
-      "updatedAt": "2026-03-03T12:02:04.449Z"
+      "updatedAt": "2026-03-04T09:05:19.757Z"
+    },
+    {
+      "id": "legion-mind-opencode-plugin",
+      "name": "将 legion-mind 打包为可一键安装的 OpenCode Plugin",
+      "status": "active",
+      "createdAt": "2026-03-04T09:05:19.757Z",
+      "updatedAt": "2026-03-04T13:29:45.806Z"
     }
   ],
   "pendingProposals": [
@@ -70,6 +77,72 @@
       "decidedAt": "2026-03-03T11:27:53.827Z",
       "decidedBy": "Claude",
       "createdTaskId": "legionmind"
+    },
+    {
+      "id": "proposal-mmbt9rzl-2ff633",
+      "name": "将 legion-mind 打包为可一键安装的 OpenCode Plugin",
+      "goal": "完成可行性研究并在可行时实现一键安装与开箱即用流程，产出可直接用于 PR 的文档与脚本。",
+      "rationale": "当前用户目标是把仓库做成类似 oh-my-opencode 的一键安装形态，现有任务已完成且聚焦使用文档，无法承载新的插件化改造与验证流程，需要独立任务来追踪研究、实现、测试与报告闭环。",
+      "points": [
+        "先做可行性研究，再在可行时实施",
+        "默认最少人工打断，采用延迟批准模式",
+        "产出 docs/pr-body.md 直接用于 PR"
+      ],
+      "scope": [
+        "README.md",
+        "opencode.json",
+        ".opencode/**",
+        "scripts/**",
+        "docs/**",
+        ".legion/**"
+      ],
+      "phases": [
+        {
+          "name": "调研与可行性评估",
+          "tasks": [
+            {
+              "description": "调研仓库当前结构、安装方式与命令入口",
+              "acceptance": "task-brief 中完成现状评估与差距分析"
+            },
+            {
+              "description": "检索 OpenCode Plugin 文档并提炼安装模型",
+              "acceptance": "task-brief 明确插件安装约束与可行性结论"
+            }
+          ]
+        },
+        {
+          "name": "设计与实现",
+          "tasks": [
+            {
+              "description": "设计插件化一键安装方案（必要时 RFC）",
+              "acceptance": "形成 design-lite 或 RFC，并写入 context 决策"
+            },
+            {
+              "description": "实现一键安装与初始化能力",
+              "acceptance": "最少步骤完成安装并可立即开始工作"
+            }
+          ]
+        },
+        {
+          "name": "验证与交付",
+          "tasks": [
+            {
+              "description": "执行测试与代码评审并生成报告",
+              "acceptance": "生成 test-report、review-code，必要时 review-security"
+            },
+            {
+              "description": "生成 walkthrough 与 PR body",
+              "acceptance": "生成 report-walkthrough 与 pr-body"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-03-04T09:05:14.483Z",
+      "status": "approved",
+      "decidedAt": "2026-03-04T09:05:19.757Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "legion-mind-opencode-plugin"
     }
   ]
 }
