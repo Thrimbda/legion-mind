@@ -14,17 +14,18 @@ agent: legion
 
 ### 阶段 B: 验证与审查
 依次执行：
-- `run-tests`
-- `review-code`
-- （需要时）`review-security`
+- `run-tests`（写 `<taskRoot>/docs/test-report.md`）
+- `review-code`（写 `<taskRoot>/docs/review-code.md`）
+- （需要时）`review-security`（写 `<taskRoot>/docs/review-security.md`）
 
 若测试失败或 review 有 blocking：回到实现阶段修复后重试。
 
 ### 阶段 C: 生成报告
-- `report-walkthrough`
+- `report-walkthrough`（写 `<taskRoot>/docs/report-walkthrough.md` + `<taskRoot>/docs/pr-body.md`）
 
 约束：
 - 不要阻塞追问“是否批准设计”；采用 PR 驱动延迟批准（merge 即批准）
 - 所有阻塞点写进 `.legion/tasks/<id>/tasks.md`，让人类在 PR 一次性处理
+- 任务产物默认只写 `<taskRoot>/docs/`，不要默认写根目录 `docs/`
 
 完成后输出产物路径（同 /legion）。

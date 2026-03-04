@@ -17,7 +17,7 @@
 延迟批准的前提：
 - 仍然必须产出 **design-lite** 或 **RFC**
 - 必须至少完成一次 **对抗审查/自检**（低风险可自检；中高风险必须 `review-rfc`）
-- 所有假设必须写入 `docs/pr-body.md`（让人类在 PR review 一次性纠偏）
+- 所有假设必须写入 `.legion/tasks/<task-id>/docs/pr-body.md`（让人类在 PR review 一次性纠偏）
 
 ---
 
@@ -41,7 +41,7 @@
 - 没有对外 API 合约变更（接口、schema、wire format）
 
 门禁要求：
-- 允许 **design-lite**（写在 `docs/rfc.md` 的 “Design-lite” 章节或单独 `docs/task-brief.md`）
+- 允许 **design-lite**（写在 `<taskRoot>/docs/rfc.md` 的 “Design-lite” 章节或单独 `<taskRoot>/docs/task-brief.md`）
 - 直接进入实现
 - 设计批准：**延迟批准（PR merge）**即可
 
@@ -87,10 +87,10 @@
 - Unknowns ≥ 3（需要明显调研）
 
 ### 门禁要求（强制交付物）
-- `docs/task-brief.md`
-- `docs/research.md`（证据驱动现状摸底）
-- `docs/rfc.md`（heavy 模板）
-- `docs/review-rfc.md`（必须 PASS 才能进入实现）
+- `<taskRoot>/docs/task-brief.md`
+- `<taskRoot>/docs/research.md`（证据驱动现状摸底）
+- `<taskRoot>/docs/rfc.md`（heavy 模板）
+- `<taskRoot>/docs/review-rfc.md`（必须 PASS 才能进入实现）
 
 ### 推荐执行模式：RFC-only Draft PR（减少人类同步成本）
 - Agent 先只提交上述 docs，创建 **Draft PR（仅设计）**
@@ -115,7 +115,7 @@
 
 ## 4. 标准流程（中/高风险）
 
-1. 起草 RFC（写入 `docs/rfc.md`）
+1. 起草 RFC（写入 `<taskRoot>/docs/rfc.md`）
 2. 更新 `plan.md` 的 Design Index 链接到 RFC
 3. 对抗审查：`review-rfc` → PASS/FAIL
 4. FAIL 则回到 RFC 迭代，直到收敛

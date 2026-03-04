@@ -21,7 +21,13 @@ opencode
 3) 直接对话或执行命令：
 - `/legion`：一键 Autopilot（设计→实现→测试→评审→报告）
 - `/legion-impl`：仅实现→验证→报告
+- `/legion-rfc-heavy`：高风险/Epic 任务先做重 RFC（仅设计）
 - `/legion-pr`：本地可选提交/开 PR
+- `/legion-bootstrap`：初始化或更新 `.legion/playbook.md`
+
+一站式使用说明：`docs/legionmind-usage.md`
+
+流程产物默认路径：`.legion/tasks/<task-id>/docs/`（根目录 `docs/` 仅保留长期文档）。
 
 ## GitHub 上使用
 
@@ -44,9 +50,11 @@ OpenCode 会在 Actions runner 执行并产出 PR（取决于 workflow 权限和
   - 设计 PR merge 后：`continue`（继续进入实现）
 
 推荐流程：
-1) `/legion-rfc-heavy` 生成 `task-brief + research + rfc + review-rfc + pr-body`
+1) `/legion-rfc-heavy` 生成 `task-brief + research + rfc + review-rfc + report-walkthrough + pr-body`
 2) 创建 Draft PR（仅 docs），Merge 视为设计批准
 3) Merge 后评论 `continue`，Agent 按 RFC Milestones 进入实现
+
+说明：上述阶段产物默认落盘到 `.legion/tasks/<task-id>/docs/`。
 
 模板见：
 - `.opencode/skills/legionmind/references/TEMPLATE_RFC_HEAVY.md`

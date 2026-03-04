@@ -18,16 +18,16 @@ agent: legion
 - `rfcProfile=heavy`
 - `stage=design-only`
 
-4) 生成/更新 `docs/task-brief.md`
+4) 生成/更新 `<taskRoot>/docs/task-brief.md`
 
 5) 设计产物（不写生产代码）：
-- `spec-rfc`：写 `docs/research.md` + `docs/rfc.md`（heavy）
-- `review-rfc`：写 `docs/review-rfc.md`
+- `spec-rfc`：写 `<taskRoot>/docs/research.md` + `<taskRoot>/docs/rfc.md`（heavy）
+- `review-rfc`：写 `<taskRoot>/docs/review-rfc.md`
 
 6) 生成 RFC-only Draft PR 描述：
 - `report-walkthrough`：`mode=rfc-only`
-  - `docs/report-walkthrough.md`
-  - `docs/pr-body.md`
+  - `<taskRoot>/docs/report-walkthrough.md`
+  - `<taskRoot>/docs/pr-body.md`
 
 7) 输出产物路径，并提示下一步：
 - 在 GitHub 上创建 Draft PR（仅 docs）

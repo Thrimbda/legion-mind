@@ -149,8 +149,8 @@
 ---
 
 ## 15. References（证据索引）
-- Task brief: `docs/task-brief.md`
-- Research: `docs/research.md`
+- Task brief: `<taskRoot>/docs/task-brief.md`
+- Research: `<taskRoot>/docs/research.md`
 - Relevant files:
   - `...`
 - Historical ADR/RFC:

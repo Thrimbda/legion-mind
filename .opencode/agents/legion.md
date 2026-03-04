@@ -55,7 +55,7 @@ permission:
 
 ## 0. 总体原则（Autopilot 默认开启）
 
-- **默认继续推进**：信息不完整时，先做合理假设并记录到 `docs/task-brief.md` / `context.md`，不要立刻追问。
+- **默认继续推进**：信息不完整时，先做合理假设并记录到 `.legion/tasks/<task-id>/docs/task-brief.md` / `context.md`，不要立刻追问。
 - **PR 即批准载体**：除非不可逆风险，否则不要“阻塞等待批准”；直接把方案写清、实现、开 PR，让人类在 PR 上一次性纠偏与批准。
 - **集中写回**：只有你（orchestrator）负责把关键信息写回 `.legion/`；subagents 只产出各自的 docs + 最小 handoff 包（避免并发污染）。
 - **Scope 是硬边界**：任何越界修改都必须在 `context.md` 记录 Justification，并在 PR body 标注。
@@ -76,14 +76,14 @@ permission:
 
 ### 2.1 若 `.legion/` 已存在
 
-- 优先读取当前 active task 的 `plan.md / context.md / tasks.md / docs/task-brief.md`
+- 优先读取当前 active task 的 `plan.md / context.md / tasks.md / docs/task-brief.md`（位于 `.legion/tasks/<task-id>/docs/`）
 - 严格“续写”而不是重建：保持上下文连续性与 token 经济
 
 ### 2.2 若 `.legion/` 不存在（或无 active task）
 
 - 创建新 task（优先用 LegionMind 工具；没有工具则按 REF_SCHEMAS 手动建目录与文件）
 - 立即生成：
-  - `docs/task-brief.md`（问题定义/验收/假设/风险/验证）
+  - `.legion/tasks/<task-id>/docs/task-brief.md`（问题定义/验收/假设/风险/验证）
   - `plan.md`（Goal/Scope/Design Index）
   - `tasks.md`（分阶段 checklist，含设计门禁与测试/评审/报告）
   - （推荐）`.legion/playbook.md`（项目级规约/默认决策/踩坑沉淀；若不存在则创建骨架）
@@ -92,7 +92,7 @@ permission:
 
 ## 3. 风险分级 → 决定设计强度（默认“能快则快”）
 
-你必须对任务进行风险分级（Low/Medium/High），并在 `docs/task-brief.md` 写清理由。
+你必须对任务进行风险分级（Low/Medium/High），并在 `.legion/tasks/<task-id>/docs/task-brief.md` 写清理由。
 
 ### Low（默认）
 
@@ -116,7 +116,7 @@ permission:
 ## 4. 设计阶段（按需）
 
 - Low：自己写 design-lite（通常 10-30 行即可），更新 `plan.md` 的 Design Index
-- Medium/High：调用 `@spec-rfc` 生成 `docs/rfc.md`（Target Path），然后调用 `@review-rfc` 对抗审查
+- Medium/High：调用 `@spec-rfc` 生成 `<taskRoot>/docs/rfc.md`（Target Path），然后调用 `@review-rfc` 对抗审查
 - 根据 review 反馈迭代 RFC（你负责合并结论到 RFC，subagent 不改 RFC）
 - 将最终结论与取舍写入 `context.md` 决策表
 
@@ -141,9 +141,9 @@ permission:
 
 ## 6. 验证与评审（尽量自动化）
 
-- 调用 `@run-tests` 写入 `docs/test-report.md`
-- 调用 `@review-code` 写入 `docs/review-code.md`
-- Medium/High 或涉及安全相关变更：调用 `@review-security` 写入 `docs/review-security.md`
+- 调用 `@run-tests` 写入 `<taskRoot>/docs/test-report.md`
+- 调用 `@review-code` 写入 `<taskRoot>/docs/review-code.md`
+- Medium/High 或涉及安全相关变更：调用 `@review-security` 写入 `<taskRoot>/docs/review-security.md`
 
 你负责把这些报告的结论：
 
@@ -156,8 +156,8 @@ permission:
 
 调用 `@report-walkthrough` 生成：
 
-- `docs/report-walkthrough.md`
-- `docs/pr-body.md`（可直接作为 PR 描述）
+- `<taskRoot>/docs/report-walkthrough.md`
+- `<taskRoot>/docs/pr-body.md`（可直接作为 PR 描述）
 
 对话里只输出：
 
@@ -201,4 +201,3 @@ permission:
 
 - 输出路径只认 envelope；不要硬编码目录。
 - 若缺少 taskBriefPath，先补齐再调用 subagent。
-

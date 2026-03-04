@@ -63,8 +63,8 @@ RFC 必须包含：
 - 必须包含 Milestones（可验收最小增量）
 
 并且：
-- 若提供 `researchPath`：先写 `docs/research.md`（参考模板 `TEMPLATE_RESEARCH.md`）
-- 若提供 `implPlanPath`：从 Milestones 抽取写一份 `docs/implementation-plan.md`（参考模板 `TEMPLATE_IMPLEMENTATION_PLAN.md`）
+- 若提供 `researchPath`：先写 `researchPath`（通常为 `<taskRoot>/docs/research.md`，参考模板 `TEMPLATE_RESEARCH.md`）
+- 若提供 `implPlanPath`：从 Milestones 抽取写一份 `implPlanPath`（通常为 `<taskRoot>/docs/implementation-plan.md`，参考模板 `TEMPLATE_IMPLEMENTATION_PLAN.md`）
 
 Token 纪律：
 - 不要粘贴大段代码；用文件路径/行号/函数名做 Evidence

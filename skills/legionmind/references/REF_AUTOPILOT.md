@@ -37,10 +37,10 @@
 ## 4. Autopilot 的交付物清单（最小且足够）
 
 每个任务结束前，至少产出：
-- `docs/task-brief.md`
-- `docs/pr-body.md`
-- `docs/test-report.md`（若没跑测试，写清原因与替代验证方式）
-- （中高风险）`docs/rfc.md` + `docs/review-rfc.md`
+- `.legion/tasks/<task-id>/docs/task-brief.md`
+- `.legion/tasks/<task-id>/docs/pr-body.md`
+- `.legion/tasks/<task-id>/docs/test-report.md`（若没跑测试，写清原因与替代验证方式）
+- （中高风险）`.legion/tasks/<task-id>/docs/rfc.md` + `.legion/tasks/<task-id>/docs/review-rfc.md`
 
 ---
 

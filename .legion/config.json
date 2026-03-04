@@ -1,0 +1,75 @@
+{
+  "version": "1.0.0",
+  "currentTask": "legionmind",
+  "settings": {
+    "autoRemind": true,
+    "remindBeforeReset": true,
+    "taskCreationPolicy": "agent-with-approval"
+  },
+  "tasks": [
+    {
+      "id": "legionmind",
+      "name": "编写 LegionMind 使用说明文档",
+      "status": "active",
+      "createdAt": "2026-03-03T11:27:53.827Z",
+      "updatedAt": "2026-03-03T12:02:04.449Z"
+    }
+  ],
+  "pendingProposals": [
+    {
+      "id": "proposal-mmaixc0k-64ce93",
+      "name": "编写 LegionMind 使用说明文档",
+      "goal": "产出一份可直接用于 PR 的 LegionMind 使用说明与交付文档，并完成端到端流程产物。",
+      "rationale": "用户要求一次端到端 Autopilot 交付，且需同时产出 .legion 任务骨架与 docs/pr-body.md；为保证可追踪与低人工介入，需要建立标准 LegionMind 任务并由流程驱动生成文档、评审与报告。",
+      "points": [
+        "明确 LegionMind 初始化、任务生命周期与子代理调用方式",
+        "提供最少人工介入的执行路径与风险边界",
+        "产出可直接用于 PR 的描述文档"
+      ],
+      "scope": [
+        "README.md",
+        "docs/**",
+        ".legion/**"
+      ],
+      "phases": [
+        {
+          "name": "设计与任务建模",
+          "tasks": [
+            {
+              "description": "创建 task-brief 并完成风险/规模分级",
+              "acceptance": "docs/task-brief.md 包含问题定义、验收、假设、风险与验证计划"
+            }
+          ]
+        },
+        {
+          "name": "文档实现",
+          "tasks": [
+            {
+              "description": "编写 LegionMind 使用说明文档",
+              "acceptance": "形成结构完整、可执行的使用说明文档并落盘到 docs 目录"
+            }
+          ]
+        },
+        {
+          "name": "验证与报告",
+          "tasks": [
+            {
+              "description": "执行测试与代码评审流程并生成报告",
+              "acceptance": "docs/test-report.md、docs/review-code.md 生成完成；如需安全评审则生成 docs/review-security.md"
+            },
+            {
+              "description": "生成 walkthrough 与 PR body",
+              "acceptance": "docs/report-walkthrough.md 与 docs/pr-body.md 可直接用于 PR"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-03-03T11:27:51.573Z",
+      "status": "approved",
+      "decidedAt": "2026-03-03T11:27:53.827Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "legionmind"
+    }
+  ]
+}

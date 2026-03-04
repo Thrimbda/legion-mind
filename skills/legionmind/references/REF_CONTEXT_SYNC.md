@@ -12,9 +12,9 @@
 把信息写进文件，而不是长篇对话里。对话只保留“结论 + 下一步”。
 
 ### 任务级四件套（推荐）
-- `docs/task-brief.md`：问题定义 + 验收 + 假设（最小且稳定）
-- `docs/research.md`：现状摸底与证据索引（RFC Heavy 推荐/强制）
-- `docs/rfc.md`：设计方案 + 取舍（中高风险时必备）
+- `.legion/tasks/<task-id>/docs/task-brief.md`：问题定义 + 验收 + 假设（最小且稳定）
+- `.legion/tasks/<task-id>/docs/research.md`：现状摸底与证据索引（RFC Heavy 推荐/强制）
+- `.legion/tasks/<task-id>/docs/rfc.md`：设计方案 + 取舍（中高风险时必备）
 - `context.md`：过程日志 + 决策表 + 交接（append-only）
 - `tasks.md`：结构化进度（机器可读）
 

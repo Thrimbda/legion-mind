@@ -8,7 +8,7 @@ agent: legion
 你必须先做：
 1) `skill({ name: "legionmind" })`
 2) `legion_get_status` 获取当前任务状态
-3) 从 `plan.md` / `config.json` / `docs/pr-body.md` 确认 scope 与 PR 描述
+3) 从 `plan.md` / `config.json` / `<taskRoot>/docs/pr-body.md` 确认 scope 与 PR 描述
 
 约束：
 - 严格检查 scope，避免提交无关文件

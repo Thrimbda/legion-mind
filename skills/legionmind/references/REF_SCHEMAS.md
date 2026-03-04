@@ -54,7 +54,7 @@
 
 ## 范围 (Scope)
 - `src/auth/` - 认证逻辑
-- `docs/rfc.md` - 设计文档
+- `.legion/tasks/<task-id>/docs/rfc.md` - 设计文档
 
 ## 设计索引 (Design Index)
 > **Design Source of Truth**: [RFC 链接或外部文档]
@@ -80,7 +80,7 @@
 
 ---
 
-## 2.5 docs/task-brief.md (问题定义与验收)
+## 2.5 tasks/<task-id>/docs/task-brief.md (问题定义与验收)
 
 **目的**：用最少信息固定“问题是什么 / 为什么 / 怎么验收 / 哪些假设”，防止后续 Agent 反复调查、重复提问和上下文污染。  
 **角色**：读多写少（可以在发现新信息时小幅修订，但要在 `context.md` 记录变更原因）。
@@ -128,7 +128,7 @@
 
 ---
 
-## 2.6 docs/research.md（现状摸底，RFC Heavy 推荐/强制）
+## 2.6 tasks/<task-id>/docs/research.md（现状摸底，RFC Heavy 推荐/强制）
 
 **目的**：把“现在是什么样 / 历史决策是什么 / 关键坑是什么”用证据驱动的方式快速写清，避免后续实现阶段重复调研、重复阅读与重复推理。  
 **角色**：读多写少（设计阶段可迭代更新，但应保持简短）。
@@ -143,7 +143,7 @@
 
 ---
 
-## 2.7 docs/rfc.md（设计方案）
+## 2.7 tasks/<task-id>/docs/rfc.md（设计方案）
 
 **目的**：设计 source of truth；供 review 与实现阶段引用。  
 **角色**：中频更新（被 `review-rfc` 驱动收敛）。
@@ -157,7 +157,7 @@ Heavy 模板参考：
 
 ---
 
-## 2.8 docs/implementation-plan.md（可选）
+## 2.8 tasks/<task-id>/docs/implementation-plan.md（可选）
 
 **目的**：把 RFC 的 Milestones 抽取成更“工程化”的执行清单，便于 tasks.md 更新与分阶段交付。  
 **角色**：可选；对 Epic 任务强烈建议。
@@ -167,7 +167,7 @@ Heavy 模板参考：
 
 ---
 
-## 2.9 docs/risk-register.md / appendix-*.md（可选）
+## 2.9 tasks/<task-id>/docs/risk-register.md / appendix-*.md（可选）
 
 **risk-register.md**
 - 记录风险、触发器、缓解方式、回滚路径
@@ -322,7 +322,7 @@ Reviewer 可以在三个文件的任意位置插入 Review 块。
 - 截图/媒体: `.legion/tasks/<task-id>/reports/`
 
 ### 与 handoff / dashboard 的关系
-- `docs/` 下的文件应在 `context.md` 的“关键文件”里登记（便于交接）。
+- `<taskRoot>/docs/` 下的文件应在 `context.md` 的“关键文件”里登记（便于交接）。
 - `report-walkthrough.md` 与 `pr-body.md` 可作为 dashboard 的重点链接。
 
 ---
