@@ -9,7 +9,12 @@
   "scripts": {
     "opencode:install": "node scripts/setup-opencode.ts install",
     "opencode:verify": "node scripts/setup-opencode.ts verify --strict",
-    "opencode:rollback": "node scripts/setup-opencode.ts rollback"
+    "opencode:rollback": "node scripts/setup-opencode.ts rollback",
+    "benchmark:preflight": "node --experimental-strip-types scripts/benchmark/preflight.ts",
+    "benchmark:smoke": "node --experimental-strip-types scripts/benchmark/run.ts --mode smoke",
+    "benchmark:full": "node --experimental-strip-types scripts/benchmark/run.ts --mode full",
+    "benchmark:score": "node --experimental-strip-types scripts/benchmark/score.ts",
+    "benchmark:report": "node --experimental-strip-types scripts/benchmark/report.ts"
   },
   "engines": {
     "node": ">=22.6.0"

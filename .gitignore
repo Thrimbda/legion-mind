@@ -104,6 +104,13 @@ dist
 # vitepress cache directory
 **/.vitepress/cache
 
+# Benchmark artifacts
+benchmark-runs/
+jobs/
+
+# Keep Nix dev shell tracked (overrides global ignore in some setups)
+!shell.nix
+
 # Docusaurus cache and generated files
 .docusaurus
 

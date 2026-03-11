@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "currentTask": "legion-mind-opencode-plugin",
+  "currentTask": "harbor-benchmark",
   "settings": {
     "autoRemind": true,
     "remindBeforeReset": true,
@@ -17,9 +17,16 @@
     {
       "id": "legion-mind-opencode-plugin",
       "name": "将 legion-mind 打包为可一键安装的 OpenCode Plugin",
-      "status": "active",
+      "status": "paused",
       "createdAt": "2026-03-04T09:05:19.757Z",
-      "updatedAt": "2026-03-04T13:29:45.806Z"
+      "updatedAt": "2026-03-05T06:24:59.687Z"
+    },
+    {
+      "id": "harbor-benchmark",
+      "name": "设计并实现一键启动的 Harbor Benchmark 基线",
+      "status": "active",
+      "createdAt": "2026-03-05T06:24:59.687Z",
+      "updatedAt": "2026-03-05T13:54:32.193Z"
     }
   ],
   "pendingProposals": [
@@ -143,6 +150,72 @@
       "decidedAt": "2026-03-04T09:05:19.757Z",
       "decidedBy": "Claude",
       "createdTaskId": "legion-mind-opencode-plugin"
+    },
+    {
+      "id": "proposal-mmd2zglw-ff1c29",
+      "name": "设计并实现一键启动的 Harbor Benchmark 基线",
+      "goal": "基于 Harbor + OpenCode 设计并落地可一键启动的 benchmark 流程，用于衡量 legion-mind 对真实解题能力的提升。",
+      "rationale": "用户当前目标是验证 legion-mind 是否真实提升解题水平，并要求端到端产出可直接用于 PR 的交付文档。现有 active task 已完成且聚焦安装发布，不包含 benchmark 设计与执行脚本，需要独立任务承载设计、实现、验证与报告闭环。",
+      "points": [
+        "对齐方案一：Terminal-Bench 2.0 + SWE-bench Pro + 项目型补充集",
+        "默认最少人工打断，提供一键脚本与可复用配置",
+        "产出可直接用于 PR 的文档（含执行方式、评分口径与风险说明）"
+      ],
+      "scope": [
+        "README.md",
+        "docs/**",
+        "scripts/**",
+        "package.json",
+        ".gitignore",
+        ".legion/**"
+      ],
+      "phases": [
+        {
+          "name": "任务建模与设计",
+          "tasks": [
+            {
+              "description": "完成 task-brief 与风险分级（含标签判断）",
+              "acceptance": "task-brief 包含问题定义、验收标准、假设、风险、验证计划与标签结论"
+            },
+            {
+              "description": "生成 RFC 并完成 review-rfc 收敛",
+              "acceptance": "rfc 与 review-rfc 可执行且结论为可进入实现"
+            }
+          ]
+        },
+        {
+          "name": "实现与集成",
+          "tasks": [
+            {
+              "description": "实现一键 benchmark 启动脚本与配置模板",
+              "acceptance": "本地通过单命令可触发 Harbor benchmark，包含 preflight 与日志落盘"
+            },
+            {
+              "description": "补充长期文档与仓库入口",
+              "acceptance": "README/docs 明确 benchmark 设计、执行步骤、评分口径与扩展方式"
+            }
+          ]
+        },
+        {
+          "name": "验证与交付",
+          "tasks": [
+            {
+              "description": "执行测试并生成测试报告",
+              "acceptance": "生成 test-report，覆盖脚本 dry-run 或可执行路径"
+            },
+            {
+              "description": "完成代码/安全评审与交付报告",
+              "acceptance": "生成 review-code、必要时 review-security、report-walkthrough 与 pr-body"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-03-05T06:24:55.513Z",
+      "status": "approved",
+      "decidedAt": "2026-03-05T06:24:59.687Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "harbor-benchmark"
     }
   ]
 }

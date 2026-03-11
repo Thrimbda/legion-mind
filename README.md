@@ -27,6 +27,8 @@ opencode
 
 一站式使用说明：`docs/legionmind-usage.md`
 
+Benchmark 基线入口：`docs/benchmark.md`
+
 流程产物默认路径：`.legion/tasks/<task-id>/docs/`（根目录 `docs/` 仅保留长期文档）。
 
 ## 一键安装（发布就绪）
@@ -88,6 +90,20 @@ OpenCode 会在 Actions runner 执行并产出 PR（取决于 workflow 权限和
 3) Merge 后评论 `continue`，Agent 按 RFC Milestones 进入实现
 
 说明：上述阶段产物默认落盘到 `.legion/tasks/<task-id>/docs/`。
+
+## Harbor Benchmark Baseline
+
+快速命令：
+
+```bash
+npm run benchmark:preflight
+npm run benchmark:smoke
+npm run benchmark:full
+npm run benchmark:score -- --run <RUN_ID>
+npm run benchmark:report -- --run <RUN_ID>
+```
+
+详细运行说明、评分口径和排障见 `docs/benchmark.md`。
 
 模板见：
 - `.opencode/skills/legionmind/references/TEMPLATE_RFC_HEAVY.md`

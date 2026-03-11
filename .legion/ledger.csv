@@ -41,3 +41,47 @@
 2026-03-04T13:29:42.803Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addFile: .legion/tasks/legion-mind-opencode-plugin/docs/review-security.md,success
 2026-03-04T13:29:45.807Z,legion_update_context,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,addFile: .legion/tasks/legion-mind-opencode-plugin/docs/pr-body.md,success
 2026-03-04T13:29:49.597Z,legion_get_status,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,,success
+2026-03-05T06:23:16.610Z,legion_get_status,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,,success
+2026-03-05T06:23:23.899Z,legion_list_tasks,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,,success
+2026-03-05T06:24:47.471Z,legion_create_task,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,goal: 基于 Harbor + OpenCode 设计并落地可一键启动的 benchmark 流程，用于衡量 legion-mind 对真实解题能力的提升。,failed
+2026-03-05T06:24:55.515Z,legion_propose_task,legion-mind-opencode-plugin,将 legion-mind 打包为可一键安装的 OpenCode Plugin,Claude,name: 设计并实现一键启动的 Harbor Benchmark 基线,success
+2026-03-05T06:24:59.695Z,legion_approve_proposal,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,proposalId: proposal-mmd2zglw-ff1c29,success
+2026-03-05T06:25:02.402Z,legion_get_status,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,,success
+2026-03-05T06:25:47.626Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,setCurrentTask: phase 1,success
+2026-03-05T06:25:47.626Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,progress.completed: 完成 task-brief，明确问题定义、验收、假设、风险与验证计划,success
+2026-03-05T06:25:47.626Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,completeTask: phase 1,success
+2026-03-05T06:25:47.626Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addDecision: 本任务分级为 Medium（非 Epic/High），执行 standard RFC + review-rfc 后再实现,success
+2026-03-05T06:25:58.670Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,completeTask: 完成 task-brief 与风险分级（含标签判断）,success
+2026-03-05T06:26:02.508Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,setCurrentTask: 生成 RFC 并完成 review-rfc 收敛,success
+2026-03-05T06:30:31.264Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,completeTask: 生成 RFC 并完成 review-rfc 收敛,success
+2026-03-05T06:30:31.268Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,setCurrentTask: 实现一键 benchmark 启动脚本与配置模板,success
+2026-03-05T06:30:31.273Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,"progress.completed: 完成 task-brief 与标签判定（Risk=Medium, Epic=No）",success
+2026-03-05T06:30:31.274Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addDecision: 采用 Harbor baseline v1 固定命令映射与 profileId/sampleSetId 契约,success
+2026-03-05T06:37:18.286Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,completeTask: 补充长期文档与仓库入口,success
+2026-03-05T06:37:18.286Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,completeTask: 实现一键 benchmark 启动脚本与配置模板,success
+2026-03-05T06:37:18.286Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,setCurrentTask: 执行测试并生成测试报告,success
+2026-03-05T06:37:18.286Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,progress.completed: 实现 scripts/benchmark preflight/run/score 与共享工具模块,success
+2026-03-05T06:37:18.290Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addFile: scripts/benchmark/run.ts,success
+2026-03-05T06:37:18.290Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addFile: scripts/benchmark/preflight.ts,success
+2026-03-05T06:37:18.299Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addFile: docs/benchmark.md,success
+2026-03-05T06:37:25.206Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,completeTask: 实现一键 benchmark 启动脚本与配置模板,success
+2026-03-05T06:37:27.370Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,setCurrentTask: 执行测试并生成测试报告,success
+2026-03-05T06:39:10.643Z,legion_query_ledger,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,"taskId: harbor-benchmark, limit: 200",success
+2026-03-05T06:43:59.786Z,legion_get_status,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,,success
+2026-03-05T06:45:17.714Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,completeTask: 执行测试并生成测试报告,success
+2026-03-05T06:45:20.523Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,setCurrentTask: 完成代码/安全评审与交付报告,success
+2026-03-05T06:45:27.541Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,progress.completed: 完成 benchmark 脚本安全加固：run-id 与 write path 防穿越校验,success
+2026-03-05T06:45:27.543Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addDecision: 统一使用 resolve+isWithin 路径边界校验并引入 sanitizeRunId,success
+2026-03-05T06:47:16.516Z,legion_update_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,completeTask: 完成代码/安全评审与交付报告,success
+2026-03-05T06:47:21.864Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,progress.completed: 生成 report-walkthrough 与 pr-body 交付文档,success
+2026-03-05T06:47:31.785Z,legion_get_status,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,,success
+2026-03-05T06:48:00.108Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addFile: .legion/playbook.md,success
+2026-03-05T08:55:21.149Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addDecision: Preflight 不再硬依赖 OPENAI/ANTHROPIC key，改为“API key 或 opencode model probe 任一通过”,success
+2026-03-05T09:17:34.468Z,legion_update_plan,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,,success
+2026-03-05T09:17:41.582Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,progress.completed: 新增 `shell.nix`（nix-darwin）并通过 uv tool run 提供 harbor 命令,success
+2026-03-05T09:17:41.599Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addFile: shell.nix,success
+2026-03-05T09:17:41.601Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addDecision: 在 shell.nix 内通过 `uv tool run --from harbor harbor` 提供 Harbor CLI,success
+2026-03-05T13:54:32.204Z,legion_update_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,addDecision: 将 Harbor result.json 作为首选统计来源，raw 文本仅作为降级兜底,success
+2026-03-11T13:54:33.901Z,legion_list_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,,success
+2026-03-11T13:54:46.033Z,legion_get_status,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,,success
+2026-03-11T13:54:46.033Z,legion_read_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,"section: all, includeReviews: true",success

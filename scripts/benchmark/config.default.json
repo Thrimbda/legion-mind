@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "profileId": "harbor-baseline-v1",
+  "sampleSetId": {
+    "smoke": "smoke-v1",
+    "full": "full-v1"
+  },
+  "defaults": {
+    "model": "opencode/big-pickle",
+    "concurrency": 1,
+    "outDir": "benchmark-runs"
+  },
+  "datasets": [
+    {
+      "key": "terminal-bench",
+      "datasetVersion": "terminal-bench@2.0",
+      "runner": "harbor-run",
+      "required": {
+        "smoke": true,
+        "full": true
+      },
+      "enabledByDefault": {
+        "smoke": true,
+        "full": true
+      },
+      "weight": 0.5
+    },
+    {
+      "key": "swebenchpro",
+      "datasetVersion": "swebenchpro",
+      "runner": "harbor-jobs-start",
+      "required": {
+        "smoke": false,
+        "full": true
+      },
+      "enabledByDefault": {
+        "smoke": false,
+        "full": true
+      },
+      "weight": 0.5
+    },
+    {
+      "key": "project-interview",
+      "datasetVersion": "project-interview",
+      "runner": "harbor-run",
+      "required": {
+        "smoke": false,
+        "full": false
+      },
+      "enabledByDefault": {
+        "smoke": false,
+        "full": false
+      },
+      "weight": 0
+    }
+  ]
+}
