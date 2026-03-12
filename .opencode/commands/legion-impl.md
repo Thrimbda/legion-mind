@@ -6,11 +6,12 @@ agent: legion
 你必须先做：
 1) `skill({ name: "legionmind" })`
 2) `legion_get_status` 获取当前任务状态（无工具则读取 `.legion/tasks/<id>/` 三文件）
+3) 恢复顺序固定为：`plan.md` -> `docs/rfc.md`（若存在）-> `context.md` / `tasks.md`
 
 然后执行以下流程：
 
 ### 阶段 A: 工程实现
-调用 `engineer` agent（必须传 scope + task-brief/RFC 摘要）。
+调用 `engineer` agent（必须传 scope + plan/RFC 摘要）。
 
 ### 阶段 B: 验证与审查
 依次执行：
@@ -27,5 +28,7 @@ agent: legion
 - 不要阻塞追问“是否批准设计”；采用 PR 驱动延迟批准（merge 即批准）
 - 所有阻塞点写进 `.legion/tasks/<id>/tasks.md`，让人类在 PR 一次性处理
 - 任务产物默认只写 `<taskRoot>/docs/`，不要默认写根目录 `docs/`
+- `plan.md` 是唯一任务契约与允许 Scope 真源；`rfc.md` 是详细设计真源
+- 测试报告、review、walkthrough、pr-body 默认使用当前用户与 agent 的工作语言；只有仓库已有明确文档语言约定时才覆盖这一默认值，不要默认写英文
 
 完成后输出产物路径（同 /legion）。

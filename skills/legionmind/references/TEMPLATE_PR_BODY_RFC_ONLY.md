@@ -25,7 +25,7 @@
 - 合并后在同一 issue/PR 评论里写 `continue`，Agent 将进入实现阶段（按 Milestones 逐步交付）。
 
 ## Links
-- task-brief: `...`
+- plan: `...`
 - research: `...`
 - rfc: `...`
 - review-rfc: `...`

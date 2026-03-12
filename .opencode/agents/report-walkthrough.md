@@ -17,7 +17,7 @@ permission:
 
 输入包含：
 - mode（可选）：`implementation`（默认）或 `rfc-only`（仅设计 PR）
-- Task Context（通常来自 task-brief/RFC 的精简摘要）
+- Task Context（通常来自 plan/RFC 的精简摘要）
 - repoRoot / taskRoot / scope
 - 相关文档路径（RFC、review 报告、test report、bench 等）
 - output paths：
@@ -29,6 +29,10 @@ permission:
 ## 必须生成
 
 根据 `mode` 生成对应的报告与 PR 描述。
+
+文档语言规则：
+- walkthrough 与 PR body 默认使用当前用户与 agent 的工作语言。
+- 若仓库已有明确文档语言约定，则遵循仓库约定；不要默认写英文。
 
 ### mode=implementation（默认）
 #### 1) Walkthrough（详细报告）
@@ -42,17 +46,17 @@ permission:
 
 #### 2) PR Body（简洁）
 写入 `prBodyPath`，适合直接作为 PR 描述：
-- What / Why / How（每项 2-5 行）
+- What / Why / How（每项 2-5 行；标签名可按当前用户与 agent 的工作语言本地化）
 - Testing（引用 test-report；若缺失则写 N/A 与原因）
 - Risk / Rollback
-- Links（task-brief/RFC/reviews/walkthrough）
+- Links（plan/RFC/reviews/walkthrough）
 
 ---
 
 ### mode=rfc-only（设计 PR / RFC-only Draft PR）
 #### 1) Walkthrough（设计 walkthrough）
 写入 `walkthroughPath`，包含：
-- 问题定义（引用 task-brief）
+- 问题定义（引用 plan）
 - 现状摸底摘要（引用 research，如有）
 - 方案摘要（RFC Executive Summary）
 - Alternatives & Decision（2-5 行）
@@ -65,7 +69,7 @@ permission:
 - 本 PR 仅包含设计产物（无生产代码变更）
 - Review Focus checklist
 - Next（merge 后继续实现）
-- Links（task-brief/research/rfc/review-rfc）
+- Links（plan/research/rfc/review-rfc）
 
 推荐参考模板：
 - `.opencode/skills/legionmind/references/TEMPLATE_PR_BODY_RFC_ONLY.md`

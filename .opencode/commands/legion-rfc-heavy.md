@@ -14,15 +14,20 @@ agent: legion
 - 若已有 `.legion/`：`legion_get_status` → 恢复 active task
 - 否则：创建新 task（按 REF_SCHEMAS）
 
-3) 设置档位与阶段（写入 task-brief + context 决策表）：
+3) 设置档位与阶段（写入 plan + context 决策表）：
 - `rfcProfile=heavy`
 - `stage=design-only`
 
-4) 生成/更新 `<taskRoot>/docs/task-brief.md`
+4) 先生成/更新 `<taskRoot>/plan.md`（唯一任务契约 + 执行索引），确保其覆盖问题定义、验收、假设/约束/风险、目标、要点、范围、设计索引、阶段概览，且保持摘要级
 
 5) 设计产物（不写生产代码）：
 - `spec-rfc`：写 `<taskRoot>/docs/research.md` + `<taskRoot>/docs/rfc.md`（heavy）
 - `review-rfc`：写 `<taskRoot>/docs/review-rfc.md`
+
+补充约束：
+- `plan.md` 负责问题定义、验收、假设、约束、风险、目标、要点、范围与设计索引
+- `plan.md` 不能替代 RFC；详细设计仍放在 `rfc.md`
+- 设计产物默认使用当前用户与 agent 的工作语言；只有仓库已有明确文档语言约定时才覆盖这一默认值，不要默认写英文
 
 6) 生成 RFC-only Draft PR 描述：
 - `report-walkthrough`：`mode=rfc-only`

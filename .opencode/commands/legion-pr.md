@@ -8,10 +8,12 @@ agent: legion
 你必须先做：
 1) `skill({ name: "legionmind" })`
 2) `legion_get_status` 获取当前任务状态
-3) 从 `plan.md` / `config.json` / `<taskRoot>/docs/pr-body.md` 确认 scope 与 PR 描述
+3) 从 `plan.md` / `config.json` / `<taskRoot>/docs/pr-body.md` 确认 scope 与 PR 描述（以 `plan.md` 为人类可读 scope 真源，`config.json` 仅作 mirror）
 
 约束：
 - 严格检查 scope，避免提交无关文件
+- 若 `plan.md` 与 `config.json` scope 不一致，先修复漂移再提交
+- 默认保留 `<taskRoot>/docs/pr-body.md` 的当前用户与 agent 的工作语言；除非仓库已有明确文档语言约定，不要在收尾阶段把 PR 描述强行改成英文
 - commit 使用 Conventional Commits
 - 默认分支：`legion/<task-id>-<slug>`
 

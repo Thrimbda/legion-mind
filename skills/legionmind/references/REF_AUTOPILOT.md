@@ -37,7 +37,7 @@
 ## 4. Autopilot 的交付物清单（最小且足够）
 
 每个任务结束前，至少产出：
-- `.legion/tasks/<task-id>/docs/task-brief.md`
+- `.legion/tasks/<task-id>/plan.md`
 - `.legion/tasks/<task-id>/docs/pr-body.md`
 - `.legion/tasks/<task-id>/docs/test-report.md`（若没跑测试，写清原因与替代验证方式）
 - （中高风险）`.legion/tasks/<task-id>/docs/rfc.md` + `.legion/tasks/<task-id>/docs/review-rfc.md`
@@ -57,7 +57,7 @@
 
 当任务被判断为 **Epic/High-risk**（或用户显式写 `rfc:heavy`）时：
 
-- **默认先做设计产物**：生成 `task-brief + research + rfc + review-rfc + pr-body`
+- **默认先做设计产物**：生成 `plan + research + rfc + review-rfc + pr-body`
 - **推荐开 Draft PR（仅 docs）**：用于设计审阅（Merge 视为设计批准）
 - **不强制对话中批准**：避免打断；批准在 PR 上完成
 - **继续实现的触发**：设计 PR merge 后，用户在 issue/PR 评论里写 `continue`（或 `implement`），Agent 进入实现阶段（按 Milestones 分步交付）

@@ -17,7 +17,7 @@
 延迟批准的前提：
 - 仍然必须产出 **design-lite** 或 **RFC**
 - 必须至少完成一次 **对抗审查/自检**（低风险可自检；中高风险必须 `review-rfc`）
-- 所有假设必须写入 `.legion/tasks/<task-id>/docs/pr-body.md`（让人类在 PR review 一次性纠偏）
+- 所有稳定假设必须先写入 `plan.md`，必要时在 `.legion/tasks/<task-id>/docs/pr-body.md` 再摘要给 reviewer（让人类在 PR review 一次性纠偏）
 
 ---
 
@@ -41,7 +41,7 @@
 - 没有对外 API 合约变更（接口、schema、wire format）
 
 门禁要求：
-- 允许 **design-lite**（写在 `<taskRoot>/docs/rfc.md` 的 “Design-lite” 章节或单独 `<taskRoot>/docs/task-brief.md`）
+- 允许 **design-lite**（写在 `<taskRoot>/docs/rfc.md` 的 “Design-lite” 章节；稳定问题/验收/假设/风险写在 `plan.md`）
 - 直接进入实现
 - 设计批准：**延迟批准（PR merge）**即可
 
@@ -87,7 +87,7 @@
 - Unknowns ≥ 3（需要明显调研）
 
 ### 门禁要求（强制交付物）
-- `<taskRoot>/docs/task-brief.md`
+- `<taskRoot>/plan.md`
 - `<taskRoot>/docs/research.md`（证据驱动现状摸底）
 - `<taskRoot>/docs/rfc.md`（heavy 模板）
 - `<taskRoot>/docs/review-rfc.md`（必须 PASS 才能进入实现）
@@ -107,16 +107,16 @@
 4. **可回滚**：回滚只需 `git revert`，不会产生数据损坏
 
 即使走快速通道，也必须写清：
-- Scope（允许改哪些文件/目录）
-- Assumptions（你做了哪些默认假设）
-- Verification（怎么验收：测试命令 / 复现步骤）
+- Scope（写在 `plan.md`，明确允许改哪些文件/目录）
+- Assumptions（写在 `plan.md`，明确默认假设）
+- Verification / Acceptance（写在 `plan.md`，说明怎么验收：测试命令、人工检查或交付产物）
 
 ---
 
 ## 4. 标准流程（中/高风险）
 
 1. 起草 RFC（写入 `<taskRoot>/docs/rfc.md`）
-2. 更新 `plan.md` 的 Design Index 链接到 RFC
+2. 更新 `plan.md` 的 Design Index 链接到 RFC；不要把 RFC 细节复制回 `plan.md`
 3. 对抗审查：`review-rfc` → PASS/FAIL
 4. FAIL 则回到 RFC 迭代，直到收敛
 5. 进入实现

@@ -27,14 +27,21 @@ permission:
 写入位置：
 - 使用 Write 工具写入 `outputPath`
 
+文档语言规则：
+- review 报告默认使用当前用户与 agent 的工作语言。
+- 若仓库已有明确文档语言约定，则遵循仓库约定；不要默认写英文。
+
 格式：
+
+标题和小节名可本地化，下面示例使用中文结构。
+
 ```markdown
-# Code Review Report
+# 代码审查报告
 
 ## 结论
 PASS / FAIL
 
-## Blocking Issues
+## 阻塞问题
 - [ ] `path/to/file.ts:42` - 原因...
 
 ## 建议（非阻塞）

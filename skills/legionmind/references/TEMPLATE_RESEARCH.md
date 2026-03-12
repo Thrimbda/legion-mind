@@ -5,7 +5,7 @@
 
 ---
 
-## 1. Problem Restatement（基于 task-brief）
+## 1. Problem Restatement（基于 plan.md / issue / repo 现状）
 - 一句话复述：...
 - 影响范围：...
 

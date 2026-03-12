@@ -149,7 +149,7 @@
 ---
 
 ## 15. References（证据索引）
-- Task brief: `<taskRoot>/docs/task-brief.md`
+- Plan: `<taskRoot>/plan.md`
 - Research: `<taskRoot>/docs/research.md`
 - Relevant files:
   - `...`

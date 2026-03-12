@@ -12,12 +12,11 @@
 ├── ledger.csv           # 所有操作的审计日志
 ├── playbook.md          # 跨任务沉淀（推荐）
 └── tasks/{task-id}/     # 任务级产物
-    ├── plan.md          # 任务目标与设计索引
+    ├── plan.md          # 唯一任务契约：问题/验收/范围/设计入口/阶段概览
     ├── context.md       # 进展日志与交接文档
     ├── tasks.md         # 结构化任务清单
-    ├── config.json      # 任务级配置（推荐，含 Scope 结构）
+    ├── config.json      # 任务级配置（可选，Scope mirror）
     ├── docs/            # 设计/评审/报告（推荐）
-    │   ├── task-brief.md
     │   ├── research.md              # RFC Heavy：证据驱动现状摸底（推荐/强制）
     │   ├── rfc.md
     │   ├── review-rfc.md
@@ -35,10 +34,18 @@
 
 ---
 
-## 2. plan.md (任务计划与索引)
+## 1.5 文档语言约定
 
-**目的**: 定义“做什么” (Goal) 和“为什么” (Why)。作为详细设计 (RFC) 的索引。
-**角色**: 读多写少 (主要供 Reviewer 审阅，创建后少变动)。
+- `.legion/tasks/<task-id>/plan.md`、`context.md`、`tasks.md` 与 `docs/*.md` 默认使用当前用户与 agent 的工作语言。
+- 若仓库已有明确文档语言约定，则遵循仓库约定。
+- 不要因为模板示例或历史标题曾使用英文，就把新文档默认写成英文。
+
+---
+
+## 2. plan.md (任务契约 + 执行索引)
+
+**目的**: 作为唯一的人类可读任务契约，定义问题陈述、验收标准、假设/约束/风险、目标、要点、允许 Scope、设计入口与阶段概览。
+**角色**: 读多写少 (创建后少变动；当契约、Scope、设计入口或阶段切分变化时更新)。
 
 ### 结构
 
@@ -46,7 +53,19 @@
 # {Task Name}
 
 ## 目标
-(一句话描述目标)
+(1-2 句话概括期望结果)
+
+## 问题陈述
+(为什么要做、当前痛点是什么、期望改善什么)
+
+## 验收标准
+- [ ] (可验证的验收条件 1)
+- [ ] (可验证的验收条件 2)
+
+## 假设 / 约束 / 风险
+- **假设**: ...
+- **约束**: ...
+- **风险**: ...
 
 ## 要点
 - **关键词1**: 描述
@@ -72,63 +91,19 @@
 ```
 
 ### 校验规则
-- **标题必须保留**: 为了兼容 MCP，必须保留 `## 目标`、`## 要点`、`## 范围`、`## 阶段概览` 这几个二级标题。
-- **设计内容**: 与旧版不同，详细的设计（接口、流程图）**应该**放在 RFC 中。此文件仅提供链接和简要摘要。
+- **标题必须保留**: 为了兼容 MCP，必须保留 `## 目标`、`## 问题陈述`、`## 验收标准`、`## 假设 / 约束 / 风险`、`## 要点`、`## 范围`、`## 阶段概览` 这几个二级标题。
+- **唯一契约真源**: `plan.md` 是唯一的人类可读任务契约；不要再生成、依赖或回退读取 `task-brief.md`。
+- **设计内容**: 详细设计（接口、流程图、取舍）**应该**放在 RFC 或 design-lite 文档中。此文件仅提供链接和 1-2 段简要摘要。
+- **设计索引条件**: 当任务存在 design-lite 或任何 RFC/设计文档时，`## 设计索引` 为必需；否则可省略。
+- **职责边界**: `plan.md` 要覆盖问题、验收和风险，但只能保留摘要级信息；不要粘贴大段 RFC 正文、迁移细节、测试矩阵或实现推导。
+- **Scope 真源**: `## 范围` 是唯一的人类可读授权边界；`config.json` 若存在，只能镜像这里的 Scope，不能独立收紧、扩展或否定 `plan.md`。
 
 ---
 
 
 ---
 
-## 2.5 tasks/<task-id>/docs/task-brief.md (问题定义与验收)
-
-**目的**：用最少信息固定“问题是什么 / 为什么 / 怎么验收 / 哪些假设”，防止后续 Agent 反复调查、重复提问和上下文污染。  
-**角色**：读多写少（可以在发现新信息时小幅修订，但要在 `context.md` 记录变更原因）。
-
-### 结构（推荐）
-
-```markdown
-# Task Brief
-
-## Problem Statement
-(用 3-8 句话描述：现象、期望、影响范围、复现条件)
-
-## Acceptance Criteria
-- [ ] (可验证的验收条件 1)
-- [ ] (可验证的验收条件 2)
-
-## Constraints
-- (约束：兼容性、性能、安全、依赖、部署等)
-
-## Assumptions
-- (你做了哪些默认假设？哪些信息缺失但你先按某种方式处理？)
-
-## Non-Goals
-- (明确不做什么，避免 scope creep)
-
-## Risks
-- (潜在风险点 + 回滚/缓解方式)
-
-## Verification Plan
-- Commands:
-  - `...`
-- Expected:
-  - (预期现象/输出)
-- Manual checks (如需要):
-  - ...
-
-## References
-- (issue/PR 链接、关键文件路径、相关 ADR/RFC 链接)
-```
-
-### 规则
-- 不要粘贴大段代码；用文件路径/行号或简要片段引用即可。
-- 如果和 RFC 重复，保留 task-brief 的“问题定义 + 验收 + 假设”，其余细节放 RFC。
-
-
----
-
-## 2.6 tasks/<task-id>/docs/research.md（现状摸底，RFC Heavy 推荐/强制）
+## 2.5 tasks/<task-id>/docs/research.md（现状摸底，RFC Heavy 推荐/强制）
 
 **目的**：把“现在是什么样 / 历史决策是什么 / 关键坑是什么”用证据驱动的方式快速写清，避免后续实现阶段重复调研、重复阅读与重复推理。  
 **角色**：读多写少（设计阶段可迭代更新，但应保持简短）。
@@ -143,7 +118,7 @@
 
 ---
 
-## 2.7 tasks/<task-id>/docs/rfc.md（设计方案）
+## 2.6 tasks/<task-id>/docs/rfc.md（设计方案）
 
 **目的**：设计 source of truth；供 review 与实现阶段引用。  
 **角色**：中频更新（被 `review-rfc` 驱动收敛）。
@@ -157,7 +132,7 @@ Heavy 模板参考：
 
 ---
 
-## 2.8 tasks/<task-id>/docs/implementation-plan.md（可选）
+## 2.7 tasks/<task-id>/docs/implementation-plan.md（可选）
 
 **目的**：把 RFC 的 Milestones 抽取成更“工程化”的执行清单，便于 tasks.md 更新与分阶段交付。  
 **角色**：可选；对 Epic 任务强烈建议。
@@ -167,7 +142,7 @@ Heavy 模板参考：
 
 ---
 
-## 2.9 tasks/<task-id>/docs/risk-register.md / appendix-*.md（可选）
+## 2.8 tasks/<task-id>/docs/risk-register.md / appendix-*.md（可选）
 
 **risk-register.md**
 - 记录风险、触发器、缓解方式、回滚路径
@@ -278,9 +253,9 @@ Reviewer 可以在三个文件的任意位置插入 Review 块。
 
 ---
 
-## 6. tasks/<task-id>/config.json (任务级配置，推荐)
+## 6. tasks/<task-id>/config.json (任务级配置，可选)
 
-**目的**: 提供机器可校验的 Scope，避免“自然语言范围”难以约束。
+**目的**: 提供机器可校验的 Scope mirror，避免“自然语言范围”难以约束。
 
 ### 示例
 ```json
@@ -296,15 +271,12 @@ Reviewer 可以在三个文件的任意位置插入 Review 块。
 - `allow` / `deny` 使用 Glob（与常用 gitignore/minimatch 语义一致）。
 - `deny` 优先级最高：匹配 `deny` 即视为越界。
 - 若存在 `allow`，则所有改动必须命中 `allow` 且不命中 `deny`。
-- 若缺失 `config.json`，允许回退到 `plan.md` 的 Scope 列表（弱约束）。
+- `plan.md` 的 `## 范围` 是人类可读的 Scope 真源；`config.json` 只能镜像或结构化表达同一范围，不能独立收紧、扩展或否定 `plan.md`。
+- 若缺失 `config.json`，允许直接以 `plan.md` 的 Scope 列表为准。
 
 ---
 
 ## 7. docs/ 与 reports/ 约定（推荐）
-
----
-
-## 6. docs/ 与 reports/ 约定（推荐）
 
 **目的**: 统一文档输出位置，便于 orchestrator 与子 agent 读取/写入。
 

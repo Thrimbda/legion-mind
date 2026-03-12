@@ -50,18 +50,24 @@ permission:
 
 1) 使用 Write 工具写入 `outputPath`（给人类/Orchestrator 审阅）
 
+文档语言规则：
+- review 报告默认使用当前用户与 agent 的工作语言。
+- 若仓库已有明确文档语言约定，则遵循仓库约定；不要默认写英文。
+
 格式必须包含结论：
 
+标题和小节名可本地化，下面示例使用中文结构。
+
 ```markdown
-# RFC Review Report
+# RFC 审查报告
 
 ## 结论
 PASS / FAIL
 
-## Blocking Issues
+## 阻塞问题
 - [ ] 问题描述...
 
-## Non-blocking
+## 非阻塞建议
 - 建议...
 
 ## 修复指导

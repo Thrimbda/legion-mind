@@ -55,24 +55,28 @@ permission:
 
 使用 Write 工具写入 `testReportPath`，格式：
 
-```markdown
-# Test Report
+文档语言规则：
+- 测试报告默认使用当前用户与 agent 的工作语言。
+- 若仓库已有明确文档语言约定，则遵循仓库约定；不要默认写英文。
 
-## Command
+```markdown
+# 测试报告
+
+## 执行命令
 `...`
 
-## Result
+## 结果
 PASS / FAIL
 
-## Summary
+## 摘要
 - ...
 
-## Failures (if any)
+## 失败项（如有）
 - ...
 
-## Notes
-- why this command
-- alternatives considered
+## 备注
+- 为什么选这个命令
+- 考虑过哪些备选项
 ```
 
 最后在对话中输出 handoff 包（<= 200 行）：

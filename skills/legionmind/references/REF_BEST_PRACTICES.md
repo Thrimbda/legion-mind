@@ -10,6 +10,7 @@
 2.  **决策追踪**: 如果你花了 >5 分钟思考 "选 A 还是选 B"，**必须记录**在 `context.md` 的决策表中。
 3.  **显式阻塞**: 如果遇到卡顿，立即将问题添加到 `context.md` 的 **Blocked** (阻塞/待定) 区域。
 4.  **原子任务**: `tasks.md` 中的条目必须可验证。“修复 Bug”是坏任务；“修复 AuthHandler 中的空指针异常”是好任务。
+5.  **文档语言一致**: 任务文档默认跟随当前用户与 agent 的工作语言；若仓库已有明确文档语言规范，则遵循仓库规范，不要默认写英文。
 
 ---
 
@@ -36,12 +37,16 @@
 
 ### ✅ Do (推荐)
 - **目标** (Goal) 控制在 3 句话以内。
+- 用 3-8 句话写清 **问题陈述**，并保持为摘要级任务契约。
+- 把 **验收标准** 写成可映射到测试或人工检查的条目。
 - 使用 **设计索引** (Design Index) 链接到真正的 RFC/Spec。
 - 清晰定义 **范围** (Scope)（哪些目录是允许修改的？）。
+- 明确记录 **假设 / 约束 / 风险**，但把实现推导留在 RFC。
 
 ### ❌ Don't (禁止)
 - 在这里写详细的实现逻辑（放到 RFC 去）。
 - 重复 `tasks.md` 里的信息。
+- 把 `plan.md` 写成小型 RFC，或粘贴完整测试矩阵、迁移步骤、威胁模型正文。
 
 ---
 
@@ -58,8 +63,9 @@
 **场景**: 实现一个新功能。
 
 1.  **Start**: `legion_read_context` 加载状态。
-2.  **Design**: 阅读 `plan.md` 中链接的 RFC。
-3.  **Code**: 实现 1 个单元。
-4.  **Log**: `legion_update_tasks` (标记完成), `legion_update_context` (记录决策)。
-5.  **Repeat**: 重复步骤 3-4。
-6.  **End**: `run-tests`, 然后 `legion_update_context` (交接)。
+2.  **Contract**: 先阅读 `.legion/tasks/<task-id>/plan.md` 恢复问题、验收、Scope 与阶段。
+3.  **Design**: 若 `plan.md` 链接 RFC，再阅读 `.legion/tasks/<task-id>/docs/rfc.md`。
+4.  **Code**: 实现 1 个单元。
+5.  **Log**: `legion_update_tasks` (标记完成), `legion_update_context` (记录决策)。
+6.  **Repeat**: 重复步骤 4-5。
+7.  **End**: `run-tests`, 然后 `legion_update_context` (交接)。

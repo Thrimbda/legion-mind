@@ -85,3 +85,49 @@
 2026-03-11T13:54:33.901Z,legion_list_tasks,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,,success
 2026-03-11T13:54:46.033Z,legion_get_status,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,,success
 2026-03-11T13:54:46.033Z,legion_read_context,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,"section: all, includeReviews: true",success
+2026-03-11T21:58:16.940Z,legion_get_status,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,,success
+2026-03-11T21:58:50.754Z,legion_create_task,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,goal: 重新定义 LegionMind 中 task-brief 与 plan.md 的分工，减少重复信息并同步更新技能、命令与使用文档。,failed
+2026-03-11T21:59:06.637Z,legion_propose_task,harbor-benchmark,设计并实现一键启动的 Harbor Benchmark 基线,Claude,name: 精简 task-brief 与 plan 的职责边界,success
+2026-03-11T21:59:12.377Z,legion_approve_proposal,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,proposalId: proposal-mmmkzxxn-82f9f2,success
+2026-03-11T21:59:22.649Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T22:01:14.173Z,legion_update_tasks,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,completeTask: phase 1,success
+2026-03-11T22:01:14.227Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addDecision: 本任务按 Medium Risk + 非 Epic 执行，并要求 standard RFC,success
+2026-03-11T22:08:24.921Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T22:08:24.978Z,legion_read_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,"section: all, includeReviews: true",success
+2026-03-11T22:12:38.430Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addDecision: 保留 tasks/<task-id>/config.json 作为可选 machine-readable scope mirror，但将 plan.md 定义为唯一的人类可读 scope 真源,success
+2026-03-11T22:26:00.986Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T22:48:02.860Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T22:49:58.935Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T22:52:15.461Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T22:53:27.167Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addFile: .legion/tasks/task-brief-plan/docs/test-report.md,success
+2026-03-11T22:57:54.888Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T22:57:54.890Z,legion_read_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,"section: all, includeReviews: true",success
+2026-03-11T23:04:08.341Z,legion_read_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,"section: all, includeReviews: true",success
+2026-03-11T23:04:08.341Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T23:07:48.530Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T23:10:41.113Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T23:13:06.379Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T23:13:06.398Z,legion_read_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,"section: all, includeReviews: true",success
+2026-03-11T23:15:12.081Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addDecision: LegionMind 任务文档默认使用当前用户与 agent 的工作语言；仅在仓库已有明确文档语言约定时才整体跟随仓库约定,success
+2026-03-11T23:15:12.088Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addFile: .legion/tasks/task-brief-plan/plan.md,success
+2026-03-11T23:15:12.090Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addFile: .legion/tasks/task-brief-plan/docs/rfc.md,success
+2026-03-11T23:15:12.096Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addFile: .legion/tasks/task-brief-plan/docs/test-report.md,success
+2026-03-11T23:15:12.096Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addFile: .legion/tasks/task-brief-plan/docs/review-security.md,success
+2026-03-11T23:15:12.096Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addFile: .legion/tasks/task-brief-plan/docs/review-code.md,success
+2026-03-11T23:15:12.106Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addFile: .legion/tasks/task-brief-plan/docs/report-walkthrough.md,success
+2026-03-11T23:15:12.106Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addFile: .legion/tasks/task-brief-plan/docs/pr-body.md,success
+2026-03-11T23:16:39.925Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-11T23:18:07.550Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-12T03:26:22.557Z,legion_update_tasks,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addTask: 批量更新 skill/reference/agent/command/usage 到 plan-only,success
+2026-03-12T03:26:22.559Z,legion_update_tasks,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addTask: 刷新验证、评审、walkthrough 与 PR body 以反映 plan-only,success
+2026-03-12T03:26:22.559Z,legion_update_tasks,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addTask: 按用户新决策重写设计为 plan-only，并移除 task-brief 兼容假设,success
+2026-03-12T03:26:22.559Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addDecision: 放弃 task-brief/plan 双文件模型，改为 plan-only，且 LegionMind 层不做向后兼容,success
+2026-03-12T03:26:26.987Z,legion_update_tasks,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,setCurrentTask: 按用户新决策重写设计为 plan-only，并移除 task-brief 兼容假设,success
+2026-03-12T03:27:05.993Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-12T03:31:13.806Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-12T03:45:24.530Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-12T03:52:29.730Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-12T03:54:26.493Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-12T03:54:26.505Z,legion_read_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,"section: all, includeReviews: true",success
+2026-03-12T03:57:45.469Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addFile: .legion/tasks/task-brief-plan/docs/task-brief.md,success
+2026-03-12T03:57:45.517Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addDecision: 当前任务样例自身也必须迁移为 plan-only，不保留 `docs/task-brief.md` 作为历史兼容输入,success

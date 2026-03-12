@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "currentTask": "harbor-benchmark",
+  "currentTask": "task-brief-plan",
   "settings": {
     "autoRemind": true,
     "remindBeforeReset": true,
@@ -24,9 +24,16 @@
     {
       "id": "harbor-benchmark",
       "name": "设计并实现一键启动的 Harbor Benchmark 基线",
-      "status": "active",
+      "status": "paused",
       "createdAt": "2026-03-05T06:24:59.687Z",
-      "updatedAt": "2026-03-05T13:54:32.193Z"
+      "updatedAt": "2026-03-11T21:59:12.373Z"
+    },
+    {
+      "id": "task-brief-plan",
+      "name": "精简 task-brief 与 plan 的职责边界",
+      "status": "active",
+      "createdAt": "2026-03-11T21:59:12.373Z",
+      "updatedAt": "2026-03-12T03:57:45.517Z"
     }
   ],
   "pendingProposals": [
@@ -50,8 +57,8 @@
           "name": "设计与任务建模",
           "tasks": [
             {
-              "description": "创建 task-brief 并完成风险/规模分级",
-              "acceptance": "docs/task-brief.md 包含问题定义、验收、假设、风险与验证计划"
+              "description": "创建 plan 并完成风险/规模分级",
+              "acceptance": "plan.md 包含问题定义、验收、假设/约束/风险、范围与设计索引"
             }
           ]
         },
@@ -216,6 +223,71 @@
       "decidedAt": "2026-03-05T06:24:59.687Z",
       "decidedBy": "Claude",
       "createdTaskId": "harbor-benchmark"
+    },
+    {
+      "id": "proposal-mmmkzxxn-82f9f2",
+      "name": "精简 task-brief 与 plan 的职责边界",
+      "goal": "将 LegionMind 重构为 plan-only 工作流，移除 task-brief.md，并同步更新技能、命令、模板与使用文档。",
+      "rationale": "用户先指出 task-brief 与 plan 存在重复，随后明确决定若两者冲突则只保留 plan，且 LegionMind 层不做向后兼容。现有 active task 聚焦 benchmark，不适合承载这次工作流/文档架构重构，需要独立任务跟踪设计、实现、验证与 PR 产物。",
+      "points": [
+        "移除 task-brief.md，改由 plan.md 同时承载任务契约与执行索引",
+        "将 taskBriefPath 全面替换为 planPath，不在 LegionMind 层兼容旧模型",
+        "确保命令、agent 提示词、schema、模板与使用文档口径一致"
+      ],
+      "scope": [
+        "skills/legionmind/**",
+        ".opencode/agents/**",
+        ".opencode/commands/**",
+        "docs/**",
+        ".legion/**"
+      ],
+      "phases": [
+        {
+          "name": "建模与设计",
+          "tasks": [
+            {
+              "description": "确认 plan-only 设计方向并完成风险分级",
+              "acceptance": "plan.md 明确问题定义、验收、假设/约束/风险，并确认 LegionMind 层不再兼容 task-brief.md"
+            },
+            {
+              "description": "生成 RFC 并完成 review-rfc 收敛",
+              "acceptance": "rfc.md 与 review-rfc.md 给出可执行的 plan-only 重构方案"
+            }
+          ]
+        },
+        {
+          "name": "实现与同步",
+          "tasks": [
+            {
+              "description": "更新 schema、agent prompt 与命令说明",
+              "acceptance": "技能、命令与提示词统一改为 plan.md / planPath 作为标准入口"
+            },
+            {
+              "description": "更新长期使用文档与 playbook",
+              "acceptance": "docs、template 与 playbook 明确 plan-only 职责划分与迁移建议"
+            }
+          ]
+        },
+        {
+          "name": "验证与交付",
+          "tasks": [
+            {
+              "description": "执行测试与代码评审流程并落盘报告",
+              "acceptance": "生成 test-report.md、review-code.md，必要时生成 review-security.md"
+            },
+            {
+              "description": "生成 walkthrough 与 PR body",
+              "acceptance": "生成 report-walkthrough.md 与 pr-body.md，可直接用于 PR"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-03-11T21:59:06.636Z",
+      "status": "approved",
+      "decidedAt": "2026-03-11T21:59:12.373Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "task-brief-plan"
     }
   ]
 }

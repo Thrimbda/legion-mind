@@ -19,7 +19,7 @@ permission:
 - repoRoot
 - taskRoot
 - scope
-- taskBriefPath（优先）
+- planPath（优先）
 - rfcProfile（可选）：`standard`（默认）或 `heavy`
 - rfcPath（你必须写入这里）
 - （可选）researchPath：若提供且 rfcProfile=heavy，必须写入现状摸底
@@ -30,6 +30,7 @@ permission:
 ## RFC 要求（按 rfcProfile）
 
 ### rfcProfile=standard（默认）
+章节名可以使用当前用户与 agent 的工作语言表达；下面列的是语义要求，不要求固定英文标题。
 RFC 必须包含：
 - Abstract / Motivation
 - Goals & Non-Goals
@@ -48,12 +49,15 @@ RFC 必须包含：
 - 倾向“约定大于配置”，但要写清假设
 - 避免空话：每个段落都要能指导工程实现/测试
 - 内容要与 scope 对齐（不要提出 scope 外的大工程）
+- RFC 文档语言默认跟随当前用户与 agent 的工作语言；若仓库已有明确文档语言约定，则跟随仓库约定，不要把英文当默认值
 
 ---
 
 ### rfcProfile=heavy（Epic/High-risk）
 你必须使用 heavy 模板组织 RFC（参考）：
 - `.opencode/skills/legionmind/references/TEMPLATE_RFC_HEAVY.md`
+
+章节名同样应跟随当前用户与 agent 的工作语言，不要求固定英文标题。
 
 强制要求：
 - RFC 顶部必须有 **Executive Summary（<= 20 行）**

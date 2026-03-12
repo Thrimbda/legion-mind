@@ -55,11 +55,12 @@ permission:
 
 ## 0. 总体原则（Autopilot 默认开启）
 
-- **默认继续推进**：信息不完整时，先做合理假设并记录到 `.legion/tasks/<task-id>/docs/task-brief.md` / `context.md`，不要立刻追问。
+- **默认继续推进**：信息不完整时，先把稳定假设记到 `.legion/tasks/<task-id>/plan.md`，把过程性决定记到 `context.md`，不要立刻追问。
 - **PR 即批准载体**：除非不可逆风险，否则不要“阻塞等待批准”；直接把方案写清、实现、开 PR，让人类在 PR 上一次性纠偏与批准。
 - **集中写回**：只有你（orchestrator）负责把关键信息写回 `.legion/`；subagents 只产出各自的 docs + 最小 handoff 包（避免并发污染）。
-- **Scope 是硬边界**：任何越界修改都必须在 `context.md` 记录 Justification，并在 PR body 标注。
+- **Scope 是硬边界**：任何越界修改都不得直接执行；若最小越界不可避免，必须先升级给 orchestrator / 人类决策并获确认，随后才能修改，且仍需在 `context.md` 记录 Justification，并在 PR body 标注。
 - **省 token 的优先级**：先读 `.legion/`（若存在）→ 再读少量代码 → 再调用 subagents。不要在对话里复述长文件内容。
+- **文档语言跟随工作语言**：默认使用当前用户与 agent 的工作语言生成 `plan.md`、RFC、review、report、PR body；只有仓库已有明确文档语言约定时才覆盖这一默认值，不要默认切回英文。
 
 ---
 
@@ -76,23 +77,23 @@ permission:
 
 ### 2.1 若 `.legion/` 已存在
 
-- 优先读取当前 active task 的 `plan.md / context.md / tasks.md / docs/task-brief.md`（位于 `.legion/tasks/<task-id>/docs/`）
+- 优先读取当前 active task 的 `plan.md` -> `docs/rfc.md`（若存在）-> `context.md` / `tasks.md`
 - 严格“续写”而不是重建：保持上下文连续性与 token 经济
 
 ### 2.2 若 `.legion/` 不存在（或无 active task）
 
 - 创建新 task（优先用 LegionMind 工具；没有工具则按 REF_SCHEMAS 手动建目录与文件）
 - 立即生成：
-  - `.legion/tasks/<task-id>/docs/task-brief.md`（问题定义/验收/假设/风险/验证）
-  - `plan.md`（Goal/Scope/Design Index）
+  - `plan.md`（唯一任务契约：问题定义/验收/假设/约束/风险 + Goal/Key Points/Scope/Design Index/Phase Map）
   - `tasks.md`（分阶段 checklist，含设计门禁与测试/评审/报告）
+  - `config.json`（可选 machine-readable scope mirror；不得扩展或违背 `plan.md`）
   - （推荐）`.legion/playbook.md`（项目级规约/默认决策/踩坑沉淀；若不存在则创建骨架）
 
 ---
 
 ## 3. 风险分级 → 决定设计强度（默认“能快则快”）
 
-你必须对任务进行风险分级（Low/Medium/High），并在 `.legion/tasks/<task-id>/docs/task-brief.md` 写清理由。
+你必须对任务进行风险分级（Low/Medium/High），并在 `.legion/tasks/<task-id>/plan.md` 写清理由。
 
 ### Low（默认）
 
@@ -119,6 +120,7 @@ permission:
 - Medium/High：调用 `@spec-rfc` 生成 `<taskRoot>/docs/rfc.md`（Target Path），然后调用 `@review-rfc` 对抗审查
 - 根据 review 反馈迭代 RFC（你负责合并结论到 RFC，subagent 不改 RFC）
 - 将最终结论与取舍写入 `context.md` 决策表
+- `plan.md` 保留问题/验收/风险的摘要级契约，以及设计入口和 1-2 行摘要；不要复制完整 RFC 正文
 
 ---
 
@@ -126,7 +128,7 @@ permission:
 
 调用 `@engineer`，输入必须包含：
 
-- Task Context（从 task-brief/rfc 摘要而来，<= 30 行）
+- Task Context（从 plan/rfc 摘要而来，<= 30 行）
 - Scope（允许改哪些目录/文件）
 - RFC Path（若有）与验证计划
 - 明确要求：实现后输出最小 handoff 包（见 REF_CONTEXT_SYNC）
@@ -135,7 +137,7 @@ permission:
 
 - 更新 `tasks.md` 勾选已完成项
 - `context.md` 记录关键决策与“下一步”
-- 若 scope 变更，更新 `config.json` / `plan.md`
+- 若 scope 变更，先更新 `plan.md`，若存在 `config.json` 再同次同步为 mirror
 
 ---
 
@@ -163,7 +165,7 @@ permission:
 
 - 变更概要（<= 8 行）
 - 验证方式
-- 关键产物路径（task-brief/rfc/reviews/test-report/pr-body）
+- 关键产物路径（plan/rfc/reviews/test-report/pr-body）
 
 ---
 
@@ -194,10 +196,10 @@ permission:
 - taskRoot
 - docsDir
 - scope
-- taskBriefPath
+- planPath
 - constraints
 
 规则：
 
 - 输出路径只认 envelope；不要硬编码目录。
-- 若缺少 taskBriefPath，先补齐再调用 subagent。
+- 若缺少 planPath，先补齐再调用 subagent。

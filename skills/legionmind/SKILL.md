@@ -19,9 +19,9 @@ description: |
 
 LegionMind 通过维护 `.legion/` 目录下的三个核心文件来管理长周期任务：
 
-- **`plan.md` (Design Index)**: 
-  - 定义"做什么" (Goal) 和"范围" (Scope)。
-  - 作为详细设计文档 (RFC) 的索引/入口。
+- **`plan.md` (Task Contract + Design Index)**:
+  - 作为唯一的人类可读任务契约，固定问题定义、验收、假设/约束/风险、目标、要点、允许 Scope、设计索引与阶段概览。
+  - 作为详细设计文档 (RFC/design-lite) 的索引/入口，但自身保持摘要级，不展开实现细节。
   - **写一次，读多次**。
   - *Schema*: [REF_SCHEMAS.md](./references/REF_SCHEMAS.md#2-planmd)
 
@@ -47,15 +47,23 @@ LegionMind 通过维护 `.legion/` 目录下的三个核心文件来管理长周
 2.  **更新频率**:
     - **每 15-20 分钟** 或 **每完成一个子任务** 必须更新 `context.md` 和 `tasks.md`。
     - 严禁"做完所有事最后补文档"。
-    - 推荐策略（二选一）：
-      - **集中写回**：子 agent 只输出变更摘要/决策/下一步，由 orchestrator 统一调用 `legion_update_*` 写回。
-      - **双写（默认）**：子 agent 先写回 `.legion/`，orchestrator 再做一次汇总校准写回。
+    - **集中写回（唯一默认）**：子 agent 只输出变更摘要/决策/下一步，由 orchestrator 统一调用 `legion_update_*` 写回。
+    - **子 agent 不直接写回 `.legion` 三文件**：subagent 只产出 docs 与最小 handoff 包，避免并发污染与审计归因分叉。
     - 目标：将“更新时间”从自觉要求变成流程门禁。
 
 3.  **Review 闭环**:
     - 用户或 Reviewer 可在任意位置插入 `> [REVIEW]` 块。
     - Agent 必须在读取上下文时解析 Review，并逐条响应。
     - `blocking` 类型的 Review 未解决前，不得推进任务。
+
+4.  **读取顺序**:
+    - 恢复任务时先读 `plan.md`，再按需读 `rfc.md`，然后读 `context.md` / `tasks.md`。
+    - 如果 `plan.md` 与任务级 `config.json` 的 Scope mirror 不一致，视为 drift，需同次改动一起修复。
+
+5.  **文档语言**:
+    - LegionMind 产出的任务文档默认使用当前用户与 agent 的工作语言。
+    - 若仓库已有明确文档语言约定，则遵循仓库约定。
+    - 不要因为模板示例或历史小标题是英文，就把新文档默认写成英文。
 
 ## 3. 工具使用
 
@@ -81,5 +89,6 @@ LegionMind 通过维护 `.legion/` 目录下的三个核心文件来管理长周
 *更多资源：*
 - [REF_BEST_PRACTICES.md](./references/REF_BEST_PRACTICES.md)
 - [REF_CONTEXT_SYNC.md](./references/REF_CONTEXT_SYNC.md)
+- [REF_ENVELOPE.md](./references/REF_ENVELOPE.md)
 - [REF_AUTOPILOT.md](./references/REF_AUTOPILOT.md)
 - [REF_RFC_PROFILES.md](./references/REF_RFC_PROFILES.md)
