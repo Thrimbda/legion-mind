@@ -288,6 +288,57 @@
       "decidedAt": "2026-03-11T21:59:12.373Z",
       "decidedBy": "Claude",
       "createdTaskId": "task-brief-plan"
+    },
+    {
+      "id": "proposal-mn2v1800-4c46e7",
+      "name": "澄清 setup 脚本 safe-overwrite 提示",
+      "goal": "让 setup 脚本在 safe-overwrite 跳过时给出可理解的原因说明，并补充 README 文案。",
+      "rationale": "用户直接反馈 setup 脚本里的 safe-overwrite 含义不清。当前实现逻辑本身存在，但输出提示只有“skipped by safe-overwrite”，不够自解释，容易让使用者不知道是用户改动、非托管文件还是仅内容相同导致跳过。该任务仅改善可读性与文档，不改变覆盖决策逻辑。",
+      "points": [
+        "保留默认保护用户文件的 safe-overwrite 语义",
+        "把 W_SAFE_SKIP 提示改成可直接理解的原因与建议动作",
+        "补充 README 对 safe-overwrite 和 --force 的直白说明"
+      ],
+      "scope": [
+        "scripts/setup-opencode.ts",
+        "README.md"
+      ],
+      "phases": [
+        {
+          "name": "设计与确认",
+          "tasks": [
+            {
+              "description": "确认当前 safe-overwrite 行为与用户困惑点",
+              "acceptance": "明确要保留的逻辑和要改进的提示点"
+            }
+          ]
+        },
+        {
+          "name": "实现",
+          "tasks": [
+            {
+              "description": "更新 setup 脚本跳过提示文案",
+              "acceptance": "用户能从输出直接看懂为何跳过以及何时使用 --force"
+            },
+            {
+              "description": "更新 README 说明",
+              "acceptance": "README 直接解释 safe-overwrite 的含义和典型场景"
+            }
+          ]
+        },
+        {
+          "name": "验证与交付",
+          "tasks": [
+            {
+              "description": "检查变更范围与行为影响",
+              "acceptance": "确认未改变覆盖判定逻辑，仅增强提示与文档"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-03-23T07:24:21.314Z",
+      "status": "pending"
     }
   ]
 }
