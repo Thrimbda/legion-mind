@@ -10,6 +10,8 @@
     "opencode:install": "node scripts/setup-opencode.ts install",
     "opencode:verify": "node scripts/setup-opencode.ts verify --strict",
     "opencode:rollback": "node scripts/setup-opencode.ts rollback",
+    "openclaw:install": "node --experimental-strip-types scripts/setup-openclaw.ts install",
+    "openclaw:verify": "node --experimental-strip-types scripts/setup-openclaw.ts verify",
     "benchmark:preflight": "node --experimental-strip-types scripts/benchmark/preflight.ts",
     "benchmark:smoke": "node --experimental-strip-types scripts/benchmark/run.ts --mode smoke",
     "benchmark:full": "node --experimental-strip-types scripts/benchmark/run.ts --mode full",

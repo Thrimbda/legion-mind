@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "currentTask": "task-brief-plan",
+  "currentTask": "openclaw-setup",
   "settings": {
     "autoRemind": true,
     "remindBeforeReset": true,
@@ -31,9 +31,16 @@
     {
       "id": "task-brief-plan",
       "name": "精简 task-brief 与 plan 的职责边界",
-      "status": "active",
+      "status": "paused",
       "createdAt": "2026-03-11T21:59:12.373Z",
-      "updatedAt": "2026-03-12T03:57:45.517Z"
+      "updatedAt": "2026-03-27T05:32:46.519Z"
+    },
+    {
+      "id": "openclaw-setup",
+      "name": "新增 OpenClaw setup 脚本",
+      "status": "active",
+      "createdAt": "2026-03-27T05:32:46.519Z",
+      "updatedAt": "2026-03-27T05:37:53.025Z"
     }
   ],
   "pendingProposals": [
@@ -339,6 +346,57 @@
       "proposedBy": "Claude",
       "proposedAt": "2026-03-23T07:24:21.314Z",
       "status": "pending"
+    },
+    {
+      "id": "proposal-mn8gt1s8-176956",
+      "name": "新增 OpenClaw setup 脚本",
+      "goal": "基于仓库现有安装脚本约定，新增一个面向 OpenClaw 的实用 setup 脚本并完成最小验证。",
+      "rationale": "用户明确要求先理解仓库约定与现有 setup/install 脚本，再在合适位置新增 OpenClaw setup 脚本。这是一个包含调研、设计、实现与验证的多步骤任务，且需把决策与范围持久化到 .legion 中以便后续追踪。",
+      "points": [
+        "复用仓库现有 scripts/ 目录与 TypeScript CLI 风格",
+        "保持脚本聚焦、实用，不引入不必要抽象",
+        "优先最小范围交付，必要时同步 package.json 入口"
+      ],
+      "scope": [
+        "scripts/**",
+        "package.json",
+        ".legion/**"
+      ],
+      "phases": [
+        {
+          "name": "调研与设计",
+          "tasks": [
+            {
+              "description": "检查现有 setup/install 脚本位置、CLI 风格与输出约定",
+              "acceptance": "明确新脚本应放置的位置、命名与最小功能范围"
+            }
+          ]
+        },
+        {
+          "name": "实现",
+          "tasks": [
+            {
+              "description": "新增 OpenClaw setup 脚本并接入必要入口",
+              "acceptance": "脚本可通过 node --experimental-strip-types 运行并完成预期 setup 流程"
+            }
+          ]
+        },
+        {
+          "name": "验证与交付",
+          "tasks": [
+            {
+              "description": "执行最小验证并记录结果",
+              "acceptance": "至少完成 dry-run 或帮助输出级别验证，确认脚本语法与基本流程正常"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-03-27T05:32:42.442Z",
+      "status": "approved",
+      "decidedAt": "2026-03-27T05:32:46.519Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "openclaw-setup"
     }
   ]
 }
