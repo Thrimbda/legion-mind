@@ -8,7 +8,7 @@ agent: legion
 ## 前置检查
 
 1) 调用 `skill({ name: "legionmind" })` 加载指南
-2) 调用 `legion_get_status` 确认有活跃任务
+2) 运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" status --format json` 确认有活跃任务
 
 ## 执行步骤
 
@@ -23,7 +23,7 @@ agent: legion
 
 2) **记录到 .legion/playbook.md（并在当前任务 context.md 留痕）**
 
-使用 `legion_update_context` 添加决策记录：
+使用 `context update --json '{...}'` 添加决策记录：
 ```
 addDecision: {
   decision: "发现可复用模式: <模式名称>",

@@ -11,8 +11,8 @@ agent: legion
 - `skill({ name: "legionmind" })`
 
 2) 初始化 / 恢复任务：
-- 若已有 `.legion/`：`legion_get_status` → 恢复 active task
-- 否则：创建新 task（按 REF_SCHEMAS）
+- 若已有 `.legion/`：运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" status --format json` → 恢复 active task
+- 否则：优先运行 `... legion.ts propose --json '{...}'` + `proposal approve` 创建新 task；CLI 不可用时才按 REF_SCHEMAS 走 break-glass 手工落盘（无 ledger 审计）
 
 3) 设置档位与阶段（写入 plan + context 决策表）：
 - `rfcProfile=heavy`

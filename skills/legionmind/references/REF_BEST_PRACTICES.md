@@ -52,9 +52,9 @@
 
 ## 4. 处理 Review
 
-1.  **Read**: 开始工作前，总是先检查 `legion_list_reviews`。
+1.  **Read**: 开始工作前，先运行 `review list` 检查 Review。
 2.  **Prioritize**: `[REVIEW:blocking]` 必须在写代码前解决。
-3.  **Respond**: 使用 `legion_respond_review` 标记 `[STATUS:resolved]`。除非必要，不要手动编辑文本。
+3.  **Respond**: 使用 `review respond` 标记 `[STATUS:resolved]`。只有 orchestrator 在 break-glass 模式下才允许手动编辑文本，且需注明无 ledger 审计。
 
 ---
 
@@ -62,10 +62,10 @@
 
 **场景**: 实现一个新功能。
 
-1.  **Start**: `legion_read_context` 加载状态。
+1.  **Start**: `context read` 加载状态。
 2.  **Contract**: 先阅读 `.legion/tasks/<task-id>/plan.md` 恢复问题、验收、Scope 与阶段。
 3.  **Design**: 若 `plan.md` 链接 RFC，再阅读 `.legion/tasks/<task-id>/docs/rfc.md`。
 4.  **Code**: 实现 1 个单元。
-5.  **Log**: `legion_update_tasks` (标记完成), `legion_update_context` (记录决策)。
+5.  **Log**: `tasks update`（标记完成）、`context update`（记录决策）。
 6.  **Repeat**: 重复步骤 4-5。
-7.  **End**: `run-tests`, 然后 `legion_update_context` (交接)。
+7.  **End**: `run-tests`，然后 `context update`（交接）。

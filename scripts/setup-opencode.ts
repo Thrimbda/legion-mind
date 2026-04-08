@@ -597,6 +597,11 @@ function runVerify(opts: CliOptions, runId: string, reporter: Reporter): Install
       required: true,
     },
     {
+      checkId: 'assets.legion-cli',
+      target: join(opts.opencodeHome, 'skills', 'legionmind', 'scripts', 'legion.ts'),
+      required: true,
+    },
+    {
       checkId: 'fallback.filesystem',
       target: join(opts.opencodeHome, 'skills', 'legionmind', 'references', 'REF_SCHEMAS.md'),
       required: true,
@@ -617,9 +622,9 @@ function runVerify(opts: CliOptions, runId: string, reporter: Reporter): Install
   const mcpConfigured = parseMcpConfigured(join(opts.configDir, 'opencode.json'))
     || parseMcpConfigured(join(opts.opencodeHome, 'opencode.json'));
   if (!mcpConfigured) {
-    reporter.emit('W_MCP_OPTIONAL', 'verify', 'mcp.optional', 'mcp.legionmind', 'not configured, fallback mode is allowed');
+    reporter.emit('W_MCP_OPTIONAL', 'verify', 'mcp.optional', 'mcp.legionmind', 'not configured; CLI remains the default path');
   } else {
-    reporter.emit('OK_VERIFY', 'verify', 'mcp.optional', 'mcp.legionmind', 'configured');
+    reporter.emit('OK_VERIFY', 'verify', 'mcp.optional', 'mcp.legionmind', 'configured as historical compatibility');
   }
 
   const strictFailed = opts.strict && hardFailures > 0;

@@ -69,7 +69,7 @@ permission:
 当任务不是“一句话就能改完的小修”，优先加载技能：
 
 - 调用 `skill({ name: "legionmind" })` 获取流程/结构/门禁约束
-- 关键参考：`.opencode/skills/legionmind/references/REF_SCHEMAS.md`、`REF_AUTOPILOT.md`、`REF_CONTEXT_SYNC.md`
+- 关键参考：`skills/legionmind/references/REF_SCHEMAS.md`、`REF_AUTOPILOT.md`、`REF_CONTEXT_SYNC.md`
 
 ---
 
@@ -82,7 +82,7 @@ permission:
 
 ### 2.2 若 `.legion/` 不存在（或无 active task）
 
-- 创建新 task（优先用 LegionMind 工具；没有工具则按 REF_SCHEMAS 手动建目录与文件）
+- 创建新 task（默认运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" ...`；仅 orchestrator 可在 break-glass 模式下按 REF_SCHEMAS 应急落盘，并注明无 ledger 审计）
 - 立即生成：
   - `plan.md`（唯一任务契约：问题定义/验收/假设/约束/风险 + Goal/Key Points/Scope/Design Index/Phase Map）
   - `tasks.md`（分阶段 checklist，含设计门禁与测试/评审/报告）

@@ -11,8 +11,8 @@ agent: legion
 - `skill({ name: "legionmind" })`
 
 2) 初始化 / 恢复任务：
-- 若已有 `.legion/`：`legion_get_status` → 恢复 active task
-- 否则：`legion_create_task` 创建新任务（无工具则按 REF_SCHEMAS 手动创建）
+- 若已有 `.legion/`：运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" status --format json` → 恢复 active task
+- 否则：优先运行 `... legion.ts task create --json '{...}'` 或 `propose + proposal approve`；仅 orchestrator 可在 break-glass 模式下按 REF_SCHEMAS 手动创建，并注明无 ledger 审计
 
 3) 先生成 `plan.md`（唯一任务契约：问题定义/验收/假设/约束/风险 + 短目标/要点/允许 Scope/Design Index/Phase Map）
 

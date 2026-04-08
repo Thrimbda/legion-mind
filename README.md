@@ -57,12 +57,25 @@ bunx legion-mind-opencode install
 - 默认 `safe-overwrite`：只覆盖“托管且未被用户修改”的文件
 - 若目标是 `user-modified` 或 `unmanaged-existing`，默认跳过；用 `--force` 才覆盖
 - 只同步白名单资产：`.opencode/{agents,commands,plugins}` 与 `skills/legionmind`
+- LegionMind 默认入口是 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" ...`
+- 仓库级 smoke 入口固定为 `node --experimental-strip-types scripts/legionmind/smoke.ts`（别名：`npm run legionmind:smoke`）
 - 安装状态文件位于 `~/.config/opencode/.legionmind/`：
   - `install-state.v1.json`
   - `managed-files.v1.json`
   - `backup-index.v1.json`
 - `verify --strict` 仅两种结果：`READY`（0）或 `E_VERIFY_STRICT`（非 0）
 - 本地隔离测试可使用：`--config-dir <dir> --opencode-home <dir>`
+
+## LegionMind CLI
+
+常用命令：
+
+```bash
+node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" init
+node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" status --format json
+npm run legionmind:smoke
+npm run legionmind:check-no-default-mcp
+```
 
 ## GitHub 上使用
 
@@ -106,5 +119,5 @@ npm run benchmark:report -- --run <RUN_ID>
 详细运行说明、评分口径和排障见 `docs/benchmark.md`。
 
 模板见：
-- `.opencode/skills/legionmind/references/TEMPLATE_RFC_HEAVY.md`
-- `.opencode/skills/legionmind/references/TEMPLATE_PR_BODY_RFC_ONLY.md`
+- `skills/legionmind/references/TEMPLATE_RFC_HEAVY.md`
+- `skills/legionmind/references/TEMPLATE_PR_BODY_RFC_ONLY.md`

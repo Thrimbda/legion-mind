@@ -34,3 +34,10 @@
 - Source Task: `task-brief-plan`
 - Rule: LegionMind 任务文档默认使用当前用户与 agent 的工作语言；只有仓库已有明确文档语言约定时才覆盖这一默认值。
 - Why: 模板里偶尔出现英文标题不代表英文是默认语言；跟随真实工作语言能减少理解成本和 Review 噪音。
+
+## [Convention] LegionMind Defaults To Bundled CLI
+
+- Date: 2026-04-08
+- Source Task: `legionmind-skill-mcp-scripts`
+- Rule: LegionMind 的默认执行面是 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts"`，仓库级验证入口固定为 `scripts/legionmind/smoke.ts`；历史 MCP 配置只作为兼容信息，不再作为默认路径。
+- Why: 单一 CLI 入口能把 schema 校验、ledger 审计、smoke harness 和命令文档收敛到同一条主路径，避免再次分叉。
