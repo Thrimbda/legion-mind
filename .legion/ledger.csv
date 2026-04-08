@@ -131,3 +131,15 @@
 2026-03-12T03:54:26.505Z,legion_read_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,"section: all, includeReviews: true",success
 2026-03-12T03:57:45.469Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addFile: .legion/tasks/task-brief-plan/docs/task-brief.md,success
 2026-03-12T03:57:45.517Z,legion_update_context,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,addDecision: 当前任务样例自身也必须迁移为 plan-only，不保留 `docs/task-brief.md` 作为历史兼容输入,success
+2026-03-23T07:23:28.295Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-23T07:24:07.022Z,legion_create_task,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,goal: 让 setup 脚本在 safe-overwrite 跳过时给出可理解的原因说明，并补充 README 文案。,failed
+2026-03-23T07:24:21.314Z,legion_propose_task,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,name: 澄清 setup 脚本 safe-overwrite 提示,success
+2026-03-23T07:33:54.389Z,legion_get_status,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,,success
+2026-03-27T05:32:42.445Z,legion_propose_task,task-brief-plan,精简 task-brief 与 plan 的职责边界,Claude,name: 新增 OpenClaw setup 脚本,success
+2026-03-27T05:32:46.523Z,legion_approve_proposal,openclaw-setup,新增 OpenClaw setup 脚本,Claude,proposalId: proposal-mn8gt1s8-176956,success
+2026-03-27T05:32:50.359Z,legion_switch_task,openclaw-setup,新增 OpenClaw setup 脚本,Claude,taskId: openclaw-setup,success
+2026-03-27T05:34:54.123Z,legion_update_context,openclaw-setup,新增 OpenClaw setup 脚本,Claude,addDecision: 本任务按 Low 风险处理，采用 design-lite 而非完整 RFC。,success
+2026-03-27T05:34:54.123Z,legion_update_tasks,openclaw-setup,新增 OpenClaw setup 脚本,Claude,setCurrentTask: phase 1,success
+2026-03-27T05:37:31.007Z,legion_update_tasks,openclaw-setup,新增 OpenClaw setup 脚本,Claude,completeTask: phase 1,success
+2026-03-27T05:37:31.010Z,legion_update_context,openclaw-setup,新增 OpenClaw setup 脚本,Claude,addDecision: OpenClaw setup 仅管理 skills.load.extraDirs，不额外写入未知配置项。,success
+2026-03-27T05:37:53.026Z,legion_update_context,openclaw-setup,新增 OpenClaw setup 脚本,Claude,addFile: package.json,success

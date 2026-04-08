@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "currentTask": "task-brief-plan",
+  "currentTask": "openclaw-setup",
   "settings": {
     "autoRemind": true,
     "remindBeforeReset": true,
@@ -31,9 +31,16 @@
     {
       "id": "task-brief-plan",
       "name": "精简 task-brief 与 plan 的职责边界",
-      "status": "active",
+      "status": "paused",
       "createdAt": "2026-03-11T21:59:12.373Z",
-      "updatedAt": "2026-03-12T03:57:45.517Z"
+      "updatedAt": "2026-03-27T05:32:46.519Z"
+    },
+    {
+      "id": "openclaw-setup",
+      "name": "新增 OpenClaw setup 脚本",
+      "status": "active",
+      "createdAt": "2026-03-27T05:32:46.519Z",
+      "updatedAt": "2026-03-27T05:37:53.025Z"
     }
   ],
   "pendingProposals": [
@@ -288,6 +295,108 @@
       "decidedAt": "2026-03-11T21:59:12.373Z",
       "decidedBy": "Claude",
       "createdTaskId": "task-brief-plan"
+    },
+    {
+      "id": "proposal-mn2v1800-4c46e7",
+      "name": "澄清 setup 脚本 safe-overwrite 提示",
+      "goal": "让 setup 脚本在 safe-overwrite 跳过时给出可理解的原因说明，并补充 README 文案。",
+      "rationale": "用户直接反馈 setup 脚本里的 safe-overwrite 含义不清。当前实现逻辑本身存在，但输出提示只有“skipped by safe-overwrite”，不够自解释，容易让使用者不知道是用户改动、非托管文件还是仅内容相同导致跳过。该任务仅改善可读性与文档，不改变覆盖决策逻辑。",
+      "points": [
+        "保留默认保护用户文件的 safe-overwrite 语义",
+        "把 W_SAFE_SKIP 提示改成可直接理解的原因与建议动作",
+        "补充 README 对 safe-overwrite 和 --force 的直白说明"
+      ],
+      "scope": [
+        "scripts/setup-opencode.ts",
+        "README.md"
+      ],
+      "phases": [
+        {
+          "name": "设计与确认",
+          "tasks": [
+            {
+              "description": "确认当前 safe-overwrite 行为与用户困惑点",
+              "acceptance": "明确要保留的逻辑和要改进的提示点"
+            }
+          ]
+        },
+        {
+          "name": "实现",
+          "tasks": [
+            {
+              "description": "更新 setup 脚本跳过提示文案",
+              "acceptance": "用户能从输出直接看懂为何跳过以及何时使用 --force"
+            },
+            {
+              "description": "更新 README 说明",
+              "acceptance": "README 直接解释 safe-overwrite 的含义和典型场景"
+            }
+          ]
+        },
+        {
+          "name": "验证与交付",
+          "tasks": [
+            {
+              "description": "检查变更范围与行为影响",
+              "acceptance": "确认未改变覆盖判定逻辑，仅增强提示与文档"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-03-23T07:24:21.314Z",
+      "status": "pending"
+    },
+    {
+      "id": "proposal-mn8gt1s8-176956",
+      "name": "新增 OpenClaw setup 脚本",
+      "goal": "基于仓库现有安装脚本约定，新增一个面向 OpenClaw 的实用 setup 脚本并完成最小验证。",
+      "rationale": "用户明确要求先理解仓库约定与现有 setup/install 脚本，再在合适位置新增 OpenClaw setup 脚本。这是一个包含调研、设计、实现与验证的多步骤任务，且需把决策与范围持久化到 .legion 中以便后续追踪。",
+      "points": [
+        "复用仓库现有 scripts/ 目录与 TypeScript CLI 风格",
+        "保持脚本聚焦、实用，不引入不必要抽象",
+        "优先最小范围交付，必要时同步 package.json 入口"
+      ],
+      "scope": [
+        "scripts/**",
+        "package.json",
+        ".legion/**"
+      ],
+      "phases": [
+        {
+          "name": "调研与设计",
+          "tasks": [
+            {
+              "description": "检查现有 setup/install 脚本位置、CLI 风格与输出约定",
+              "acceptance": "明确新脚本应放置的位置、命名与最小功能范围"
+            }
+          ]
+        },
+        {
+          "name": "实现",
+          "tasks": [
+            {
+              "description": "新增 OpenClaw setup 脚本并接入必要入口",
+              "acceptance": "脚本可通过 node --experimental-strip-types 运行并完成预期 setup 流程"
+            }
+          ]
+        },
+        {
+          "name": "验证与交付",
+          "tasks": [
+            {
+              "description": "执行最小验证并记录结果",
+              "acceptance": "至少完成 dry-run 或帮助输出级别验证，确认脚本语法与基本流程正常"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-03-27T05:32:42.442Z",
+      "status": "approved",
+      "decidedAt": "2026-03-27T05:32:46.519Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "openclaw-setup"
     }
   ]
 }

@@ -9,7 +9,6 @@ permission:
   external_directory: deny
   doom_loop: deny
   skill:
-    "*": deny
     legionmind: allow
   bash:
     "*": allow

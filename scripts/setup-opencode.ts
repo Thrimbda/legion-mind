@@ -348,6 +348,19 @@ function backupPathFor(targetPath: string, backupId: string): string {
   return `${targetPath}.backup-${backupId}`;
 }
 
+function safeOverwriteHint(reason: string): string {
+  switch (reason) {
+    case 'user-modified':
+      return 'managed file was modified locally; rerun with --force to overwrite';
+    case 'unmanaged-existing':
+      return 'existing target is not managed by legion-mind; rerun with --force to back up and overwrite';
+    case 'non-file-target':
+      return 'existing target is not a regular file; rerun with --force to remove it';
+    default:
+      return `skipped to avoid overwriting existing content (${reason})`;
+  }
+}
+
 function canOverwrite(
   targetPath: string,
   sourceFingerprintValue: string,
@@ -453,7 +466,7 @@ function syncOneFile(
     }
 
     counters.skipped += 1;
-    reporter.emit('W_SAFE_SKIP', 'sync', decision.reason, item.targetPath, 'skipped by safe-overwrite');
+    reporter.emit('W_SAFE_SKIP', 'sync', decision.reason, item.targetPath, safeOverwriteHint(decision.reason));
     return;
   }
 

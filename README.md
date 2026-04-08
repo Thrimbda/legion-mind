@@ -54,8 +54,9 @@ bunx legion-mind-opencode install
 
 说明：
 
-- 默认 `safe-overwrite`：只覆盖“托管且未被用户修改”的文件
+- 默认 `safe-overwrite`：可以理解为“安全地尝试覆盖”——只有目标文件是本工具之前安装过、且之后没被你手改过时，才会自动覆盖
 - 若目标是 `user-modified` 或 `unmanaged-existing`，默认跳过；用 `--force` 才覆盖
+- 换句话说：它默认优先保护你现有文件，不会看到同名文件就直接覆盖
 - 只同步白名单资产：`.opencode/{agents,commands,plugins}` 与 `skills/legionmind`
 - LegionMind 默认入口是 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" ...`
 - 仓库级 smoke 入口固定为 `node --experimental-strip-types scripts/legionmind/smoke.ts`（别名：`npm run legionmind:smoke`）
