@@ -5,7 +5,7 @@ agent: legion
 
 你必须先做：
 1) `skill({ name: "legionmind" })`
-2) `legion_get_status` 获取当前任务状态（无工具则读取 `.legion/tasks/<id>/` 三文件）
+2) 运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" status --format json` 获取当前任务状态（仅 orchestrator 可在 break-glass 模式下直接读取 `.legion/tasks/<id>/` 三文件，且无 ledger 审计）
 3) 恢复顺序固定为：`plan.md` -> `docs/rfc.md`（若存在）-> `context.md` / `tasks.md`
 
 然后执行以下流程：
