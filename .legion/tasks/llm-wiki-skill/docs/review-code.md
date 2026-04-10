@@ -4,37 +4,53 @@
 
 PASS
 
+本轮修正后，前一轮两个 blocking 已实质闭合：
+
+- `baseline vs 宿主 schema` 的边界已收口到“宿主优先、baseline 补最小契约、query 未命中显式写回流程则只读”；
+- `source summary` 已重新确认为 ingest 的 baseline 默认第一落点，并允许宿主以等价页型覆盖。
+
+整体上，这版已经不只是把旧内容“写长”，而是把 agent 真正需要的**落点判断、写回门禁、可写前提、自检动作**都明确了出来；同时 `SKILL.md` 仍维持 skill-creator 风格的精简入口，`references/` 分工也基本清晰。
+
 ## 阻塞问题
 
-- （无）
+- [ ] 无
 
 ## 建议（非阻塞）
 
-- `skills/llm-wiki/references/workflows.md:60` / `skills/llm-wiki/references/conventions.md:22-25` - `workflows.md` 写的是“追加一条 query 或 analysis 记录”，而 `conventions.md` 的推荐标题前缀仅显式列出 `query`。当前不构成阻塞，因为 `conventions.md` 使用的是“推荐”口径，但术语仍有轻微漂移，后续维护者可能不确定 query 写回到底应统一记为 `query` 还是允许 `analysis`。
-- `skills/llm-wiki/SKILL.md:18` / `skills/llm-wiki/references/workflows.md:44-54` - 两处关于 query 写回门禁的条件现在已经对齐；为降低未来再次漂移的概率，可以继续保持相同的枚举顺序与措辞模板，避免后续只改其中一处。
+- `skills/llm-wiki/SKILL.md:10` / `skills/llm-wiki/references/architecture.md:56` / `skills/llm-wiki/references/workflows.md:12` - 三处都在描述等价导航 / 日志机制的“可写前提”，语义已经一致，但措辞略有长短差异。建议后续固定同一短句模板，降低维护时的术语漂移风险。
+- `skills/llm-wiki/references/conventions.md:92-97` - 最小自检里把导航 / 日志更新写成结果性断言；与 `workflows.md:35-36` 的“若不可写则报告缺口”并不冲突，但可考虑补一小句“或明确记录因宿主只读而未同步”，让自检与工作流更完全镜像。
+- `skills/llm-wiki/references/page-types.md` / `skills/llm-wiki/references/workflows.md` - 现在 source summary、comparison、maintenance 的落点已经稳定；后续若再细化 durable outputs（如 table / slide / canvas），建议继续保持“它们是 query 产物形式，不天然等于 wiki page type”的边界，避免 page type 与输出载体再次混线。
 
 ## 修复指导
 
-1. 若希望彻底消除日志类型歧义，建议二选一并统一：
-   - 要么把 `workflows.md` 的“query 或 analysis 记录”收敛为固定 `query`；
-   - 要么在 `conventions.md` 的推荐标题前缀中补充 `analysis` 的适用场景。
-2. 继续把 query 写回门禁固定为同一顺序：`用户明确要求沉淀 -> 宿主 schema 显式定义 -> 写权限/维护者 -> 触发条件 -> 目标落点 -> 允许字段 -> index.md / log.md 同步方式`。
-3. 后续若再改写 query 段落，优先同步检查 `SKILL.md` 与 `references/workflows.md`，避免主说明与展开说明出现二次 drift。
+当前无需 blocking 级修复；若要继续打磨，建议按最小成本做这 3 件事：
+
+1. **统一可写前提短句**
+   - 在 `SKILL.md`、`architecture.md`、`workflows.md`、`conventions.md` 复用同一模板，例如：
+     - “只有当宿主显式声明职责、目标位于可写 scope、且允许字段与写法已定义时，才允许写回。”
+
+2. **让自检口径与工作流完全对齐**
+   - 在 `conventions.md` 的最小自检里补一句：
+     - “若导航 / 日志机制不可写，应明确记录缺口与未同步原因。”
+
+3. **继续守住轻入口**
+   - 后续再细化时，优先下沉到 `references/`；尽量不要把更长的决策矩阵或模板回灌进 `SKILL.md`。
 
 [Handoff]
 summary:
-  - 结论为 PASS，本轮未发现阻塞级 drift。
-  - `SKILL.md` 与 `references/workflows.md` 对 query 写回条件已做到一致，重点关注项通过。
-  - 仅剩日志术语层面的轻微一致性建议，不影响结束实现阶段。
+  - 结论为 PASS。
+  - 上轮两个 blocking 已修复：边界文案已收口，source summary 已稳定为 ingest 默认第一落点。
+  - 当前版本已达到“更具体且可执行”，且未破坏 SKILL.md 的精简入口。
 decisions:
   - (none)
 risks:
-  - 若后续单独修改日志命名规则，`query` / `analysis` 术语可能再次产生轻微漂移。
+  - 后续若分别修改多份 reference，对“可写前提”措辞可能再次产生轻微漂移。
 files_touched:
   - path: /Users/c1/Work/legion-mind/.legion/tasks/llm-wiki-skill/docs/review-code.md
 commands:
   - (none)
 next:
-  - 可结束实现阶段；如需更严谨，可顺手统一 `query` / `analysis` 日志术语。
+  - 可进入收尾/交付。
+  - 如需顺手优化，可统一“可写前提”短句模板与自检文案。
 open_questions:
   - (none)

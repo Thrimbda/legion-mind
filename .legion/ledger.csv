@@ -143,3 +143,12 @@
 2026-03-27T05:37:31.007Z,legion_update_tasks,openclaw-setup,新增 OpenClaw setup 脚本,Claude,completeTask: phase 1,success
 2026-03-27T05:37:31.010Z,legion_update_context,openclaw-setup,新增 OpenClaw setup 脚本,Claude,addDecision: OpenClaw setup 仅管理 skills.load.extraDirs，不额外写入未知配置项。,success
 2026-03-27T05:37:53.026Z,legion_update_context,openclaw-setup,新增 OpenClaw setup 脚本,Claude,addFile: package.json,success
+2026-04-09T15:08:17.289Z,legion_list_tasks,openclaw-setup,新增 OpenClaw setup 脚本,Claude,,success
+2026-04-09T15:23:18.507Z,legion_get_status,llm-wiki-skill,,Claude,,failed
+2026-04-09T15:28:52.848Z,legion_read_context,llm-wiki-skill,,Claude,"section: all, includeReviews: true",failed
+2026-04-09T15:28:52.848Z,legion_get_status,llm-wiki-skill,,Claude,,failed
+2026-04-10T07:49:14.919Z,legion_update_context,legionmind-skill-mcp-scripts,,Claude,addDecision: SKILL.md 继续保留较完整的说明结构；本轮仅做 MCP → CLI 术语与调用方式替换。,success
+2026-04-10T07:51:36.359Z,legion_update_context,legionmind-skill-mcp-scripts,,Claude,addDecision: LegionMind skill 中的流程图采用“小型 mermaid 决策图”，只服务于恢复/初始化/break-glass 的非显然判断。,success
+2026-04-10T08:20:48.217Z,legion_get_status,openclaw-setup,新增 OpenClaw setup 脚本,Claude,,success
+2026-04-10T08:31:35.720Z,legion_switch_task,llm-wiki-skill,,Claude,taskId: llm-wiki-skill,failed
+2026-04-10T08:31:45.807Z,legion_list_tasks,openclaw-setup,新增 OpenClaw setup 脚本,Claude,,success

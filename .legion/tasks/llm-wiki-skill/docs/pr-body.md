@@ -1,32 +1,30 @@
 ## What
 
-新增 `llm-wiki` skill，并按 skill-creator 约束拆成一个轻量 `SKILL.md` 加 3 个 references 文件。
-本次交付覆盖 `llm-wiki` 的核心模式：raw sources / wiki / schema 三层架构，以及 ingest / query / lint 三类操作。
-同时把 `index.md` / `log.md` 的最小维护契约固化为可复用约束。
+这不是首次创建 `llm-wiki` skill，而是对现有版本的一轮**细化迭代**。
+本轮继续保持轻量 `SKILL.md`，并把 references 明确为 **4 个文件**，新增 `references/page-types.md`。
+同时把 `SKILL.md` 中的流程图收敛为 2 个 Mermaid 状态机，用于 query 三岔路与 ingest 第一落点判断。
 
 ## Why
 
-仓库此前只有 `llm-wiki.md` 作为参考文本，没有一个可直接复用的正式 skill，导致 agent 每次都要重新理解工作流边界。
-这次把模式收敛成稳定契约，目标是让 agent 能以“持久化 wiki 维护者”的方式工作，而不是把 wiki 当一次性 RAG 素材。
-重点收紧了 query 写回风险：默认严格只读，只允许在显式授权下写回，并要求日志最小化与脱敏。
+现有 skill 已基本正确，但抽象度偏高；这轮 refinement 旨在把“能理解理念”推进到“能直接执行”。
+重点补齐 bootstrap、page families、决策矩阵、4 段式 query 输出，以及等价导航/日志机制的可写前提。
 
 ## How
 
-`SKILL.md` 只保留使用时机、核心原则、操作入口和 references 导航，避免入口膨胀。
-`references/architecture.md`、`workflows.md`、`conventions.md` 分别承载架构边界、三类工作流、以及 `index.md` / `log.md` / 互链约定。
-其中 query 明确采用“双重门槛”：用户明确要求沉淀 + 宿主 schema 显式定义写回流程；`log.md` 只记录安全 ID、动作摘要与授权依据，不复制敏感原文。
+`SKILL.md` 补强 session bootstrap、操作入口和授权写回门槛，仍保持 skill-creator 风格的精简入口。
+`architecture.md`、`page-types.md`、`workflows.md`、`conventions.md` 分别承载架构边界、页面落点、逐步工作流/决策矩阵，以及导航/日志/citation 约定。
+状态机只放在最容易误判的两个决策点，避免把入口重新写重，同时让执行 agent 能按 guard 直接做状态迁移。
 
 ## Testing
 
 - 结果：PASS
 - 详情见 [test-report](./test-report.md)
-- 已检查 scope、frontmatter、内容覆盖、query 只读门禁，以及 `log.md` 的最小化/脱敏约定。
+- 已通过 skill-creator quick validate、`git diff --check`、Mermaid 结构检查、前后场景对照，以及任务文档与当前实现的一致性检查。
 
 ## Risk / Rollback
 
-- 主要风险是宿主 schema 若未定义清楚，可能在接入层面对授权写回产生误解。
-- 回滚边界仅限 `skills/llm-wiki/**`；若发现写回门禁不够稳，优先收紧为彻底只读。
-- 若日志规则引发敏感信息误记，通过追加更正/撤销记录修复，并保持“仅安全 ID + 安全摘要”的基线。
+- 主要风险是后续文档再次漂移，或宿主误把“结构化输出/沉淀建议”理解成写回授权。
+- 如发现边界变松，优先回退到更保守口径：query 只读、仅允许宿主显式声明的导航/日志机制写回。
 
 ## Links
 
