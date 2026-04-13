@@ -1,102 +1,96 @@
 ---
 name: llm-wiki
-description: Use when Claude needs to build, maintain, or query a persistent markdown wiki that accumulates knowledge from raw sources over time, instead of re-deriving answers from documents on every question.
+description: Use when Claude needs to build, maintain, or query a persistent markdown wiki inside one authorized directory that it fully manages with a fixed layout, so knowledge compounds over time instead of being rediscovered from raw documents on every question.
 ---
 
 # llm-wiki
 
-1. 把 raw sources 视为只读输入层；只从中读取证据，不回写、不改写。
-2. 把 wiki 视为 LLM 维护层；持续更新页面、互链、综合结论与待验证项。
-3. 把 schema 视为规则层；先做 host-schema handshake，确认 raw/wiki 根、命名、frontmatter、写权限，以及 `index.md` / `log.md` 或宿主声明的等价导航 / 日志机制；只有当宿主显式声明其职责、目标位于可写 scope、且允许字段与写法已定义时，才允许写回。
-4. 默认 index-first：先读 `index.md`（或宿主等价导航机制）再定位页面；只有当宿主明确允许且导航不足时，才把搜索作为增强而不是新的事实来源。
-5. durable writeback 只发生在 ingest、authorized query writeback、lint maintenance 这三类受控动作；query 默认严格只读。
-6. 将聊天内容、推测与来源事实分开；证据不足时写成待确认，而不是确定性结论。
+1. 把授权给你的 wiki 目录当作**完全由本 skill 管理**的知识库根目录。
+2. 把 `raw/` 当作只读输入层；raw source 可以被读取、引用、重命名整理进 `raw/`，但不能改写内容。
+3. 只使用一套 canonical layout：根目录固定有 `index.md`、`log.md`，页面只落在固定 page families。
+4. 不创建替代导航 / 日志机制、替代目录树或额外 durable artifact 类型；归档结果一律写成 markdown 页面并放回 canonical wiki 结构。
+5. 默认 index-first：先读 `index.md`，再读相关页面、source summary 与 raw source；搜索只用于定位，不作为事实来源。
+6. 始终区分来源事实、wiki 综合判断与 `needs-verification` 项。
 
-## session bootstrap
+## canonical layout
 
-- 首次接管时，先盘点宿主 schema 是否明确声明：source 位置、wiki 根、页面家族、命名规则、citation 形式、写回权限、维护页落点，以及导航 / 日志的等价机制、可写 scope、允许字段与写法。
-- 若宿主缺少这些关键信息，采取保守基线：只读 query、最少新增页面、显式报告缺失的 schema 点。
-- 页面落点先按推荐 page family 思考，再由宿主 schema 覆盖；不要把 baseline 当成强制目录树。
+- 根目录固定包含：`raw/`、`sources/`、`entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/`、`index.md`、`log.md`。
+- `maintenance/backlog.md` 是默认维护入口。
+- 目录还没规范化时，先把它整理到这套结构，再做深入 ingest / query writeback / lint。
+- 所有持久化写回都留在这个根目录里；不要把结论散落到其他路径或其他文件格式。
 
 ## 操作入口
 
-- **bootstrap**：先完成 schema 盘点与读取入口确认，决定本次使用默认 `index.md` / `log.md` 还是宿主等价机制。
-- **ingest**：按单 source 或小批次处理；先产出 source summary，再更新 entity / topic / comparison / synthesis / maintenance 等受影响页面；同步更新导航与追加日志。
-- **query**：默认严格只读。先基于导航机制找页，再综合回答。仅当“用户明确要求沉淀 + 宿主 schema 显式定义写回流程”同时满足时，才允许把结论落为 durable artifact；结构化回答、建议 page type、或沉淀建议都不构成授权；否则只返回答案或沉淀建议。durable artifact 可以是 wiki page，也可以是 table / slide deck / chart / canvas 等宿主允许的输出；但输出载体不天然等于 wiki page type，是否写回 wiki 仍受宿主写回流程约束。
-- **lint**：检查事实冲突、结构缺口与维护债务；优先输出 issue list、建议动作与必要 maintenance 更新，而不是静默重写结论。
+- **bootstrap**：创建或规范化 canonical layout，补齐 `index.md`、`log.md`、`maintenance/backlog.md`，并建立当前页面清单。
+- **ingest**：把新 source 放进 `raw/`，创建或更新对应的 source summary，然后回查并更新受影响的 `entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/` 页面。
+- **query**：先回答问题；如果答案具有复用价值（如稳定比较、综合结论、重复会被问到的解释、结构性缺口），就在结束前把它写回 canonical page family。
+- **lint**：检查事实冲突、陈旧结论、孤儿页、缺失 source summary、过载页面与 maintenance debt，并按 canonical 规则修复或记账。
+
+## durable writeback 规则
+
+- **应写回**：能帮未来会话少做一次重新综合的结果。
+- **不必写回**：一次性、局部、不会复用的聊天回答。
+- 优先更新已有页面，而不是制造近似重复的新页面。
+- 在 `topics/`、`comparisons/`、`overviews/`、`maintenance/` 之间拿不准时，先读 [references/page-types.md](./references/page-types.md)。
 
 ## 决策流程图
 
-把下面 Mermaid 图当成**执行状态机**来读：只有命中转移条件，agent 才能进入可写状态；否则必须退回只读、建议沉淀，或报告 schema 缺口。
+把下面 Mermaid 图当成**执行状态机**来读：它们不是装饰，而是 query / ingest 时的最小决策骨架。
 
-### query 三岔路
-
-```mermaid
-stateDiagram-v2
-    [*] --> NeedDurableArtifact
-
-    NeedDurableArtifact --> ReadOnlyAnswer: no durable artifact needed
-    NeedDurableArtifact --> CheckUserIntent: durable artifact needed
-
-    CheckUserIntent --> SuggestPersist: user did not explicitly ask to persist
-    CheckUserIntent --> CheckHostWritebackFlow: user explicitly asked to persist
-
-    CheckHostWritebackFlow --> SuggestPersist: host writeback flow incomplete
-    CheckHostWritebackFlow --> AuthorizedWriteback: host writeback flow complete
-
-    ReadOnlyAnswer: Return 4-part answer only
-    SuggestPersist: Return 4-part answer +
-    SuggestPersist: recommended page type / auth gap
-    AuthorizedWriteback: Return 4-part answer +
-    AuthorizedWriteback: durable artifact
-
-    ReadOnlyAnswer --> [*]
-    SuggestPersist --> [*]
-    AuthorizedWriteback --> [*]
-```
-
-- 只有明确的持久化指令（如“把它写进 wiki / 沉淀成页面”）才算 `user explicitly asked to persist`；“这个值得记录”“以后可以整理”之类提示都仍归入 `SuggestPersist`。
-
-### ingest 第一落点
+### query：回答后是否写回 wiki
 
 ```mermaid
 stateDiagram-v2
-    [*] --> NewSource
+    [*] --> AnswerQuestion
+    AnswerQuestion --> CheckReuseValue
 
-    NewSource --> CheckSourceSummaryBan
-    CheckSourceSummaryBan --> ReportSchemaGap: host explicitly forbids source-summary persistence
-    CheckSourceSummaryBan --> CheckHostEquivalentSourcePage: source-summary persistence allowed
+    CheckReuseValue --> ReadOnlyFinish: one-off answer
+    CheckReuseValue --> ChoosePageFamily: reusable result
 
-    CheckHostEquivalentSourcePage --> UpdateHostEquivalentSourcePage: host equivalent source page exists
-    CheckHostEquivalentSourcePage --> UpdateBaselineSourceSummary: no host equivalent source page
+    ChoosePageFamily --> UpdateExistingPage: matching page exists
+    ChoosePageFamily --> CreateCanonicalPage: no suitable page yet
 
-    UpdateHostEquivalentSourcePage --> FanoutAffectedPages
-    UpdateBaselineSourceSummary --> FanoutAffectedPages
+    UpdateExistingPage --> SyncIndexIfNeeded
+    CreateCanonicalPage --> SyncIndexIfNeeded
 
-    ReportSchemaGap: Stop writeback and
-    ReportSchemaGap: report schema gap
-    UpdateHostEquivalentSourcePage: Create/update host
-    UpdateHostEquivalentSourcePage: equivalent source page
-    UpdateBaselineSourceSummary: Create/update baseline
-    UpdateBaselineSourceSummary: source summary
-    FanoutAffectedPages: Then update affected
-    FanoutAffectedPages: entity / topic / comparison /
-    FanoutAffectedPages: synthesis / maintenance pages
-
-    ReportSchemaGap --> [*]
-    FanoutAffectedPages --> [*]
+    SyncIndexIfNeeded --> LogQueryWriteback
+    LogQueryWriteback --> [*]
+    ReadOnlyFinish --> [*]
 ```
 
-## query 输出默认格式
+- `reusable result` 指稳定比较、跨 source 综合、很可能会再次被问到的解释，或应落入 `maintenance/` 的结构性缺口。
 
-- 1) 答案
-- 2) 关键依据
-- 3) 冲突与不确定性
-- 4) 缺口与下一步
+### ingest：source 进入后如何扇出更新
+
+```mermaid
+stateDiagram-v2
+    [*] --> ArchiveSourceToRaw
+    ArchiveSourceToRaw --> UpdateSourceSummary
+    UpdateSourceSummary --> ReviewImpactedPages
+
+    ReviewImpactedPages --> UpdateExistingPages: existing pages cover it
+    ReviewImpactedPages --> CreateNewCanonicalPage: new high-level page needed
+
+    UpdateExistingPages --> SyncIndexIfNeeded
+    CreateNewCanonicalPage --> SyncIndexIfNeeded
+
+    SyncIndexIfNeeded --> LogIngest
+    LogIngest --> [*]
+```
+
+- ingest 不能停在 `sources/`；必须回查 `entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/`。
+
+## query 默认输出
+
+1. 答案
+2. 关键依据
+3. 冲突 / 不确定性
+4. 下一步 wiki 动作
 
 ## 读取导航
 
-- 需要理解三层职责、首次接管 checklist、宿主覆盖边界与可选增强时，读 [references/architecture.md](./references/architecture.md)
+- 需要理解固定目录结构与规范化规则时，读 [references/canonical-layout.md](./references/canonical-layout.md)
+- 需要理解三层职责与复利式维护模型时，读 [references/architecture.md](./references/architecture.md)
 - 需要判断页面该落在哪类、何时创建 / 更新时，读 [references/page-types.md](./references/page-types.md)
 - 需要执行 bootstrap / ingest / query / lint 的标准步骤与自检时，读 [references/workflows.md](./references/workflows.md)
-- 需要维护导航 / 日志等价机制、citation、状态标记、命名、互链与冲突处理时，读 [references/conventions.md](./references/conventions.md)
+- 需要维护命名、citation、日志、状态标记与互链规则时，读 [references/conventions.md](./references/conventions.md)

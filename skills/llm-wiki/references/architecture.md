@@ -1,90 +1,59 @@
-# 架构基线
+# 架构
 
 ## 目标
 
-把 wiki 当作 LLM 持续维护的知识中间层，而不是在 query 时临时从原始资料重新拼答案。
+把授权的 wiki 根目录维护成一个**会持续积累知识的 markdown 知识库**，而不是每次 query 都回到 raw source 临时重新拼答案。
 
-## 三层架构
+## 固定三层
 
-### 1. raw sources
+### 1. raw sources (`raw/`)
 
-- 角色：原始资料层，保存文章、论文、会议纪要、截图说明、数据摘录等输入。
-- 约束：只读；LLM 可以读取、引用、摘要，但不能改写此层内容。
-- 要求：结论要能追溯到 source；来源不清时只能记为待确认。
+- 角色：原始输入层，存放 PDF、网页归档、文章、会议纪要、截图说明、数据摘录等 source。
+- 约束：内容只读，不改写。
+- 允许动作：归档进 `raw/`、规范命名、引用、摘要。
 
-### 2. wiki
+### 2. wiki pages (`sources/`、`entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/`)
 
-- 角色：LLM 维护的 markdown 知识层。
-- 内容：来源摘要页、实体页、主题页、对比页、综合页、维护页等。
+- 角色：LLM 维护的知识层。
 - 责任：
-  - 吸收新 source 的信息；
-  - 更新旧页面中的结论、互链与争议；
-  - 把高价值 query 沉淀为稳定页面；
-  - 显式记录冲突、证据缺口与待验证项。
+  - 吸收新 source；
+  - 更新旧页面中的结论、互链与冲突；
+  - 把可复用 query 结果编译回 wiki；
+  - 记录证据缺口与待验证项。
 
-### 3. schema
+### 3. canonical control files (`index.md`、`log.md`)
 
-- 角色：规则层，定义目录结构、页面类型、命名方式、frontmatter、操作节奏与记账规则。
-- 本 skill 提供的仅是 baseline：
-  - raw sources 只读；
-  - wiki 由 LLM 维护；
-  - 优先通过 `index.md` 或宿主声明的等价导航机制导航；
-  - 通过 `log.md` 或宿主声明的等价日志机制做追加式记账；
-  - query 默认严格只读。
-- 宿主 wiki 应在自己的 `AGENTS.md`、`CLAUDE.md` 或其他规则文件中补充领域细则。
-- 若宿主 wiki 用其他文件承担导航页/日志页职责，遵循宿主 schema 的等价机制，而不是强行新建固定同名文件。
+- `index.md`：唯一导航入口。
+- `log.md`：唯一追加式时间线。
+- 本 skill 不支持替代导航 / 日志机制；固定就用这两个文件。
 
-## 首次接管 checklist
+## 单一 canonical layout
 
-在第一次接管某个 llm-wiki session 时，先确认以下问题；缺失项要显式报出，而不是私自补规则：
+- 根目录固定为一个完整的 wiki root，而不是等待外部 schema 来定义结构。
+- 页面 family 固定，目录职责固定，写回边界固定。
+- 如果目录里已有散落页面或 raw source，先规范化到 canonical layout，再继续维护。
 
-1. raw sources 在哪里？是否还存在 assets / images / attachments 等辅助目录？
-2. wiki 根目录在哪里？是否有 page family 的现成分层？
-3. `index.md` / `log.md` 是否存在，还是宿主已声明等价导航 / 日志机制？
-4. 页面命名、slug、ID、frontmatter、标签或 Dataview 规则是什么？
-5. source summary、entity、topic、comparison、synthesis、maintenance 是否已有宿主等价页型？
-6. query 默认是否只读？若可写回，授权人、触发条件、目标落点、允许字段、同步方式分别是什么？
-7. maintenance backlog 放在哪？lint issue 应如何归档？
-8. 何时允许使用搜索，而不是单纯依赖导航机制？
-9. 图片 / 附件是只记录存在、还是需要下载、重命名、转存、独立索引？
-10. 若宿主使用 `index.md` / `log.md` 之外的等价机制，它们是否位于 wiki 根或宿主声明的可写 scope？允许写哪些字段、采用追加还是覆盖？
+## 复利式维护
 
-## 推荐 baseline 与宿主覆盖
+- ingest 不只是新增 source summary；还必须回查现有 `entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/` 页面是否需要修正。
+- query 不只是回答；当答案具有可复用价值时，应被编译成 canonical wiki 页面，而不是遗失在聊天记录里。
+- lint 不只是找错；还要找“哪些知识还停留在零散页面或聊天回答里，尚未沉淀成稳定页面”。
+- 如果 source 不断增加，但高层页长期不更新，说明 wiki 正在退化回临时检索，而不是持续积累。
 
-- 如果宿主没有写明等价机制，则默认使用 `index.md` 做导航、`log.md` 做追加式记账。
-- 如果宿主已经声明等价导航 / 日志机制，本 skill 只复用，不强制新建默认文件。
-- 等价导航 / 日志机制只有在以下条件同时满足时才允许写回：宿主显式声明其职责、目标位于可写 scope、且允许字段与写法已定义；否则只能读取，不能回写。
-- 本 skill 推荐 page family 与 workflow，但不强制固定目录树、模板字段或 frontmatter。
-- 宿主 schema 一旦存在，就优先于 baseline；baseline 只在宿主缺失时填补最小操作契约。
+## 本 skill 拥有什么权力
 
-## 分工边界
+- 可以创建、重命名、移动、整理 canonical wiki 页面与 control files。
+- 可以把 source 归档进 `raw/` 并保持其内容只读。
+- 可以重建 `index.md`、维护 `log.md`、拆分过载页面、补齐缺失页、整理目录结构。
+- 不应把归档结果写到 canonical layout 之外，也不应依赖外部规则文件决定 page family。
 
-- 本 skill 负责稳定 workflow，不负责预设具体业务分类。
-- 宿主 schema 负责定义“页面应落在哪”“页面名称怎么取”“哪些 query 可以写回”。
-- 宿主 schema 优先定义谁可写、可写到哪里、允许写哪些字段、以及等价导航 / 日志机制的可写边界。
-- 若宿主未定义 query 写回流程，则 query 一律只读。
-- 若宿主仅缺少部分细则，可按本 skill baseline 执行最小 ingest / maintenance；但不得越过宿主已声明的限制。
-- 当宿主 schema 缺失细则时，采取最保守策略：
-  - 不擅自新增复杂页面类型；
-  - 不把推断写成事实；
-  - 不把 query 结果默认写回 wiki；
-  - 不把未被授权的宿主文件当作可写导航 / 日志机制。
+## 搜索的角色
 
-## index-first 与搜索增强
-
-- 默认路径：先读 `index.md` 或宿主等价导航机制，再进入相关页面，再按需回到 source summary 或 raw source。
-- 中等规模 wiki 中，导航页通常足够承担主入口；不要默认全库扫描。
-- 当宿主明确允许、且导航机制不足以定位内容时，可以使用搜索作为加速器。
-- 搜索只是定位工具，不是新的事实来源；最终结论仍要落回页面与 source 证据。
-
-## 附件 / 图片增强边界
-
-- 图片、图表、PDF、截图、数据附件都属于可选增强，不是 baseline 必选项。
-- 若宿主没有声明附件写回流程，默认只在 source summary 或相关页面记录其存在、用途与证据价值。
-- 若宿主定义了附件下载、命名、落盘、引用规则，再按宿主流程执行；不要擅自搬运或复制敏感路径。
+- 默认入口永远是 `index.md`。
+- 搜索只用于加速定位，不改变 canonical 结构，也不替代 source 证据。
 
 ## 为什么这样设计
 
-- ingest 后的综合结果会保留在 wiki 中，避免每次 query 都重新发现知识。
-- 互链、争议与结论更新由 LLM 持续维护，知识库会随着 source 与问题积累而变得更强。
-- `index.md`（或宿主等价导航机制）提供轻量导航；`log.md`（或宿主等价日志机制）保留时间线，便于理解最近发生了什么。
+- 目录结构固定，意味着 agent 不必每次重新判断“哪儿可写、哪儿是导航、哪儿该记账”。
+- raw source、source summary、高层综合页之间的关系固定，意味着新 source 到来时更容易做系统性更新。
+- `index.md` + `log.md` + 固定 page families，让 wiki 既可浏览，也可持续维护。
