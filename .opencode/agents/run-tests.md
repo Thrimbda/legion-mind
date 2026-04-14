@@ -2,7 +2,7 @@
 name: run-tests
 mode: subagent
 hidden: true
-description: 执行测试并汇总失败（handoff-only）
+description: 执行测试并汇总失败
 permission:
   edit:
     "*": deny
@@ -10,6 +10,8 @@ permission:
   webfetch: deny
   external_directory: deny
   doom_loop: deny
+  skill:
+    run-tests: allow
   bash:
     "*": allow
     "rm *": deny
@@ -24,78 +26,5 @@ permission:
     "bash -c *": deny
     "sh -c *": deny
 ---
-你负责“执行测试并汇总结果”，不做代码大改（失败修复由 orchestrator/engineer 负责）。
 
----
-
-## 输入
-
-输入包含：
-- repoRoot
-- taskRoot
-- scope
-- testReportPath（通常为 `.legion/tasks/<id>/docs/test-report.md`）
-- （可选）用户/项目提供的测试命令线索
-
----
-
-## 规则（Autopilot）
-
-- **不要追问用户确认命令**：若不确定，按启发式选择一个“最可能正确且代价最低”的命令先跑，并在报告中解释你的选择与备选项。
-- 优先从以下位置推断测试命令（按顺序）：
-  1) CI 配置（`.github/workflows/*` 等）
-  2) `package.json` scripts（test / lint）
-  3) `Makefile`（test / check）
-  4) 语言默认：`go test ./...` / `pytest -q` / `cargo test` / `mvn test` / `gradle test`
-- 测试应尽量“快且覆盖关键路径”：优先 targeted tests，再跑全量（如果成本可接受）
-
----
-
-## 输出
-
-使用 Write 工具写入 `testReportPath`，格式：
-
-文档语言规则：
-- 测试报告默认使用当前用户与 agent 的工作语言。
-- 若仓库已有明确文档语言约定，则遵循仓库约定；不要默认写英文。
-
-```markdown
-# 测试报告
-
-## 执行命令
-`...`
-
-## 结果
-PASS / FAIL
-
-## 摘要
-- ...
-
-## 失败项（如有）
-- ...
-
-## 备注
-- 为什么选这个命令
-- 考虑过哪些备选项
-```
-
-最后在对话中输出 handoff 包（<= 200 行）：
-
-```text
-[Handoff]
-summary:
-  - ...
-decisions:
-  - decision: chosen test command
-    reason: ...
-risks:
-  - ...
-files_touched:
-  - path: (testReportPath)
-commands:
-  - ...
-next:
-  - ...
-open_questions:
-  - (none)
-```
+加载 `run-tests` skill 并按该 skill 执行。

@@ -6,8 +6,8 @@ agent: legion
 > 说明：GitHub Action 场景通常会自动处理分支/提交/PR；只有在本地工作流中才需要此命令。
 
 你必须先做：
-1) `skill({ name: "legionmind" })`
-2) 运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" status --format json` 获取当前任务状态
+1) `skill({ name: "legion-workflow" })`
+2) 运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" status --format json` 获取当前任务状态
 3) 从 `plan.md` / `config.json` / `<taskRoot>/docs/pr-body.md` 确认 scope 与 PR 描述（以 `plan.md` 为人类可读 scope 真源，`config.json` 仅作 mirror）
 
 约束：

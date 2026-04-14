@@ -4,7 +4,7 @@
 
 - Primary agent: `legion`（orchestrator）
 - Subagents: `engineer`, `spec-rfc`, `review-rfc`, `review-code`, `review-security`, `run-tests`, `report-walkthrough`
-- Skill: `skills/legionmind`
+- Skills: `skills/brainstorm`、`skills/legion-workflow`、`skills/legion-docs` 与各 subagent 对应 skills
 
 ## 快速开始（本地）
 
@@ -19,7 +19,7 @@ opencode
 ```
 
 3) 直接对话或执行命令：
-- `/legion`：一键 Autopilot（设计→实现→测试→评审→报告）
+- `/legion`：一键 Autopilot（brainstorm→设计→实现→测试→评审→报告）
 - `/legion-impl`：仅实现→验证→报告
 - `/legion-rfc-heavy`：高风险/Epic 任务先做重 RFC（仅设计）
 - `/legion-pr`：本地可选提交/开 PR
@@ -57,9 +57,9 @@ bunx legion-mind-opencode install
 - 默认 `safe-overwrite`：可以理解为“安全地尝试覆盖”——只有目标文件是本工具之前安装过、且之后没被你手改过时，才会自动覆盖
 - 若目标是 `user-modified` 或 `unmanaged-existing`，默认跳过；用 `--force` 才覆盖
 - 换句话说：它默认优先保护你现有文件，不会看到同名文件就直接覆盖
-- 只同步白名单资产：`.opencode/{agents,commands,plugins}` 与 `skills/legionmind`
-- LegionMind 默认入口是 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" ...`
-- 仓库级 smoke 入口固定为 `node --experimental-strip-types scripts/legionmind/smoke.ts`（别名：`npm run legionmind:smoke`）
+- 只同步白名单资产：`.opencode/{agents,commands,plugins}` 与所需 Legion schema / subagent skills
+- Legion 默认入口是 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" ...`
+- 仓库级 smoke 入口固定为 `node --experimental-strip-types scripts/legion-workflow/smoke.ts`（别名：`npm run legion:smoke`）
 - 安装状态文件位于 `~/.config/opencode/.legionmind/`：
   - `install-state.v1.json`
   - `managed-files.v1.json`
@@ -72,10 +72,10 @@ bunx legion-mind-opencode install
 常用命令：
 
 ```bash
-node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" init
-node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" status --format json
-npm run legionmind:smoke
-npm run legionmind:check-no-default-mcp
+node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" init
+node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" status --format json
+npm run legion:smoke
+npm run legion:check-no-default-mcp
 ```
 
 ## GitHub 上使用
@@ -120,5 +120,5 @@ npm run benchmark:report -- --run <RUN_ID>
 详细运行说明、评分口径和排障见 `docs/benchmark.md`。
 
 模板见：
-- `skills/legionmind/references/TEMPLATE_RFC_HEAVY.md`
-- `skills/legionmind/references/TEMPLATE_PR_BODY_RFC_ONLY.md`
+- `skills/spec-rfc/references/TEMPLATE_RFC_HEAVY.md`
+- `skills/report-walkthrough/references/TEMPLATE_PR_BODY_RFC_ONLY.md`

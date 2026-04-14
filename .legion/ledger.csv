@@ -152,3 +152,78 @@
 2026-04-10T08:20:48.217Z,legion_get_status,openclaw-setup,新增 OpenClaw setup 脚本,Claude,,success
 2026-04-10T08:31:35.720Z,legion_switch_task,llm-wiki-skill,,Claude,taskId: llm-wiki-skill,failed
 2026-04-10T08:31:45.807Z,legion_list_tasks,openclaw-setup,新增 OpenClaw setup 脚本,Claude,,success
+2026-04-11T09:34:35.083Z,legion_list_tasks,openclaw-setup,新增 OpenClaw setup 脚本,Claude,,success
+2026-04-11T09:34:35.084Z,legion_get_status,openclaw-setup,新增 OpenClaw setup 脚本,Claude,,success
+2026-04-11T09:36:16.081Z,legion_create_task,openclaw-setup,新增 OpenClaw setup 脚本,Claude,goal: 使用 llm-wiki baseline 为 wiki 目录下的 PDF 建立可持续维护的 markdown wiki 入口与核心页面。,failed
+2026-04-11T09:36:32.004Z,legion_propose_task,openclaw-setup,新增 OpenClaw setup 脚本,Claude,name: 基于 wiki PDF 建立 llm-wiki,success
+2026-04-11T09:36:42.873Z,legion_approve_proposal,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,proposalId: proposal-mnu54e0w-20c133,success
+2026-04-11T09:36:50.438Z,legion_switch_task,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,taskId: wiki-pdf-llm-wiki,success
+2026-04-11T09:38:45.736Z,legion_update_tasks,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,completeTask: 确认 wiki 根、raw source、现有导航/日志机制与缺失 schema 点,success
+2026-04-11T09:38:45.755Z,legion_update_context,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,addDecision: 将 `wiki/` 视为 wiki 根，并在宿主 schema 缺失时采用默认 `index.md` / `log.md` baseline。,success
+2026-04-11T09:48:38.742Z,legion_update_tasks,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,completeTask: 抽取 PDF 主题、结构与高价值知识点，确定首批页面落点,success
+2026-04-11T09:48:45.807Z,legion_update_tasks,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,completeTask: 基于 PDF 生成 source summary 页面并补充可追溯引用,success
+2026-04-11T09:48:53.449Z,legion_update_tasks,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,completeTask: 生成 topic/overview 等首批 wiki 页面，并同步 index/log,success
+2026-04-11T09:48:59.478Z,legion_update_tasks,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,completeTask: 生成 maintenance/backlog 页面承接待验证项与后续扩展,success
+2026-04-11T09:49:05.776Z,legion_update_tasks,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,completeTask: 检查 raw source 未改写、页面互链、导航/日志同步与措辞边界,success
+2026-04-11T09:50:31.517Z,legion_get_status,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,,success
+2026-04-11T13:38:28.475Z,legion_get_status,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,,success
+2026-04-11T13:43:39.989Z,legion_list_tasks,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,,success
+2026-04-11T13:44:46.245Z,legion_create_task,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,goal: 基于对 wiki baseline 与 llm-wiki.md 精神差距的复盘，细化 skills/llm-wiki 的持续积累、schema 接管与目录边界 guidance，并完成验证。,failed
+2026-04-11T13:44:59.217Z,legion_propose_task,wiki-pdf-llm-wiki,基于 wiki PDF 建立 llm-wiki,Claude,name: 反哺 llm-wiki skill 的复利与 schema guidance,success
+2026-04-11T13:45:06.439Z,legion_approve_proposal,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,proposalId: proposal-mnudzwi7-369563,success
+2026-04-11T13:45:13.329Z,legion_get_status,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,,success
+2026-04-11T13:46:27.629Z,legion_update_context,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,addDecision: 本轮按 writing-skills 的 RED→GREEN 思路执行：先用 explore 子代理做 baseline loophole probe，再把失败点最小化映射到 skill 文档。,success
+2026-04-11T13:46:27.629Z,legion_update_tasks,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,completeTask: 把现有 skill 与 llm-wiki.md / 当前 wiki baseline 的差距整理为可执行改动点,success
+2026-04-11T13:50:03.591Z,legion_update_plan,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,,success
+2026-04-11T13:50:03.823Z,legion_update_tasks,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,completeTask: 更新 SKILL.md 与 references，把改动收敛为最小但更可执行的 guidance,success
+2026-04-11T13:50:03.823Z,legion_update_context,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,addDecision: 本轮新增 `references/host-schema-template.md`，而不是把最小模板直接塞回 SKILL.md 正文。,success
+2026-04-11T13:50:19.463Z,legion_update_tasks,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,completeTask: 用 skill-creator 校验 skill 结构，并记录验证结果,success
+2026-04-11T13:50:19.464Z,legion_update_context,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,addDecision: 把 GREEN-phase 回归检查保持为探索型场景验证，而不是继续扩大文档改写范围。,success
+2026-04-11T13:50:24.643Z,legion_get_status,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,,success
+2026-04-11T13:51:26.552Z,legion_update_context,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,addDecision: 在 grammar polish 后再次执行 skill-creator validate，而不是复用上一轮结果。,success
+2026-04-11T14:03:32.043Z,legion_update_plan,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,,success
+2026-04-11T14:03:32.082Z,legion_update_tasks,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,completeTask: phase,success
+2026-04-11T14:03:32.140Z,legion_update_context,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,addDecision: 接受用户的 product direction，放弃 host-schema / multi-case 模式，改为 skill 全权管理一个授权 wiki 根目录的单一 canonical 方案。,success
+2026-04-13T06:18:24.247Z,legion_update_tasks,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,completeTask: phase,success
+2026-04-13T06:19:14.291Z,legion_update_tasks,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,completeTask: 在单一 canonical 方案下恢复 query / ingest Mermaid 流程图并确认校验通过,success
+2026-04-13T06:19:14.395Z,legion_update_context,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,addDecision: 在保留单一 canonical product direction 的前提下，把 Mermaid 流程图补回 SKILL.md，而不是继续维持纯文字版本。,success
+2026-04-13T06:46:27.661Z,legion_get_status,legionmind-skill,,Claude,,failed
+2026-04-13T06:46:33.112Z,legion_get_status,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,,success
+2026-04-13T06:46:43.839Z,legion_propose_task,llm-wiki-skill-schema-guidance,反哺 llm-wiki skill 的复利与 schema guidance,Claude,name: 整理 Legion 上下文管理三层改进建议,success
+2026-04-13T06:46:46.935Z,legion_approve_proposal,legion,整理 Legion 上下文管理三层改进建议,Claude,proposalId: proposal-mnwtxq4d-acc982,success
+2026-04-13T06:46:49.861Z,legion_switch_task,legion,整理 Legion 上下文管理三层改进建议,Claude,taskId: legion,success
+2026-04-13T06:47:06.575Z,legion_update_tasks,legion,整理 Legion 上下文管理三层改进建议,Claude,completeTask: 确认文档的长期落点与大纲,success
+2026-04-13T06:47:21.801Z,legion_update_context,legion,整理 Legion 上下文管理三层改进建议,Claude,addDecision: 建议文档放入 docs/ 而不是 .legion/tasks/<task-id>/docs/,success
+2026-04-13T06:49:09.618Z,legion_update_tasks,legion,整理 Legion 上下文管理三层改进建议,Claude,completeTask: 整理 Legion 上下文管理的重复问题与三层改进建议,success
+2026-04-13T06:49:13.947Z,legion_update_tasks,legion,整理 Legion 上下文管理三层改进建议,Claude,completeTask: 将分析写入仓库 Markdown 文档,success
+2026-04-13T06:49:25.338Z,legion_update_context,legion,整理 Legion 上下文管理三层改进建议,Claude,addDecision: 本文档采用“建议文档”定位，不直接给出立即迁移脚本或 schema 变更方案,success
+2026-04-13T06:49:30.534Z,legion_update_tasks,legion,整理 Legion 上下文管理三层改进建议,Claude,completeTask: 记录关键决策与后续建议,success
+2026-04-13T07:04:52.160Z,legion_get_status,legion,整理 Legion 上下文管理三层改进建议,Claude,,success
+2026-04-13T07:06:55.618Z,legion_update_context,legion,整理 Legion 上下文管理三层改进建议,Claude,addDecision: 文档改为优先按读者角色而非文件名理解重复：`plan.md` 面向 tech lead，`rfc.md` 是进一步细化材料，`context.md` 更接近 agent 侧 log,success
+2026-04-13T07:13:01.755Z,legion_get_status,legion,整理 Legion 上下文管理三层改进建议,Claude,,success
+2026-04-13T07:13:22.435Z,legion_update_tasks,legion,整理 Legion 上下文管理三层改进建议,Claude,completeTask: phase,success
+2026-04-13T07:27:41.609Z,legion_list_tasks,legion,整理 Legion 上下文管理三层改进建议,Claude,,success
+2026-04-13T07:27:41.610Z,legion_get_status,legion,整理 Legion 上下文管理三层改进建议,Claude,,success
+2026-04-13T07:28:03.591Z,legion_create_task,legion,整理 Legion 上下文管理三层改进建议,Claude,goal: 将 LegionMind 的规则层拆分为独立 schema skills，瘦身 agents，并把现行 raw task log 文件名从 context.md 切换为 log.md。,failed
+2026-04-13T07:28:17.528Z,legion_propose_task,legion,整理 Legion 上下文管理三层改进建议,Claude,name: 拆分 Legion schema skills 并改用 log.md,success
+2026-04-13T07:28:29.896Z,legion_approve_proposal,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,proposalId: proposal-mnwvf69h-33d034,success
+2026-04-13T07:28:34.230Z,legion_switch_task,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,taskId: legion-schema-skills-logmd,success
+2026-04-13T07:31:00.957Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: 本轮优先重构 schema 层与现行入口，不批量改写历史 task raw docs,success
+2026-04-13T07:31:00.958Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 基于现有分析文档确认 skill 拆分边界、owner 关系与 log.md 命名切换,success
+2026-04-13T07:53:56.221Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: 本轮不创建 `.legion/wiki/**` 骨架，先完成 schema 层切换并把 wiki/lint 作为后续 workstream,success
+2026-04-13T07:53:56.480Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 确定 wiki / summary / lint 的本轮落地范围，避免 scope 漂移,success
+2026-04-13T07:54:05.579Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 创建新的 schema skills 并迁移 references/templates,success
+2026-04-13T07:54:12.967Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 将 .opencode agents 瘦身为权限 + skill 加载壳,success
+2026-04-13T07:54:18.466Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 把 context.md 现行模型改为 log.md 并同步命令、脚本、文档,success
+2026-04-13T07:54:48.895Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: 现行入口的残留检查仅针对 schema / commands / docs / scripts；历史分析文档与 raw task docs 允许保留旧名作为历史证据,success
+2026-04-13T07:54:48.925Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 检索并验证旧引用、漂移与遗漏,success
+2026-04-13T07:55:18.252Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: 安装器继续保留 `.legionmind/` 作为本地安装状态目录，不纳入本轮 skill 拆分重命名范围,success
+2026-04-13T07:55:37.551Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 更新任务日志、状态和交付摘要,success
+2026-04-13T07:59:20.496Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 更新任务日志、状态和交付摘要,success
+2026-04-13T07:59:20.496Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: 本轮 skill 优化以 writing-skills 的发现性与精炼性准则为主，不额外扩写 workflow 细节,success
+2026-04-13T08:01:55.210Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: 本轮 skill 优化主要采用 writing-skills 的 CSO 与结构化扫描准则，不补做完整 pressure-scenario TDD,success
+2026-04-13T08:54:41.625Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: mermaid 流程图优先加在 decision-heavy skills，而不是所有 skills 一视同仁铺开,success
+2026-04-13T09:23:36.233Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: 严格流程的行为测试重点放在 decision-heavy skills；其余 skills 若 baseline 已达标，则只做结构与可发现性优化，并用代表性场景确认无回退,success
+2026-04-13T10:09:50.555Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: 对 engineer 而言，RFC 不是 optional context，而是存在时必须读取的设计真源,success
+2026-04-14T07:18:25.714Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: subagent dispatch 的强规则落在 `legion-workflow`，commands 只保留 mode 选择与入口约束,success
+2026-04-14T07:18:25.715Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 使用 writing-skills 准则优化新建 skills,success

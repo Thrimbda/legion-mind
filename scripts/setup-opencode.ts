@@ -102,6 +102,19 @@ const SOURCE_TARGETS = [
   { sourceRoot: '.opencode/plugins', targetRoot: 'plugins', optional: true },
 ] as const;
 
+const INSTALLED_SKILLS = [
+  'brainstorm',
+  'legion-docs',
+  'legion-workflow',
+  'spec-rfc',
+  'review-rfc',
+  'engineer',
+  'run-tests',
+  'review-code',
+  'review-security',
+  'report-walkthrough',
+] as const;
+
 const SENSITIVE_BASENAMES = new Set(['opencode.json', 'antigravity-accounts.json']);
 
 class Reporter {
@@ -235,7 +248,7 @@ function managedRoots(opts: CliOptions): string[] {
     join(opts.configDir, 'agents'),
     join(opts.configDir, 'commands'),
     join(opts.configDir, 'plugins'),
-    join(opts.opencodeHome, 'skills', 'legionmind'),
+    ...INSTALLED_SKILLS.map((skill) => join(opts.opencodeHome, 'skills', skill)),
   ].map(canonicalDirectoryPath);
 }
 
@@ -543,9 +556,12 @@ function runInstall(opts: CliOptions, runId: string, reporter: Reporter): Instal
     syncItems.push(...collectFilesRecursive(src, join(opts.configDir, map.targetRoot)));
   }
 
-  const skillSource = join(PROJECT_ROOT, 'skills', 'legionmind');
-  if (existsSync(skillSource)) {
-    syncItems.push(...collectFilesRecursive(skillSource, join(opts.opencodeHome, 'skills', 'legionmind')));
+  for (const skill of INSTALLED_SKILLS) {
+    const skillSource = join(PROJECT_ROOT, 'skills', skill);
+    if (!existsSync(skillSource)) {
+      continue;
+    }
+    syncItems.push(...collectFilesRecursive(skillSource, join(opts.opencodeHome, 'skills', skill)));
   }
 
   const counters = { copied: 0, linked: 0, skipped: 0 };
@@ -605,20 +621,35 @@ function runVerify(opts: CliOptions, runId: string, reporter: Reporter): Install
       required: true,
     },
     {
-      checkId: 'assets.skills',
-      target: join(opts.opencodeHome, 'skills', 'legionmind', 'SKILL.md'),
+      checkId: 'assets.skill-workflow',
+      target: join(opts.opencodeHome, 'skills', 'legion-workflow', 'SKILL.md'),
+      required: true,
+    },
+    {
+      checkId: 'assets.skill-docs',
+      target: join(opts.opencodeHome, 'skills', 'legion-docs', 'SKILL.md'),
       required: true,
     },
     {
       checkId: 'assets.legion-cli',
-      target: join(opts.opencodeHome, 'skills', 'legionmind', 'scripts', 'legion.ts'),
+      target: join(opts.opencodeHome, 'skills', 'legion-workflow', 'scripts', 'legion.ts'),
       required: true,
     },
     {
       checkId: 'fallback.filesystem',
-      target: join(opts.opencodeHome, 'skills', 'legionmind', 'references', 'REF_SCHEMAS.md'),
+      target: join(opts.opencodeHome, 'skills', 'legion-docs', 'references', 'REF_SCHEMAS.md'),
       required: true,
     },
+    {
+      checkId: 'assets.subagents',
+      target: join(opts.opencodeHome, 'skills', 'spec-rfc', 'SKILL.md'),
+      required: true,
+    },
+    ...INSTALLED_SKILLS.filter((skill) => !['legion-docs', 'legion-workflow', 'spec-rfc'].includes(skill)).map((skill) => ({
+      checkId: `assets.skill.${skill}`,
+      target: join(opts.opencodeHome, 'skills', skill, 'SKILL.md'),
+      required: true,
+    })),
   ];
 
   let hardFailures = 0;

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "currentTask": "openclaw-setup",
+  "currentTask": "legion-schema-skills-logmd",
   "settings": {
     "autoRemind": true,
     "remindBeforeReset": true,
@@ -38,9 +38,37 @@
     {
       "id": "openclaw-setup",
       "name": "新增 OpenClaw setup 脚本",
-      "status": "active",
+      "status": "paused",
       "createdAt": "2026-03-27T05:32:46.519Z",
-      "updatedAt": "2026-03-27T05:37:53.025Z"
+      "updatedAt": "2026-04-11T09:36:42.869Z"
+    },
+    {
+      "id": "wiki-pdf-llm-wiki",
+      "name": "基于 wiki PDF 建立 llm-wiki",
+      "status": "paused",
+      "createdAt": "2026-04-11T09:36:42.869Z",
+      "updatedAt": "2026-04-11T13:45:06.432Z"
+    },
+    {
+      "id": "llm-wiki-skill-schema-guidance",
+      "name": "反哺 llm-wiki skill 的复利与 schema guidance",
+      "status": "paused",
+      "createdAt": "2026-04-11T13:45:06.432Z",
+      "updatedAt": "2026-04-13T06:46:46.932Z"
+    },
+    {
+      "id": "legion",
+      "name": "整理 Legion 上下文管理三层改进建议",
+      "status": "paused",
+      "createdAt": "2026-04-13T06:46:46.932Z",
+      "updatedAt": "2026-04-13T07:28:29.894Z"
+    },
+    {
+      "id": "legion-schema-skills-logmd",
+      "name": "拆分 Legion schema skills 并改用 log.md",
+      "status": "active",
+      "createdAt": "2026-04-13T07:28:29.894Z",
+      "updatedAt": "2026-04-14T07:18:25.713Z"
     }
   ],
   "pendingProposals": [
@@ -397,6 +425,249 @@
       "decidedAt": "2026-03-27T05:32:46.519Z",
       "decidedBy": "Claude",
       "createdTaskId": "openclaw-setup"
+    },
+    {
+      "id": "proposal-mnu54e0w-20c133",
+      "name": "基于 wiki PDF 建立 llm-wiki",
+      "goal": "使用 llm-wiki baseline 为 wiki 目录下的 PDF 建立可持续维护的 markdown wiki 入口与核心页面。",
+      "rationale": "用户明确要求“使用 llm-wiki skill 针对 wiki 目录下的 pdf 建立一个 wiki”。该任务涉及宿主 schema 盘点、PDF ingest、多个 markdown 页面生成与导航/日志同步，属于典型多步骤 llm-wiki ingest 工作流，适合纳入 LegionMind 持久化管理。",
+      "points": [
+        "遵循 llm-wiki 的 raw/wiki/schema 三层边界，保持 PDF 原文件只读。",
+        "在缺少宿主 schema 时采用最小 baseline：index.md、log.md、source summary、topic/overview、maintenance。",
+        "确保新增页面可通过 index 导航，结论可追溯到 PDF/source summary，并记录后续可扩展方向。"
+      ],
+      "scope": [
+        "wiki/**"
+      ],
+      "phases": [
+        {
+          "name": "阶段 1 - Bootstrap 与 schema 盘点",
+          "tasks": [
+            {
+              "description": "确认 wiki 根、raw source、现有导航/日志机制与缺失 schema 点",
+              "acceptance": "明确本次 session 的可写边界、命名策略与风险级别，并记录在 plan/context。"
+            },
+            {
+              "description": "抽取 PDF 主题、结构与高价值知识点，确定首批页面落点",
+              "acceptance": "形成 source summary/topic/overview/maintenance 的最小信息架构。"
+            }
+          ]
+        },
+        {
+          "name": "阶段 2 - Ingest 与页面生成",
+          "tasks": [
+            {
+              "description": "基于 PDF 生成 source summary 页面并补充可追溯引用",
+              "acceptance": "source summary 包含来源身份、关键事实/主张、证据限制、影响页面与 open questions。"
+            },
+            {
+              "description": "生成 topic/overview 等首批 wiki 页面，并同步 index/log",
+              "acceptance": "新增页面之间具有基本互链；index 可导航；log 追加安全摘要。"
+            },
+            {
+              "description": "生成 maintenance/backlog 页面承接待验证项与后续扩展",
+              "acceptance": "未确定内容被清晰标记，不混入确定性结论。"
+            }
+          ]
+        },
+        {
+          "name": "阶段 3 - 校验与交付",
+          "tasks": [
+            {
+              "description": "检查 raw source 未改写、页面互链、导航/日志同步与措辞边界",
+              "acceptance": "确认符合 llm-wiki baseline，且没有把推测写成事实。"
+            },
+            {
+              "description": "同步 LegionMind context/tasks，并输出交付摘要",
+              "acceptance": "任务状态、关键决策、产物路径与后续建议完整可追踪。"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-04-11T09:36:32.002Z",
+      "status": "approved",
+      "decidedAt": "2026-04-11T09:36:42.869Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "wiki-pdf-llm-wiki"
+    },
+    {
+      "id": "proposal-mnudzwi7-369563",
+      "name": "反哺 llm-wiki skill 的复利与 schema guidance",
+      "goal": "基于对 wiki baseline 与 llm-wiki.md 精神差距的复盘，细化 skills/llm-wiki 的持续积累、schema 接管与目录边界 guidance，并完成验证。",
+      "rationale": "用户明确要求把对 llm-wiki spirit 的审阅结论反哺回本仓库内的 llm-wiki skill，并指定使用 writing-skills 写作、用 skill-creator validate。现有 active task 的 scope 仅限 wiki/**，不允许直接改动 skills/llm-wiki/**；因此需要一个新的 LegionMind 任务来承载 skill 文档修改、验证结果与上下文记录。",
+      "points": [
+        "把“更像 persistent compounding wiki”所需的规则显式写回 skill，而不是只停留在审阅结论里",
+        "补强宿主 schema handshake / 模板，降低首次接管与等价机制判断歧义",
+        "在保持 SKILL.md 精简的前提下，把细节下沉到 references，并用 skill-creator 校验"
+      ],
+      "scope": [
+        "skills/llm-wiki/**",
+        ".legion/tasks/llm-wiki-compounding-feedback/**"
+      ],
+      "phases": [
+        {
+          "name": "基线复盘",
+          "tasks": [
+            {
+              "description": "把现有 skill 与 llm-wiki.md / 当前 wiki baseline 的差距整理为可执行改动点",
+              "acceptance": "形成明确的 failing cases / loopholes，覆盖复利更新、schema 接管、raw/wiki 共址边界等主题"
+            }
+          ]
+        },
+        {
+          "name": "skill 细化",
+          "tasks": [
+            {
+              "description": "更新 SKILL.md 与 references，把改动收敛为最小但更可执行的 guidance",
+              "acceptance": "SKILL.md 仍保持精简；新增或更新的 references 明确宿主模板、复利循环与边界规则"
+            }
+          ]
+        },
+        {
+          "name": "验证与交付",
+          "tasks": [
+            {
+              "description": "用 skill-creator 校验 skill 结构，并记录验证结果",
+              "acceptance": "quick_validate 或等价验证通过，且变更理由与结果已写入任务上下文"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-04-11T13:44:59.215Z",
+      "status": "approved",
+      "decidedAt": "2026-04-11T13:45:06.432Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "llm-wiki-skill-schema-guidance"
+    },
+    {
+      "id": "proposal-mnwtxq4d-acc982",
+      "name": "整理 Legion 上下文管理三层改进建议",
+      "goal": "把针对 Legion 上下文管理的 raw/wiki/schema 三层重构建议整理为仓库内的长期 Markdown 文档。",
+      "rationale": "用户明确要求将当前对 Legion 上下文管理的分析与改进建议写入仓库中的 Markdown 文档，便于后续持续参考与迭代。该工作涉及选择长期落点、组织内容结构、落盘文档并记录任务上下文，适合创建独立 LegionMind 任务。",
+      "points": [
+        "将 .legion/tasks 视为 raw sources 而非直接充当 wiki 层",
+        "明确 schema、wiki、raw 三层的职责边界与互链关系",
+        "总结 plan/context/tasks 与 RFC/review/report/agent prompt 的重复与漂移问题",
+        "给出可执行的目录级改进建议与迁移方向"
+      ],
+      "scope": [
+        "docs/**",
+        ".legion/**"
+      ],
+      "phases": [
+        {
+          "name": "建模与落点",
+          "tasks": [
+            {
+              "description": "确认文档的长期落点与大纲",
+              "acceptance": "确定文档写入 docs 目录，并形成 raw/wiki/schema 三层分析结构"
+            }
+          ]
+        },
+        {
+          "name": "文档撰写",
+          "tasks": [
+            {
+              "description": "整理 Legion 上下文管理的重复问题与三层改进建议",
+              "acceptance": "文档覆盖 plan/context/tasks 与 RFC/docs/agent prompt 的关系、问题与建议"
+            },
+            {
+              "description": "将分析写入仓库 Markdown 文档",
+              "acceptance": "docs 下新增可读的建议文档，便于后续继续引用"
+            }
+          ]
+        },
+        {
+          "name": "任务回写",
+          "tasks": [
+            {
+              "description": "记录关键决策与后续建议",
+              "acceptance": "context.md 与 tasks.md 反映本次文档产物与下一步"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-04-13T06:46:43.838Z",
+      "status": "approved",
+      "decidedAt": "2026-04-13T06:46:46.932Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "legion"
+    },
+    {
+      "id": "proposal-mnwvf69h-33d034",
+      "name": "拆分 Legion schema skills 并改用 log.md",
+      "goal": "将 LegionMind 的规则层拆分为独立 schema skills，瘦身 agents，并把现行 raw task log 文件名从 context.md 切换为 log.md。",
+      "rationale": "用户已确认按新方案开始改仓库，并要求以 log.md 替代 context.md；该改动跨 skills、agents、commands、脚本与文档，需要独立任务追踪 scope、设计边界与迁移进度。",
+      "points": [
+        "按 raw/wiki/schema 三层模型重构 schema 层，不做向后兼容。",
+        "agent 仅保留权限定义与 skill 加载语句，规则与模板全部迁入 skills。",
+        "现行 task 原始文档模型改为 plan.md / log.md / tasks.md，并同步更新 references、commands、agents 与脚本。"
+      ],
+      "scope": [
+        "skills/**",
+        ".opencode/agents/**",
+        ".opencode/commands/**",
+        ".opencode/package*.json",
+        "scripts/**",
+        "docs/**",
+        ".legion/**",
+        "README.md",
+        "legionmind.skill"
+      ],
+      "phases": [
+        {
+          "name": "设计收口",
+          "tasks": [
+            {
+              "description": "基于现有分析文档确认 skill 拆分边界、owner 关系与 log.md 命名切换",
+              "acceptance": "plan.md 明确目标、scope、风险和设计入口；必要决策已记录"
+            },
+            {
+              "description": "确定 wiki / summary / lint 的本轮落地范围，避免 scope 漂移",
+              "acceptance": "plan.md 与 log 记录了本轮做与不做的边界"
+            }
+          ]
+        },
+        {
+          "name": "实现迁移",
+          "tasks": [
+            {
+              "description": "创建新的 schema skills 并迁移 references/templates",
+              "acceptance": "新 skills 目录可承载原 legionmind 与 subagents 的规则真源"
+            },
+            {
+              "description": "将 .opencode agents 瘦身为权限 + skill 加载壳",
+              "acceptance": "所有相关 agent 文件不再包含规则正文"
+            },
+            {
+              "description": "把 context.md 现行模型改为 log.md 并同步命令、脚本、文档",
+              "acceptance": "仓库现行入口与 schema 不再使用 context.md 作为标准文件名"
+            }
+          ]
+        },
+        {
+          "name": "验证收口",
+          "tasks": [
+            {
+              "description": "检索并验证旧引用、漂移与遗漏",
+              "acceptance": "关键现行入口不再引用旧结构，残留项若存在则已明确标记为历史或待后续处理"
+            },
+            {
+              "description": "更新任务日志、状态和交付摘要",
+              "acceptance": "log/tasks/handoff 已同步，产出可供后续 review 的总结"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-04-13T07:28:17.525Z",
+      "status": "approved",
+      "decidedAt": "2026-04-13T07:28:29.894Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "legion-schema-skills-logmd"
     }
   ]
 }

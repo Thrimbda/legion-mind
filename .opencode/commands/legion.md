@@ -8,39 +8,38 @@ agent: legion
 ## 执行要求
 
 1) 加载技能：
-- `skill({ name: "legionmind" })`
+- `skill({ name: "legion-workflow" })`
+- 若需要新建 task 或重做 task contract：`skill({ name: "brainstorm" })`
+- 若需要写 `.legion` 核心文档：`skill({ name: "legion-docs" })`
 
 2) 初始化 / 恢复任务：
-- 若已有 `.legion/`：运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" status --format json` → 恢复 active task
-- 否则：优先运行 `... legion.ts task create --json '{...}'` 或 `propose + proposal approve`；仅 orchestrator 可在 break-glass 模式下按 REF_SCHEMAS 手动创建，并注明无 ledger 审计
+- 若已有 `.legion/`：运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" status --format json` → 恢复 active task
+- 若还没有 `.legion/`：先 `init`，不要立刻生成占位 task
+- 恢复顺序固定为：`plan.md` -> `docs/rfc.md`（若存在）-> `log.md` / `tasks.md`
 
-3) 先生成 `plan.md`（唯一任务契约：问题定义/验收/假设/约束/风险 + 短目标/要点/允许 Scope/Design Index/Phase Map）
+3) 若当前没有 active task，或已有 task 但 contract 不稳定，先执行 brainstorm：
+- 一次只问一个问题，收敛目标/验收/Scope/阶段划分
+- 在存在真实设计分叉时给 2-3 个方案
+- 新 task：用收敛后的 task seed 执行 `task create` 或 `propose + proposal approve`
+- 已有 task：用收敛后的 task seed 重写 `plan.md` 与 `tasks.md`
+- 不要先落占位文档，再靠实现阶段回填
 
-5) 风险/规模分级（Low/Medium/High + Epic）：
+4) 风险/规模分级（Low/Medium/High + Epic）：
 - 支持标签：`rfc:heavy` / `epic` / `risk:high` / `plan-only` / `continue`
 
-6) 风险分级（Low/Medium/High）：
-- Low：design-lite 即可
-- Medium/High：生成 RFC + `review-rfc` 收敛
-
-7) 实现：
-- 调用 `engineer`
-
-8) 验证与评审：
-- `run-tests` → `<taskRoot>/docs/test-report.md`
-- `review-code` → `<taskRoot>/docs/review-code.md`
-- Medium/High 或安全相关：`review-security` → `<taskRoot>/docs/review-security.md`
-
-9) 报告：
-- `report-walkthrough` → `<taskRoot>/docs/report-walkthrough.md` + `<taskRoot>/docs/pr-body.md`
+5) subagent 派生：
+- orchestrator **必须**按 `skills/legion-workflow/references/SUBAGENT_DISPATCH_MATRIX.md` 派生 subagents
+- 本命令只定义 default autopilot mode，不再内联另一套 dispatch 顺序
 
 ## 注意
 
 - **不要等待用户确认设计**：默认走 PR 驱动“延迟批准”（merge 视为批准）
+- `plan.md` 与 `tasks.md` 的第一版必须来自 brainstorm 收敛后的 task contract，而不是 CLI 默认占位文本
 - `plan.md` 是唯一任务契约与人类可读 Scope 真源；保持摘要级，不要把它写成 mini-RFC
+- subagent 派生顺序如果与 command 文案冲突，以 `SUBAGENT_DISPATCH_MATRIX.md` 为准
 - GitHub Action 场景通常不需要你手动 `git push` / `gh pr create`
 - 根目录 `docs/` 仅放长期文档；任务过程产物统一落盘到 `<taskRoot>/docs/`
-- 所有 LegionMind 任务文档默认使用当前用户与 agent 的工作语言；只有仓库已有明确文档语言约定时才覆盖这一默认值，不要默认写英文
+- 所有 Legion 任务文档默认使用当前用户与 agent 的工作语言；只有仓库已有明确文档语言约定时才覆盖这一默认值，不要默认写英文
 - 本地如果需要提交/开 PR，最后运行 `/legion-pr`
 
 完成后输出：

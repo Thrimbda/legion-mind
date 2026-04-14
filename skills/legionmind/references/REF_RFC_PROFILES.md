@@ -1,1 +1,0 @@
-Defined RFC profiles with auto-heavy triggers based on task size and risk

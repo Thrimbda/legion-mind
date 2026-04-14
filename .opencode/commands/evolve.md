@@ -1,5 +1,5 @@
 ---
-description: 从当前任务中提取可复用模式，记录到 .legion/playbook.md（并在当前任务 context.md 留痕） 供后续复用
+description: 从当前任务中提取可复用模式，记录到 .legion/playbook.md（并在当前任务 log.md 留痕）供后续复用
 agent: legion
 ---
 
@@ -7,8 +7,9 @@ agent: legion
 
 ## 前置检查
 
-1) 调用 `skill({ name: "legionmind" })` 加载指南
-2) 运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legionmind/scripts/legion.ts" status --format json` 确认有活跃任务
+1) 调用 `skill({ name: "legion-workflow" })` 加载指南
+2) 如需写 `.legion` 文档规则，追加 `skill({ name: "legion-docs" })`
+3) 运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" status --format json` 确认有活跃任务
 
 ## 执行步骤
 
@@ -21,9 +22,9 @@ agent: legion
 - 测试策略（如"此模块需要 mock 数据库"）
 - 配置或环境要求
 
-2) **记录到 .legion/playbook.md（并在当前任务 context.md 留痕）**
+2) **记录到 .legion/playbook.md（并在当前任务 log.md 留痕）**
 
-使用 `context update --json '{...}'` 添加决策记录：
+使用 `log update --json '{...}'` 添加决策记录：
 ```
 addDecision: {
   decision: "发现可复用模式: <模式名称>",
@@ -58,6 +59,6 @@ addDecision: {
 
 ## 不适合记录的
 
-- 任务特定的实现细节（应在 tasks.md/context.md 的进展中记录）
+- 任务特定的实现细节（应在 tasks.md/log.md 的进展中记录）
 - 临时调试笔记
 - 已在其他文档（如 README）中说明的内容
