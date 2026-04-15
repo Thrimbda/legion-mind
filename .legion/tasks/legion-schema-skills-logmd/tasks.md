@@ -42,8 +42,10 @@
 - [ ] 后续可单开任务推进 `.legion/wiki` / task summary / lint 配套 | 来源: 本轮 schema 切换已完成
 - [ ] 后续如需严格遵守 writing-skills TDD，可单开任务补做 pressure scenarios 与 subagent baseline 测试 | 来源: writing-skills 规范要求
 - [ ] 若后续再增新 mode，必须先更新 `SUBAGENT_DISPATCH_MATRIX.md` 再改 commands | 来源: 用户指出 dispatch 规则丢失
+- [ ] 把 `llm-wiki` 的三层模型正式映射到 Legion：raw=`.legion/tasks/**`，wiki=`.legion/wiki/**`，schema=`skills/** + .opencode/**` | 来源: 用户选择方案 2 并要求实施
+- [ ] 后续补更多历史 task summaries 与 historical/superseded 元数据 | 来源: 本轮只建立了首个 task summary 与 wiki 骨架
 
 
 ---
 
-*最后更新: 2026-04-14 15:18*
+*最后更新: 2026-04-14 22:33*

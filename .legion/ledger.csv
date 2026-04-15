@@ -227,3 +227,24 @@
 2026-04-13T10:09:50.555Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: 对 engineer 而言，RFC 不是 optional context，而是存在时必须读取的设计真源,success
 2026-04-14T07:18:25.714Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: subagent dispatch 的强规则落在 `legion-workflow`，commands 只保留 mode 选择与入口约束,success
 2026-04-14T07:18:25.715Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 使用 writing-skills 准则优化新建 skills,success
+2026-04-14T14:13:12.185Z,legion_get_status,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,,success
+2026-04-14T14:18:06.610Z,legion_get_status,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,,success
+2026-04-14T14:20:40.945Z,legion_list_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,,success
+2026-04-14T14:21:35.267Z,legion_create_task,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,goal: 将仓库根部 AGENTS.md 的入口规则抽取为可复用 skill，并让 legion-workflow 把它作为显式入口依赖，同时完成基础验证。,failed
+2026-04-14T14:21:53.900Z,legion_propose_task,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,name: 把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,success
+2026-04-14T14:22:06.399Z,legion_approve_proposal,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,proposalId: proposal-mnypmxd2-173b64,success
+2026-04-14T14:22:20.230Z,legion_switch_task,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,taskId: agentsmd-skill-legion-workflow,success
+2026-04-14T14:24:22.521Z,legion_update_context,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,addDecision: 本任务按 Low Risk + design-lite 执行，不单开 RFC,success
+2026-04-14T14:24:48.130Z,legion_update_tasks,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,completeTask: 收敛 skill 名称、职责边界、与 legion-workflow 的集成点,success
+2026-04-14T14:29:28.309Z,legion_update_context,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,addDecision: AGENTS.md 降为最小入口 shim，新规则正文转移到 `skills/agent-entry/SKILL.md`,success
+2026-04-14T14:30:02.675Z,legion_update_tasks,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,completeTask: 更新 legion-workflow 与 AGENTS.md 以纳入新 skill,success
+2026-04-14T14:32:49.445Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 集中 subagent dispatch 真源到 legion-workflow,success
+2026-04-14T14:32:49.445Z,legion_update_context,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,addDecision: 采用方案 2：新增 `legion-wiki`，而不是直接让通用 `llm-wiki` 充当 Legion wiki owner,success
+2026-04-14T14:33:19.351Z,legion_update_tasks,legion-schema-skills-logmd,拆分 Legion schema skills 并改用 log.md,Claude,completeTask: 按方案 2 落地 legion-wiki 与 `.legion/wiki/**`,success
+2026-04-14T14:48:18.920Z,legion_get_status,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,,success
+2026-04-14T14:51:53.612Z,legion_get_status,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,,success
+2026-04-15T01:40:16.826Z,legion_update_tasks,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,completeTask: phase 0,success
+2026-04-15T01:40:16.827Z,legion_update_plan,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,,success
+2026-04-15T01:44:17.821Z,legion_get_status,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,,success
+2026-04-15T01:50:35.169Z,legion_update_plan,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,,success
+2026-04-15T01:50:35.324Z,legion_update_tasks,agentsmd-skill-legion-workflow,把 AGENTS.md 提炼为 skill 并纳入 legion-workflow,Claude,completeTask: phase 0,success

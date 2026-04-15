@@ -1,5 +1,5 @@
 ---
-description: 从当前任务中提取可复用模式，记录到 .legion/playbook.md（并在当前任务 log.md 留痕）供后续复用
+description: 从当前任务中提取可复用模式和当前有效结论，写入 .legion/wiki/**（必要时再同步 playbook）
 agent: legion
 ---
 
@@ -8,8 +8,9 @@ agent: legion
 ## 前置检查
 
 1) 调用 `skill({ name: "legion-workflow" })` 加载指南
-2) 如需写 `.legion` 文档规则，追加 `skill({ name: "legion-docs" })`
-3) 运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" status --format json` 确认有活跃任务
+2) 调用 `skill({ name: "legion-wiki" })` 处理 `.legion/wiki/**`
+3) 如需写 `.legion` 文档规则，追加 `skill({ name: "legion-docs" })`
+4) 运行 `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" status --format json` 确认有活跃任务
 
 ## 执行步骤
 
@@ -22,7 +23,14 @@ agent: legion
 - 测试策略（如"此模块需要 mock 数据库"）
 - 配置或环境要求
 
-2) **记录到 .legion/playbook.md（并在当前任务 log.md 留痕）**
+2) **记录到 `.legion/wiki/**`（并在当前任务 log.md 留痕）**
+
+- task 级综合摘要 → `.legion/wiki/tasks/<task-id>.md`
+- 当前有效决策 → `.legion/wiki/decisions.md`
+- 可复用模式 → `.legion/wiki/patterns.md`
+- 迁移债务 / 待确认项 → `.legion/wiki/maintenance.md`
+
+必要时，再把极简 conventions 摘要同步到 `.legion/playbook.md`
 
 使用 `log update --json '{...}'` 添加决策记录：
 ```
@@ -49,7 +57,7 @@ addDecision: {
 ### ...
 ```
 
-## 适合记录的模式
+## 适合记录到 wiki 的模式
 
 - "当修改 X 时，也需要更新 Y 以保持同步"
 - "此模块的所有 API 调用使用模式 Z"
@@ -59,6 +67,6 @@ addDecision: {
 
 ## 不适合记录的
 
-- 任务特定的实现细节（应在 tasks.md/log.md 的进展中记录）
+- 任务特定的实现细节（应在 tasks.md/log.md 的进展中记录，而不是直接抬升到 wiki）
 - 临时调试笔记
 - 已在其他文档（如 README）中说明的内容

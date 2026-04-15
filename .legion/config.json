@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "currentTask": "legion-schema-skills-logmd",
+  "currentTask": "agentsmd-skill-legion-workflow",
   "settings": {
     "autoRemind": true,
     "remindBeforeReset": true,
@@ -66,9 +66,16 @@
     {
       "id": "legion-schema-skills-logmd",
       "name": "拆分 Legion schema skills 并改用 log.md",
-      "status": "active",
+      "status": "paused",
       "createdAt": "2026-04-13T07:28:29.894Z",
-      "updatedAt": "2026-04-14T07:18:25.713Z"
+      "updatedAt": "2026-04-14T14:33:19.350Z"
+    },
+    {
+      "id": "agentsmd-skill-legion-workflow",
+      "name": "把 AGENTS.md 提炼为 skill 并纳入 legion-workflow",
+      "status": "active",
+      "createdAt": "2026-04-14T14:22:06.391Z",
+      "updatedAt": "2026-04-15T01:50:35.324Z"
     }
   ],
   "pendingProposals": [
@@ -668,6 +675,71 @@
       "decidedAt": "2026-04-13T07:28:29.894Z",
       "decidedBy": "Claude",
       "createdTaskId": "legion-schema-skills-logmd"
+    },
+    {
+      "id": "proposal-mnypmxd2-173b64",
+      "name": "把 AGENTS.md 提炼为 skill 并纳入 legion-workflow",
+      "goal": "将仓库根部 AGENTS.md 的入口规则抽取为可复用 skill，并让 legion-workflow 把它作为显式入口依赖，同时完成基础验证。",
+      "rationale": "当前仓库的入口纪律同时存在于 AGENTS.md 与 legion-workflow 之间，但 AGENTS.md 还不是可复用 skill，导致规则难以被 workflow 显式复用、测试和维护。把它抽成 skill 后，可以减少顶层提示与 workflow 之间的漂移，并让 skill-creator 对技能结构做正式校验。",
+      "points": [
+        "把 AGENTS.md 的仓库级入口规则转换为一个独立 skill，避免规则只存在于顶层提示文件",
+        "保持 legion-workflow 作为第一道门，但让其显式吸收并引用新的入口 skill",
+        "按 writing-skills 的思路编写 skill 内容，并用 skill-creator 的校验脚本做格式/结构验证",
+        "更新 Legion 任务文档，记录风险、假设、验证与交付物"
+      ],
+      "scope": [
+        "AGENTS.md",
+        "skills/legion-workflow/**",
+        "skills/agent-entry/**",
+        ".legion/**"
+      ],
+      "phases": [
+        {
+          "name": "设计与建模",
+          "tasks": [
+            {
+              "description": "收敛 skill 名称、职责边界、与 legion-workflow 的集成点",
+              "acceptance": "plan.md 明确风险等级、目标、范围与集成策略"
+            },
+            {
+              "description": "形成简版设计说明并确定需要保留在 AGENTS.md 的最小入口文本",
+              "acceptance": "plan.md 或配套设计文档记录保留/迁移策略"
+            }
+          ]
+        },
+        {
+          "name": "实现与验证",
+          "tasks": [
+            {
+              "description": "创建新 skill 并迁移 AGENTS.md 规则",
+              "acceptance": "新增 skill 目录与 SKILL.md，内容覆盖仓库入口规则"
+            },
+            {
+              "description": "更新 legion-workflow 与 AGENTS.md 以纳入新 skill",
+              "acceptance": "workflow/入口文案明确引用新 skill 且无相互冲突"
+            },
+            {
+              "description": "执行 skill-creator 校验",
+              "acceptance": "校验脚本通过，或失败点被修复并记录"
+            }
+          ]
+        },
+        {
+          "name": "收口与同步",
+          "tasks": [
+            {
+              "description": "更新任务上下文、验证结论与交付摘要",
+              "acceptance": "context/tasks 文档与必要报告同步完成"
+            }
+          ]
+        }
+      ],
+      "proposedBy": "Claude",
+      "proposedAt": "2026-04-14T14:21:53.897Z",
+      "status": "approved",
+      "decidedAt": "2026-04-14T14:22:06.391Z",
+      "decidedBy": "Claude",
+      "createdTaskId": "agentsmd-skill-legion-workflow"
     }
   ]
 }

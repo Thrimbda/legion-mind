@@ -103,8 +103,10 @@ const SOURCE_TARGETS = [
 ] as const;
 
 const INSTALLED_SKILLS = [
+  'agent-entry',
   'brainstorm',
   'legion-docs',
+  'legion-wiki',
   'legion-workflow',
   'spec-rfc',
   'review-rfc',

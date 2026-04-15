@@ -20,6 +20,9 @@
 - 补齐 `legion-workflow` 的 subagent dispatch 真源：新增 `SUBAGENT_DISPATCH_MATRIX.md`，并明确 orchestrator MUST dispatch subagents
 - 将 `/legion`、`/legion-impl`、`/legion-rfc-heavy` 收紧为只声明 mode，dispatch 顺序统一引用 matrix
 - 在 `REF_AUTOPILOT.md` 中补写“subagent 派生是强制流程”
+- 按方案 2 新增 `skills/legion-wiki`，正式把 `.legion/wiki/**` 设为 Legion 的 wiki / synthesis 层
+- 创建 `.legion/wiki/` 基础结构：`index.md`、`log.md`、`decisions.md`、`patterns.md`、`maintenance.md`、`tasks/legion-schema-skills-logmd.md`
+- 将 `legion-workflow`、`legion` agent、`legion-bootstrap`、`evolve`、README、usage docs、installer 接到 `legion-wiki`
 
 
 ### 🟡 进行中
@@ -54,6 +57,7 @@
 | 严格流程的行为测试重点放在 decision-heavy skills；其余 skills 若 baseline 已达标，则只做结构与可发现性优化，并用代表性场景确认无回退 | writing-skills 的核心价值在于发现非直觉决策失败点。当前真实失败集中在 `legion-docs` 和部分 workflow 入口判断；其他 subagent skills 的现有行为已较稳定，继续硬凹失败样本收益低 | 为每个 skill 强行制造失败样本后再改写；形式更整齐，但不一定产生真实改进 | 2026-04-13 |
 | 对 engineer 而言，RFC 不是 optional context，而是存在时必须读取的设计真源 | 用户明确指出 engineer 的核心职责就是按设计实现；把 RFC 表述成“必要时再读”会弱化 design source of truth | 保留“必要时再读 RFC”；会鼓励跳过设计直接实现，违背 Legion 的设计门禁 | 2026-04-13 |
 | subagent dispatch 的强规则落在 `legion-workflow`，commands 只保留 mode 选择与入口约束 | 用户指出 agent 壳已清空后，如果 workflow 层不明确写 MUST dispatch，就只剩 command 文案和模型推断在维持流程；必须把 dispatch 真源回收到 workflow skill | 继续让 commands 分别内联派生顺序；会形成多处真源并再次漂移 | 2026-04-13 |
+| 采用方案 2：新增 `legion-wiki`，而不是直接让通用 `llm-wiki` 充当 Legion wiki owner | 用户明确选择方案 2；Legion 需要专属的 `.legion/tasks/** -> .legion/wiki/**` 提升规则、task summary 模板与路径约束，不能只靠通用 wiki skill 暗含实现 | 直接把 `llm-wiki` 绑定为 owner；可复用通用能力，但 Legion 专属 layout / metadata / workflow 约束不够显式 | 2026-04-14 |
 
 ---
 
@@ -61,13 +65,13 @@
 
 **下次继续从这里开始：**
 
-1. 如需继续收紧，可再让 `legion-workflow` 的 mermaid 直接引用 matrix 中的 mode 分支语义
-2. 如需对外说明本次修复，可在 PR body 强调 dispatch truth 已集中到 workflow
+1. 如需继续推进，可补更多历史 task summaries 与 historical/superseded 元数据
+2. 可进一步把 `/legion` 结束阶段的 wiki 提升动作做成更明确的 workflow 规则或命令
 
 **注意事项：**
 
-- 现在除 commands 入口外，真正知道如何派生 subagents 的现行真源已经集中到 `legion-workflow`
+- 此前“本轮不创建 `.legion/wiki/**`”的阶段性决策，已被用户新指令覆盖
 
 ---
 
-*最后更新: 2026-04-14 15:18 by Claude*
+*最后更新: 2026-04-14 22:32 by Claude*

@@ -8,9 +8,7 @@ permission:
   external_directory: deny
   doom_loop: deny
   skill:
-    brainstorm: allow
-    legion-workflow: allow
-    legion-docs: allow
+    "*": allow
   bash:
     "*": allow
     "rm *": deny
@@ -41,4 +39,4 @@ permission:
     explore: allow
 ---
 
-加载 `legion-workflow` skill 并按其执行；当需要收敛新 task contract 或重写 `plan.md` / `tasks.md` 时，先加载 `brainstorm`；当需要写 `.legion` task docs 规则时，再读取 `legion-docs` skill。
+加载 `legion-workflow` skill 并按其执行；当需要收敛新 task contract 或重写 `plan.md` / `tasks.md` 时，先加载 `brainstorm`；当需要写 `.legion` task docs 规则时，再读取 `legion-docs`；当需要维护 `.legion/wiki/**` 的综合知识层时，再读取 `legion-wiki`。
