@@ -20,8 +20,7 @@
     │   ├── research.md              # RFC Heavy：证据驱动现状摸底（推荐/强制）
     │   ├── rfc.md
     │   ├── review-rfc.md
-    │   ├── review-code.md
-    │   ├── review-security.md
+    │   ├── review-change.md
     │   ├── implementation-plan.md   # 可选：从 RFC Milestones 抽取
     │   ├── risk-register.md         # 可选：风险登记与回滚触发器
     │   ├── appendix-migration.md    # 可选：迁移细节附录（避免 RFC 主文膨胀）
@@ -283,8 +282,7 @@ Reviewer 可以在三个文件的任意位置插入 Review 块。
 ### 设计与审查的默认路径
 - **RFC 真源路径**: `.legion/tasks/<task-id>/docs/rfc.md`
 - **RFC 审查**: `.legion/tasks/<task-id>/docs/review-rfc.md`
-- **Code Review**: `.legion/tasks/<task-id>/docs/review-code.md`
-- **Security Review**: `.legion/tasks/<task-id>/docs/review-security.md`
+- **Review**: `.legion/tasks/<task-id>/docs/review-change.md`
 - **Walkthrough**: `.legion/tasks/<task-id>/docs/report-walkthrough.md`
 - **PR Body**: `.legion/tasks/<task-id>/docs/pr-body.md`
 

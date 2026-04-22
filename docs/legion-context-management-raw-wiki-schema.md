@@ -1,5 +1,8 @@
 # Legion 上下文管理：基于 raw / wiki / schema 三层模型的改进建议
 
+> 历史设计说明：本文件不是当前真源。
+> 当前工作流真源位于 `skills/legion-workflow/SKILL.md` 与 `skills/legion-workflow/references/SUBAGENT_DISPATCH_MATRIX.md`。
+
 ## 背景
 
 本文整理对当前 Legion 上下文管理方式的观察，重点回答两个问题：

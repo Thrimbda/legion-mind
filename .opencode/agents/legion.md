@@ -1,7 +1,7 @@
 ---
 name: legion
 mode: primary
-description: Legion orchestrator
+description: Legion 编排代理
 permission:
   edit: allow
   webfetch: deny
@@ -32,11 +32,10 @@ permission:
     engineer: allow
     spec-rfc: allow
     review-rfc: allow
-    review-code: allow
-    review-security: allow
-    run-tests: allow
+    verify-change: allow
+    review-change: allow
     report-walkthrough: allow
     explore: allow
 ---
 
-加载 `legion-workflow` skill 并按其执行；当需要收敛新 task contract 或重写 `plan.md` / `tasks.md` 时，先加载 `brainstorm`；当需要写 `.legion` task docs 规则时，再读取 `legion-docs`；当需要维护 `.legion/wiki/**` 的综合知识层时，再读取 `legion-wiki`。
+先加载 `legion-workflow` 并按主干执行。当需要收敛新 task contract 或重写 `plan.md` / `tasks.md` 时，加载 `brainstorm`；当需要写 `.legion` task docs 规则时，再读取 `legion-docs`；当需要维护 `.legion/wiki/**` 的综合知识层时，再读取 `legion-wiki`。

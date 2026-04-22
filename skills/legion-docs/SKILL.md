@@ -36,18 +36,18 @@ flowchart TD
 
 ## Quick Reference
 
-- `plan.md`：面向 tech lead 的任务契约；短、稳、摘要级
+- `plan.md`：面向 tech lead 的任务契约；描述了这个任务的概要设计，不涉及具体实现细节但是要清晰展示技术决策和反响，这将是本任务最重要的 spec
 - `log.md`：append-only 过程日志 / 决策 / handoff
 - `tasks.md`：状态板；只保留阶段、当前任务、完成状态
 - `<taskRoot>/docs/*.md`：RFC、review、test-report、walkthrough、pr-body
 
-| Information type | Best home |
-|---|---|
-| 验收标准、范围、风险边界 | `plan.md` |
-| 本轮决策、今日进展、阻塞、handoff | `log.md` |
-| 当前阶段、当前任务、checklist 状态 | `tasks.md` |
-| rollback 细节、测试输出、review 证据、PR 摘要 | `docs/*.md` |
-| 跨任务复用规则 | `.legion/playbook.md` |
+| Information type                              | Best home             |
+| --------------------------------------------- | --------------------- |
+| 最终的技术决策、验收标准、范围、风险边界      | `plan.md`             |
+| 本轮决策、今日进展、阻塞、handoff             | `log.md`              |
+| 当前阶段、当前任务、checklist 状态            | `tasks.md`            |
+| rollback 细节、测试输出、review 证据、PR 摘要 | `docs/*.md`           |
+| 跨任务复用规则                                | `.legion/playbook.md` |
 
 Within `docs/*.md`:
 

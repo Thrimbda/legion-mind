@@ -9,11 +9,15 @@
 | 命令 | 描述 | 关键参数 |
 | :--- | :--- | :--- |
 | **`init --cwd <dir>`** | 初始化 `.legion/` 目录结构 | `--cwd` |
-| **`propose --json '{...}'`** | 提交任务提案 | `name`, `goal`, `rationale`, `scope`, `phases`；可选：`problem`, `acceptance`, `assumptions`, `constraints`, `risks`, `designIndex`, `designSummary` |
-| **`proposal approve --proposal-id <id>`** | 批准提案并创建任务文件 | `proposalId` |
+| **`task create --json '{...}'`** | **正常主干**：在 `brainstorm` 收敛后直接创建任务 | `taskId`, `name`, `goal`, `phases`；可选：`rationale`, `problem`, `acceptance`, `assumptions`, `constraints`, `risks`, `points`, `scope`, `designIndex`, `designSummary` |
+| **`propose --json '{...}'`** | 历史兼容 / 显式审批场景下提交任务提案 | `taskId`, `name`, `goal`, `rationale`, `scope`, `phases`；可选：`problem`, `acceptance`, `assumptions`, `constraints`, `risks`, `designIndex`, `designSummary` |
+| **`proposal approve --proposal-id <id>`** | 历史兼容 / 显式审批场景下批准提案并创建任务文件 | `proposalId` |
 | **`proposal reject --proposal-id <id> [--reason ...]`** | 拒绝提案 | `proposalId`, `reason` |
-| **`task create --json '{...}'`** | 直接创建任务（受策略保护） | `name`, `goal`, `phases`；可选：`rationale`, `problem`, `acceptance`, `assumptions`, `constraints`, `risks`, `points`, `scope`, `designIndex`, `designSummary` |
 | **`task archive --task-id <id>`** | 归档已完成的任务 | `taskId` |
+
+> 主干语义：新任务默认走 `brainstorm` → `task create`。proposal/approval 不再是普通 mainline，也不是 direct create 失败时的 silent fallback。
+
+> 命名语义：`taskId` 必须在调用 CLI 前由上游 LLM/编排层显式提供；CLI 只做校验，不再从 `name` 推导或回退生成机器名。
 
 ## 2. 日志与状态查询
 

@@ -68,4 +68,4 @@
 4.  **Code**: 实现 1 个单元。
 5.  **Log**: `tasks update`（标记完成）、`log update`（记录决策）。
 6.  **Repeat**: 重复步骤 4-5。
-7.  **End**: `run-tests`，然后 `log update`（交接）。
+7.  **End**: `verify-change`，然后 `log update`（交接）。

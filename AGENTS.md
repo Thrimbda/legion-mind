@@ -1,11 +1,11 @@
-# LegionMind Agent Entry Rules
+# LegionMind 入口规则
 
-This repository uses Legion.
+本仓库使用 Legion。
 
-Before any exploration, implementation, or subagent dispatch for multi-step coding work:
+在任何多步骤编码工作开始探索、实现或派生子代理之前：
 
-1. Load `legion-workflow` first.
-2. Then load/apply `agent-entry` (`skills/agent-entry/SKILL.md`) as this repo's entry overlay.
-3. User instructions override everything else.
+1. 先加载 `legion-workflow`。它是由 Legion 管理的工作的强制第一道门。
+2. 严格遵循它的入口门规则。
+3. 用户指令始终优先。
 
-Do not bypass this entry sequence by patching code first, ignoring `.legion/`, or starting `engineer` before a stable task contract exists.
+不要绕过这条入口序列。不要先打补丁再补规则，不要忽略 `.legion/`，不要在没有活跃任务时跳过 `brainstorm`，也不要在任务契约尚未稳定前启动 `engineer`。

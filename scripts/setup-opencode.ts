@@ -98,12 +98,10 @@ const BACKUP_INDEX_FILE = 'backup-index.v1.json';
 
 const SOURCE_TARGETS = [
   { sourceRoot: '.opencode/agents', targetRoot: 'agents' },
-  { sourceRoot: '.opencode/commands', targetRoot: 'commands' },
   { sourceRoot: '.opencode/plugins', targetRoot: 'plugins', optional: true },
 ] as const;
 
 const INSTALLED_SKILLS = [
-  'agent-entry',
   'brainstorm',
   'legion-docs',
   'legion-wiki',
@@ -111,9 +109,8 @@ const INSTALLED_SKILLS = [
   'spec-rfc',
   'review-rfc',
   'engineer',
-  'run-tests',
-  'review-code',
-  'review-security',
+  'verify-change',
+  'review-change',
   'report-walkthrough',
 ] as const;
 
@@ -248,7 +245,6 @@ function isWithinRoot(path: string, root: string): boolean {
 function managedRoots(opts: CliOptions): string[] {
   return [
     join(opts.configDir, 'agents'),
-    join(opts.configDir, 'commands'),
     join(opts.configDir, 'plugins'),
     ...INSTALLED_SKILLS.map((skill) => join(opts.opencodeHome, 'skills', skill)),
   ].map(canonicalDirectoryPath);
@@ -612,11 +608,6 @@ function parseMcpConfigured(configPath: string): boolean {
 
 function runVerify(opts: CliOptions, runId: string, reporter: Reporter): InstallState {
   const checks = [
-    {
-      checkId: 'assets.commands',
-      target: join(opts.configDir, 'commands', 'legion.md'),
-      required: true,
-    },
     {
       checkId: 'assets.agents',
       target: join(opts.configDir, 'agents', 'legion.md'),

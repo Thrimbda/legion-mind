@@ -1,5 +1,8 @@
 # LegionMind skill / agent 拆分方案（按 raw / wiki / schema 修正）
 
+> 历史设计说明：本文件不是当前真源。
+> 当前工作流真源位于 `skills/legion-workflow/SKILL.md` 与 `skills/legion-workflow/references/SUBAGENT_DISPATCH_MATRIX.md`。
+
 ## 目标
 
 把当前 `skills/legionmind` 与 `.opencode/agents/*.md` 的大一统结构，重构为：

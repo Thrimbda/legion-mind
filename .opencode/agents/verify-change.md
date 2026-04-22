@@ -1,8 +1,8 @@
 ---
-name: run-tests
+name: verify-change
 mode: subagent
 hidden: true
-description: 执行测试并汇总失败
+description: 运行验证并生成 test-report
 permission:
   edit:
     "*": deny
@@ -11,7 +11,7 @@ permission:
   external_directory: deny
   doom_loop: deny
   skill:
-    run-tests: allow
+    verify-change: allow
   bash:
     "*": allow
     "rm *": deny
@@ -27,4 +27,4 @@ permission:
     "sh -c *": deny
 ---
 
-加载 `run-tests` skill 并按该 skill 执行。
+加载 `verify-change` skill 并按该 skill 执行。

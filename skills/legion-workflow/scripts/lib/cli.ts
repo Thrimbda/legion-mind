@@ -47,6 +47,7 @@ export interface TaskPhase {
 
 interface Proposal {
   id: string;
+  taskId: string;
   name: string;
   goal: string;
   rationale: string;
@@ -188,7 +189,7 @@ export function initLegion(ctx: CliContext) {
       settings: {
         autoRemind: true,
         remindBeforeReset: true,
-        taskCreationPolicy: 'agent-with-approval',
+        taskCreationPolicy: 'direct-create',
       },
       tasks: [],
       pendingProposals: [],
@@ -244,7 +245,7 @@ export function repoRelative(ctx: CliContext, path: string): string {
 }
 
 export function createTask(ctx: CliContext, input: Record<string, unknown>, fromProposal?: Proposal) {
-  validateFields(input, ['name', 'goal', 'rationale', 'problem', 'acceptance', 'assumptions', 'constraints', 'risks', 'points', 'scope', 'designIndex', 'designSummary', 'phases']);
+  validateFields(input, ['taskId', 'name', 'goal', 'rationale', 'problem', 'acceptance', 'assumptions', 'constraints', 'risks', 'points', 'scope', 'designIndex', 'designSummary', 'phases']);
   const config = loadConfig(ctx);
   const draft = prepareTaskDraft(ctx, input, fromProposal, config);
   writeTaskDraft(draft);
@@ -255,7 +256,7 @@ export function createTask(ctx: CliContext, input: Record<string, unknown>, from
     rmSync(draft.root, { recursive: true, force: true });
     throw error;
   }
-  appendLedger(ctx, 'legion_create_task', draft.taskId, draft.name, summarizeAuditFields(['goal', 'points', 'scope', 'phases']), 'success');
+  appendLedger(ctx, 'legion_create_task', draft.taskId, draft.name, summarizeAuditFields(['taskId', 'goal', 'points', 'scope', 'phases']), 'success');
   return { taskId: draft.taskId, path: draft.root };
 }
 
@@ -289,9 +290,10 @@ export function appendFailureAudit(ctx: CliContext, action: string, error: unkno
 }
 
 export function createProposal(ctx: CliContext, input: Record<string, unknown>) {
-  validateFields(input, ['name', 'goal', 'rationale', 'problem', 'acceptance', 'assumptions', 'constraints', 'risks', 'points', 'scope', 'designIndex', 'designSummary', 'phases']);
+  validateFields(input, ['taskId', 'name', 'goal', 'rationale', 'problem', 'acceptance', 'assumptions', 'constraints', 'risks', 'points', 'scope', 'designIndex', 'designSummary', 'phases']);
   const proposal: Proposal = {
     id: `proposal-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`,
+    taskId: asTaskId(input.taskId, 'taskId'),
     name: asString(input.name, 'name'),
     goal: asString(input.goal, 'goal'),
     rationale: asString(input.rationale, 'rationale'),
@@ -312,7 +314,7 @@ export function createProposal(ctx: CliContext, input: Record<string, unknown>) 
   const config = loadConfig(ctx);
   config.pendingProposals.push(proposal);
   saveConfig(ctx, config);
-  appendLedger(ctx, 'legion_propose_task', '', '', summarizeAuditFields(['name', 'goal', `points:${proposal.points.length}`, `scope:${proposal.scope.length}`, `phases:${proposal.phases.length}`]), 'success');
+  appendLedger(ctx, 'legion_propose_task', '', '', summarizeAuditFields(['taskId', 'name', 'goal', `points:${proposal.points.length}`, `scope:${proposal.scope.length}`, `phases:${proposal.phases.length}`]), 'success');
   return proposal;
 }
 
@@ -329,6 +331,7 @@ export function approveProposal(ctx: CliContext, proposalId: string) {
   }
   const decidedAt = new Date().toISOString();
   const draft = prepareTaskDraft(ctx, {
+    taskId: proposal.taskId,
     name: proposal.name,
     goal: proposal.goal,
     rationale: proposal.rationale,
@@ -753,13 +756,13 @@ interface TaskDraft {
 }
 
 function prepareTaskDraft(ctx: CliContext, input: Record<string, unknown>, fromProposal: Proposal | undefined, config: LegionConfig): TaskDraft {
+  const taskId = resolveTaskId(input, fromProposal);
   const name = asString(input.name, 'name');
   const goal = asString(input.goal, 'goal');
   const contractSeed = normalizeTaskContractSeed(input, fromProposal);
   const points = asStringArray(input.points ?? []);
   const scope = asStringArray(input.scope ?? []);
   const phases = normalizePhases(input.phases ?? []);
-  const taskId = slugify(name);
   if (config.tasks.some((task) => task.id === taskId)) {
     throw new CliError('TASK_ALREADY_EXISTS', `任务已存在: ${taskId}`);
   }
@@ -1310,21 +1313,24 @@ function normalizePhases(value: unknown): Array<{ name: string; tasks: Array<{ d
   });
 }
 
-function slugify(input: string): string {
-  const normalized = input
-    .toLowerCase()
-    .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  const ascii = normalized.replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '');
-  const result = ascii || `task-${Date.now().toString(36)}`;
-  validateTaskId(result);
-  return result;
-}
-
 function validateTaskId(taskId: string) {
   if (!/^[a-z0-9][a-z0-9-]*$/.test(taskId) || taskId.includes('..')) {
     throw new CliError('SCHEMA_INVALID', `非法 taskId: ${taskId}`);
   }
+}
+
+function asTaskId(value: unknown, field: string): string {
+  const taskId = asString(value, field);
+  validateTaskId(taskId);
+  return taskId;
+}
+
+function resolveTaskId(input: Record<string, unknown>, fromProposal?: Proposal): string {
+  const taskId = input.taskId ?? fromProposal?.taskId;
+  if (taskId == null) {
+    throw new CliError('SCHEMA_INVALID', 'taskId 必须由上游 LLM/编排层显式提供');
+  }
+  return asTaskId(taskId, 'taskId');
 }
 
 function asString(value: unknown, field: string): string {

@@ -7,7 +7,7 @@ description: Use when building, updating, or querying the Legion wiki layer unde
 
 ## Overview
 
-`legion-wiki` 负责 Legion 的 **wiki / synthesis 层**。它不替代 `.legion/tasks/**` 的 raw task docs，而是把跨任务可查询知识收敛到 `.legion/wiki/**`。
+`legion-wiki` 负责 Legion 的 **wiki / synthesis 层**。它不替代 `.legion/tasks/**` 的 raw task docs，而是把跨任务可查询知识收敛到 `.legion/wiki/**`。在 `legion-workflow` 里，它还是固定 closing stage：任务完成前必须执行 wiki writeback。
 
 raw / wiki / schema 的分工是：
 
@@ -19,6 +19,7 @@ raw / wiki / schema 的分工是：
 
 - 需要建立或维护 `.legion/wiki/**`
 - 需要把某个 task 的结果写成稳定的 summary 页
+- 任务已完成实现 / 验证 / walkthrough，需要执行固定 closing writeback
 - 需要回答“当前 Legion 的有效结论是什么”，但不想直接 grep 全部 raw task docs
 - 需要把跨任务决策、模式、维护债务从 raw docs 中提升出来
 - 需要标记 `historical` / `superseded-by` / `schema-version` 这类状态信息
@@ -68,6 +69,7 @@ schema -> wiki index -> task summary -> raw task docs
 - 可复用工作方式写 `patterns.md`
 - 缺口、迁移债务、历史清理需求写 `maintenance.md`
 - 每次 durable writeback 后，必要时同步 `index.md` 与 `log.md`
+- 本 skill 负责 closing writeback，但**不**回写 workflow 主干或 schema 真源
 
 ## Common Mistakes
 
