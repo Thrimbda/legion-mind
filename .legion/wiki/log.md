@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-04-25] writeback | add-git-worktree-pr-envelope
+
+- Promoted Git worktree + PR lifecycle envelope as a durable development-task pattern in `patterns.md`.
+- Added task summary for `add-git-worktree-pr-envelope` under `tasks/`.
+- Recorded current conclusion: `git-worktree-pr` wraps existing execution modes and is not a fourth mode; push-before-rebase is mandatory; PR creation, blocked handoff, kept worktree, or skipped refresh are not completion.
+
 ## [2026-04-25] supplement | harden-legion-workflow-gate
 
 - Expanded `legion-workflow` diagram guidance after review feedback: entry state machine, mode selector, and stage-chain rollback map are now the current documentation shape.

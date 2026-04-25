@@ -17,12 +17,44 @@
 - `rfcPath`：存在 design-lite / RFC 时，指向 `rfc.md`。
 - `changeSummary`：已有变更的简短摘要。
 - `knownClues`：用于减少重复阅读的线索。
+- `git`：修改型开发任务的 Git lifecycle 状态；read-only 或显式 bypass 任务可省略。
 
 ## 字段语义
 
 - `plan.md` 是唯一的人类可读任务契约，负责问题定义、验收、假设/约束/风险、短目标、要点、允许 Scope、设计索引、阶段概览。
 - `plan.md` 是人类可读 Scope 的真源。
 - `rfc.md` 若存在，是设计真源。
+- `git.lifecycle: git-worktree-pr` 表示阶段链在 Git/PR envelope 内运行；它不改变 Legion 执行模式。
+
+## Git lifecycle 字段
+
+修改型开发任务打开 envelope 后，编排器应在 handoff 中携带已知 Git 状态：
+
+```yaml
+git:
+  lifecycle: git-worktree-pr
+  baseRef: origin/master
+  branch: legion/<task-id>-<slug>
+  worktreePath: /repo/.worktrees/<task-id>
+  prUrl: null
+  prState: not_created
+  checksState: unknown
+  reviewState: unknown
+  cleanupState: pending
+  mainWorkspaceRefresh: pending
+```
+
+字段枚举：
+
+- `prState`: `not_created | draft | open | merged | closed | blocked | superseded`
+- `checksState`: `unknown | pending | passing | failing | blocked | skipped`
+- `reviewState`: `unknown | pending | approved | changes_requested | blocked | skipped`
+- `cleanupState`: `pending | completed | kept_with_reason | blocked`
+- `mainWorkspaceRefresh`: `pending | completed | skipped_with_reason | blocked`
+
+`baseRef` 默认 `origin/master`，除非用户或仓库规则覆盖。`worktreePath` 必须使用仓库内 `.worktrees/<task-id>/`。
+
+Completion 只在 `cleanupState: completed` 且 `mainWorkspaceRefresh: completed` 时成立。`blocked`、`kept_with_reason`、`skipped_with_reason` 只能表示 blocked handoff 或未完成状态，不能写成开发任务完成。
 
 ## 文档语言约定
 
@@ -57,6 +89,16 @@ constraints:
   autopilot: true
   token_budget: keep reads focused
   context_sync: orchestrator owns .legion plan/log/tasks updates
+git:
+  lifecycle: git-worktree-pr
+  baseRef: origin/master
+  branch: legion/task-brief-plan-docs
+  worktreePath: /repo/.worktrees/task-brief-plan
+  prState: not_created
+  checksState: unknown
+  reviewState: unknown
+  cleanupState: pending
+  mainWorkspaceRefresh: pending
 ```
 
 ## 输出提醒

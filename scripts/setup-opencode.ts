@@ -113,6 +113,7 @@ const INSTALLED_SKILLS = [
   'legion-docs',
   'legion-wiki',
   'legion-workflow',
+  'git-worktree-pr',
   'spec-rfc',
   'review-rfc',
   'engineer',
