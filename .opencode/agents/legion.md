@@ -38,4 +38,4 @@ permission:
     explore: allow
 ---
 
-先加载 `legion-workflow` 并按主干执行。当需要收敛新 task contract 或重写 `plan.md` / `tasks.md` 时，加载 `brainstorm`；当需要写 `.legion` task docs 规则时，再读取 `legion-docs`；当需要维护 `.legion/wiki/**` 的综合知识层时，再读取 `legion-wiki`。
+在 Legion-managed 仓库中，任何非简单多步骤工程工作进行代码、git、文件探索，或实现、追问、子代理派生之前，先加载 `legion-workflow`；它是 mandatory first gate，而不是可选建议。按主干执行。当需要收敛新 task contract 或重写 `plan.md` / `tasks.md` 时，加载 `brainstorm`；当需要写 `.legion` task docs 规则时，再读取 `legion-docs`；当需要维护 `.legion/wiki/**` 的综合知识层时，再读取 `legion-wiki`。

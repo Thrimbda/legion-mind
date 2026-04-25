@@ -1,5 +1,14 @@
 # Legion Patterns
 
+## 模式：Legion 入口门禁先于探索
+
+- 来源任务：`harden-legion-workflow-gate`
+- 背景：Agent 容易以“先看文件 / 先看 git / 小改动 / autopilot”为理由绕过 workflow，导致 contract、设计门禁、验证、汇报与 wiki writeback 失效。
+- 做法：在 Legion-managed 仓库中，非简单多步骤工程工作必须先过 `legion-workflow` 入口判断，再进行代码 / git / 文件探索、实现、追问或子代理派生；阶段工作必须真实加载对应 skill 或派生对应阶段子代理。
+- 图示要求：`SKILL.md` 的入口状态机、mode selector、阶段链与回退图共同表达入口状态、三种执行模式、失败回退与 closing writeback；不要用浅图替代这些规则。
+- 适用边界：本条是 wiki 层查询入口；具体门禁文本、执行模式和阶段顺序仍以 `skills/legion-workflow/SKILL.md` 与 `references/SUBAGENT_DISPATCH_MATRIX.md` 为真源。
+- 常见陷阱：不要把 `bypass`、`restore`、`brainstorm` 写成执行模式；它们只是入口运行状态。当前执行模式仍只有三种：默认实现模式、已批准设计后的续跑模式、重型仅设计模式。
+
 ## 模式：CLI 保持薄层
 
 - 来源任务：`drop-ledger-config-from-cli`

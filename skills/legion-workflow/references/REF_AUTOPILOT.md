@@ -1,6 +1,8 @@
 # LegionMind 自动推进协议
 
 > **目标**：让人类“只在 PR 上做最终决策”，而不是被频繁打断；同时保证正确性与可追溯性。
+>
+> 自动推进只减少非阻塞的人类打扰；不减少入口门、阶段顺序、设计门禁、验证证据、报告或 wiki writeback。
 
 ---
 
@@ -49,8 +51,9 @@
 
 - orchestrator 必须按阶段派生子代理；不要把设计、实现、验证、评审、报告全部内化为单智能体行为。
 - 具体派生顺序、触发条件、输出路径只认 `SUBAGENT_DISPATCH_MATRIX.md`。
-- 运行时入口包装层只能映射模式（如默认实现模式 / 续跑模式 / 重型仅设计模式），不能再定义另一套派生真源。
+- 运行时入口包装层只能映射模式（如默认实现模式 / 已批准设计后的续跑模式 / 重型仅设计模式），不能再定义另一套派生真源。
 - 新任务主干固定为：`brainstorm` 收敛 → `task create`；CLI 不再提供 proposal/approval、switch/archive、ledger query 这类旧状态模型命令。
+- “autopilot / don’t ask me” 不等于跳过 `legion-workflow` 入口判断、contract 稳定性检查、design-lite/RFC、verification、review、report 或 `legion-wiki`；它只表示在非阻塞处继续推进并记录假设。
 
 ---
 
@@ -70,7 +73,7 @@
 - **默认先做设计产物**：生成 `plan + research + rfc + review-rfc + pr-body`
 - **推荐开 Draft PR（仅文档）**：用于设计审阅（合并视为设计批准）
 - **不强制对话中批准**：避免打断；批准在 PR 上完成
-- **继续实现的触发**：设计 PR 合并后，orchestrator 进入已批准设计的续跑模式，并按里程碑分步交付实现产物。
+- **继续实现的触发**：设计 PR 合并后，orchestrator 进入已批准设计后的续跑模式，并按里程碑分步交付实现产物。
 
 用户也可以强制只产出设计（不写代码）：
 - `plan-only` / `rfc-only`

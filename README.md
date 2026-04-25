@@ -58,6 +58,8 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 - **规则 / 运行时层**：`skills/**` + `.opencode/**`
   - 工作流真源、技能边界、代理接线，以及本地管理脚本
 
+在由 Legion 管理的仓库中，任何非简单的多步骤工程工作都必须先过 `legion-workflow` 这一 mandatory first gate；在完成入口判断前，不应先做代码、git 或文件探索，也不应开始实现或派生子代理。
+
 这里所说的 active task，只指当前请求明确恢复并继续推进的 `.legion/tasks/<task-id>/` 任务目录，不是 CLI 持久化注册表。
 
 它的核心边界也应该是显式的：

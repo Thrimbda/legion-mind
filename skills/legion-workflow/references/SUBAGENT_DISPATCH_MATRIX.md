@@ -1,12 +1,15 @@
 # 子代理派生矩阵
 
 > 唯一运行时真源。运行模式与场景可以映射到不同入口，但不能复制另一套顺序。
+>
+> 本矩阵只适用于 `legion-workflow` 已完成入口判断、任务 contract 已稳定之后。`bypass`、`restore`、`brainstorm` 是入口运行状态，不是执行模式，也不在本矩阵中新增阶段链。
 
 ## 核心规则
 
 - 编排器只负责门禁判断、状态恢复、模式选择、`.legion` 写回与收口写回
 - 阶段性工作必须交给对应阶段的技能 / 子代理
 - `legion-wiki` 是固定收口阶段，不是可选优化
+- 阶段技能 / 子代理必须真实加载或派生；不要凭记忆模拟阶段结果
 
 ## 默认实现模式
 
@@ -16,7 +19,7 @@
 | 中风险 | `spec-rfc -> review-rfc -> engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki` | 无 | `review-rfc` 通过前不得编码 |
 | 高风险 | `spec-rfc -> review-rfc -> engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki` | `review-change` 必须展开安全视角 | `review-rfc` 通过前不得编码；安全阻塞项修复前不得结束 |
 
-## 已批准设计的续跑模式
+## 已批准设计后的续跑模式
 
 | 场景 | 必须派生 | 阻塞门禁 |
 |---|---|---|

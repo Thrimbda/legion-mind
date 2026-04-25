@@ -1,5 +1,16 @@
 # Legion Wiki Log
 
+## [2026-04-25] supplement | harden-legion-workflow-gate
+
+- Expanded `legion-workflow` diagram guidance after review feedback: entry state machine, mode selector, and stage-chain rollback map are now the current documentation shape.
+- Reaffirmed that applicable chains complete only after `report-walkthrough` evidence and `legion-wiki` writeback.
+
+## [2026-04-25] writeback | harden-legion-workflow-gate
+
+- Promoted Legion entry-gate-first behavior as a durable workflow pattern in `patterns.md`.
+- Added task summary for `harden-legion-workflow-gate` under `tasks/`.
+- Recorded current mode taxonomy: three execution modes after stable contract; `bypass` / `restore` / `brainstorm` remain entry runtime states.
+
 ## [2026-04-25] writeback | harden-strict-verify-integrity
 
 - Promoted strict install verification as a durable CLI pattern in `patterns.md`.

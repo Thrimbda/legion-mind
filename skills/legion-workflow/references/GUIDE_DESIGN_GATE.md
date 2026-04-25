@@ -2,6 +2,8 @@
 
 > **强制要求**：所有编码任务必须在开始实现前通过设计门禁。  
 > **目标**：在尽量少打扰人的前提下，仍然保证“先想清楚再写”，并把关键取舍留痕，便于评审、复盘与交接。
+>
+> 低风险、design-lite 和 Fast Track 仍然要求稳定 task contract 与最小设计记录；Fast Track 只跳过正式 RFC，不跳过入口门或设计门禁。
 
 ---
 
@@ -41,6 +43,7 @@
 - 没有对外 API 合约变更（接口、schema、wire format）
 
 门禁要求：
+- 仍然必须先有稳定 contract：问题、scope、验收、假设和风险写清楚
 - 允许 **design-lite**（写在 `<taskRoot>/docs/rfc.md` 的 “Design-lite” 章节；稳定问题/验收/假设/风险写在 `plan.md`）
 - 直接进入实现
 - 设计批准：**延迟批准（PR merge）**即可
@@ -92,7 +95,7 @@
 - `<taskRoot>/docs/rfc.md`（heavy 模板）
 - `<taskRoot>/docs/review-rfc.md`（必须 PASS 才能进入实现）
 
-### 推荐执行模式：RFC-only Draft PR（减少人类同步成本）
+### 推荐执行方式：RFC-only Draft PR（减少人类同步成本）
 - Agent 先只提交上述 docs，创建 **Draft PR（仅设计）**
 - 人类在 PR review 中一次性纠偏；**Merge 视为设计批准**
 - 合并后再进入实现阶段（按 RFC 的 Milestones 分步交付）
@@ -110,6 +113,8 @@
 - Scope（写在 `plan.md`，明确允许改哪些文件/目录）
 - Assumptions（写在 `plan.md`，明确默认假设）
 - Verification / Acceptance（写在 `plan.md`，说明怎么验收：测试命令、人工检查或交付产物）
+
+快速通道不是“无设计通道”：它只省略正式 RFC 文档，不省略稳定 contract、最小 design-lite 记录、后续验证与收口写回。
 
 ---
 
