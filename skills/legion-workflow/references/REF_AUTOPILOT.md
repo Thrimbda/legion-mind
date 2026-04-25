@@ -50,7 +50,7 @@
 - orchestrator 必须按阶段派生子代理；不要把设计、实现、验证、评审、报告全部内化为单智能体行为。
 - 具体派生顺序、触发条件、输出路径只认 `SUBAGENT_DISPATCH_MATRIX.md`。
 - 运行时入口包装层只能映射模式（如默认实现模式 / 续跑模式 / 重型仅设计模式），不能再定义另一套派生真源。
-- 新任务主干固定为：`brainstorm` 收敛 → `task create`；proposal/approval 只保留给显式人工审批或历史兼容。
+- 新任务主干固定为：`brainstorm` 收敛 → `task create`；CLI 不再提供 proposal/approval、switch/archive、ledger query 这类旧状态模型命令。
 
 ---
 

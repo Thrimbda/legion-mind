@@ -2,11 +2,7 @@
 
 import {
   CliError,
-  approveProposal,
-  appendFailureAudit,
-  archiveTask,
   createContext,
-  createProposal,
   createTask,
   currentTaskId,
   generateDashboard,
@@ -14,19 +10,15 @@ import {
   getStatus,
   hasFlag,
   initLegion,
-  listProposals,
   listReviews,
   listTasks,
   parseCsv,
   parseJsonFlag,
   printError,
   printSuccess,
-  queryLedger,
   readContextCommand,
   readTasksCommand,
-  rejectProposal,
   respondReview,
-  switchTask,
   updateContextCommand,
   updatePlanCommand,
   updateTasksCommand,
@@ -52,8 +44,8 @@ function validateRequestedFormat() {
   }
 }
 
-function currentActionLabel() {
-  return [command, subcommand].filter(Boolean).join(':') || 'unknown';
+function removedCommand(commandLabel: string): never {
+  throw new CliError('UNSUPPORTED_COMMAND', `命令已移除：${commandLabel}`, '改用显式 task-id 的文件系统驱动命令；详情见 REF_TOOLS.md');
 }
 
 try {
@@ -64,25 +56,10 @@ try {
       printSuccess({ cwd: ctx.cwd, legionRoot: ctx.legionRoot });
       break;
     }
-    case 'propose': {
-      const proposal = createProposal(ctx, parseJsonFlag(args));
-      printSuccess(proposal);
-      break;
-    }
+    case 'propose':
+      removedCommand('propose');
     case 'proposal': {
-      if (subcommand === 'list') {
-        printSuccess(listProposals(ctx, (getFlag(args, '--status') as 'pending' | 'approved' | 'rejected' | 'all' | undefined) ?? 'pending'));
-        break;
-      }
-      if (subcommand === 'approve') {
-        printSuccess(approveProposal(ctx, getFlag(args, '--proposal-id') ?? ''));
-        break;
-      }
-      if (subcommand === 'reject') {
-        printSuccess(rejectProposal(ctx, getFlag(args, '--proposal-id') ?? '', getFlag(args, '--reason')));
-        break;
-      }
-      throw new Error('unsupported proposal subcommand');
+      removedCommand(['proposal', subcommand].filter(Boolean).join(' '));
     }
     case 'task': {
       if (subcommand === 'create') {
@@ -94,12 +71,10 @@ try {
         break;
       }
       if (subcommand === 'switch') {
-        printSuccess(switchTask(ctx, getFlag(args, '--task-id') ?? ''));
-        break;
+        removedCommand('task switch');
       }
       if (subcommand === 'archive') {
-        printSuccess(archiveTask(ctx, getFlag(args, '--task-id') ?? ''));
-        break;
+        removedCommand('task archive');
       }
       throw new Error('unsupported task subcommand');
     }
@@ -177,21 +152,14 @@ try {
     }
     case 'ledger': {
       if (subcommand === 'query') {
-        printSuccess(queryLedger(ctx, {
-          taskId: getFlag(args, '--task-id'),
-          action: getFlag(args, '--action'),
-          since: getFlag(args, '--since'),
-          until: getFlag(args, '--until'),
-          limit: getFlag(args, '--limit') ? Number(getFlag(args, '--limit')) : undefined,
-        }));
-        break;
+        removedCommand('ledger query');
       }
-      throw new Error('unsupported ledger subcommand');
+      removedCommand(['ledger', subcommand].filter(Boolean).join(' '));
     }
     default: {
       if (hasFlag(args, '--help') || !command) {
         printSuccess({
-          usage: 'legion.ts <init|propose|proposal|task|status|log|tasks|plan|review|dashboard|ledger> ...',
+          usage: 'legion.ts <init|task|status|log|tasks|plan|review|dashboard> ...',
           example: 'node --experimental-strip-types skills/legion-workflow/scripts/legion.ts init --cwd /path/to/repo',
         });
         break;
@@ -200,7 +168,6 @@ try {
     }
   }
 } catch (error) {
-  appendFailureAudit(ctx, currentActionLabel(), error, getFlag(args, '--task-id') ?? '', '');
   printError(error);
   process.exit(error instanceof Error && error.message.startsWith('unsupported') ? 1 : 2);
 }

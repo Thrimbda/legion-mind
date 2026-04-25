@@ -1,96 +1,125 @@
 ---
 name: llm-wiki
-description: Use when Claude needs to build, maintain, or query a persistent markdown wiki inside one authorized directory that it fully manages with a fixed layout, so knowledge compounds over time instead of being rediscovered from raw documents on every question.
+description: 当 Agent 需要在受宿主约束的 markdown wiki 中持续沉淀、维护、查询 durable knowledge 时使用；wiki 是主知识产物，LLM 是 wiki 的程序员，raw 是只读证据层。
 ---
 
 # llm-wiki
 
-1. 把授权给你的 wiki 目录当作**完全由本 skill 管理**的知识库根目录。
-2. 把 `raw/` 当作只读输入层；raw source 可以被读取、引用、重命名整理进 `raw/`，但不能改写内容。
-3. 只使用一套 canonical layout：根目录固定有 `index.md`、`log.md`，页面只落在固定 page families。
-4. 不创建替代导航 / 日志机制、替代目录树或额外 durable artifact 类型；归档结果一律写成 markdown 页面并放回 canonical wiki 结构。
-5. 默认 index-first：先读 `index.md`，再读相关页面、source summary 与 raw source；搜索只用于定位，不作为事实来源。
-6. 始终区分来源事实、wiki 综合判断与 `needs-verification` 项。
+`llm-wiki` 的核心工作模型是：**wiki 是主知识产物，LLM 是 wiki 的程序员**。
 
-## canonical layout
+- raw 是只读输入层与最终证据层；
+- wiki 是 durable knowledge 的主承载层；
+- schema / host contract 描述结构、禁区、命名、引用与可写边界；
+- query 默认是：**先回答，再判断是否形成 durable knowledge；若形成且未被 host 阻止，则正常写回 wiki**。
 
-- 根目录固定包含：`raw/`、`sources/`、`entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/`、`index.md`、`log.md`。
-- `maintenance/backlog.md` 是默认维护入口。
-- 目录还没规范化时，先把它整理到这套结构，再做深入 ingest / query writeback / lint。
-- 所有持久化写回都留在这个根目录里；不要把结论散落到其他路径或其他文件格式。
+## 第一原则
 
-## 操作入口
+1. **wiki 优先于聊天**：高价值知识不应只留在对话里。
+2. **raw 只读**：永不回写 raw bundle。
+3. **index-first**：先读导航面，再读页面，再回 raw。
+4. **证据直达 raw**：durable pages 的关键结论应直接引用 raw ref。
+5. **host override 优先**：宿主规则高于 baseline。
+6. **protected scope 优先**：命中禁区就阻断，不绕写。
+7. **schema 是契约**：负责结构 / 禁区 / 命名 / 引用 / 可写范围，不是逐次授权门禁。
 
-- **bootstrap**：创建或规范化 canonical layout，补齐 `index.md`、`log.md`、`maintenance/backlog.md`，并建立当前页面清单。
-- **ingest**：把新 source 放进 `raw/`，创建或更新对应的 source summary，然后回查并更新受影响的 `entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/` 页面。
-- **query**：先回答问题；如果答案具有复用价值（如稳定比较、综合结论、重复会被问到的解释、结构性缺口），就在结束前把它写回 canonical page family。
-- **lint**：检查事实冲突、陈旧结论、孤儿页、缺失 source summary、过载页面与 maintenance debt，并按 canonical 规则修复或记账。
+## 什么时候用
 
-## durable writeback 规则
+- 需要构建、维护、查询一个会持续积累的 markdown wiki
+- 需要把 raw 来源整理成 durable knowledge
+- 需要在回答后判断是否该把结果沉淀到 wiki
+- 需要做 navigation、evidence hygiene、page lifecycle、maintenance
 
-- **应写回**：能帮未来会话少做一次重新综合的结果。
-- **不必写回**：一次性、局部、不会复用的聊天回答。
-- 优先更新已有页面，而不是制造近似重复的新页面。
-- 在 `topics/`、`comparisons/`、`overviews/`、`maintenance/` 之间拿不准时，先读 [references/page-types.md](./references/page-types.md)。
+## 默认工作模型
 
-## 决策流程图
+### 三层
 
-把下面 Mermaid 图当成**执行状态机**来读：它们不是装饰，而是 query / ingest 时的最小决策骨架。
+- **raw layer**：原始输入层；只读；最终证据锚点
+- **wiki layer**：durable knowledge layer；主知识产物
+- **schema layer**：结构 / 禁区 / 命名 / 引用 / 可写范围契约
 
-### query：回答后是否写回 wiki
+### query
 
-```mermaid
-stateDiagram-v2
-    [*] --> AnswerQuestion
-    AnswerQuestion --> CheckReuseValue
+1. 先回答问题；
+2. 再判断结果是否形成 durable knowledge；
+3. 若只是当前对话所需，则不写回；
+4. 若形成 durable knowledge，且 target 可判定、证据充分、未命中 protected scope，则正常写回 wiki；
+5. 若有沉淀价值但被 host contract 阻止，则返回 `blocked-by-host`，不做变通写回。
 
-    CheckReuseValue --> ReadOnlyFinish: one-off answer
-    CheckReuseValue --> ChoosePageFamily: reusable result
+### ingest
 
-    ChoosePageFamily --> UpdateExistingPage: matching page exists
-    ChoosePageFamily --> CreateCanonicalPage: no suitable page yet
+- 识别 raw bundle 与 `source_id`
+- 从 raw 提取可复用知识
+- **直接更新 durable pages**
+- 不再把 `source summary` 作为 ingest 第一落点或 canonical 证据中转层
+- legacy `source summary` 可读但非 canonical，默认不新建、不更新
 
-    UpdateExistingPage --> SyncIndexIfNeeded
-    CreateCanonicalPage --> SyncIndexIfNeeded
+### lint
 
-    SyncIndexIfNeeded --> LogQueryWriteback
-    LogQueryWriteback --> [*]
-    ReadOnlyFinish --> [*]
-```
+- 检查导航、引用、状态、冲突、孤儿页、维护债
+- 优先产出 issue list 与 maintenance 更新
+- 不把 lint 变成默认全库重写
 
-- `reusable result` 指稳定比较、跨 source 综合、很可能会再次被问到的解释，或应落入 `maintenance/` 的结构性缺口。
+## Host Contract
 
-### ingest：source 进入后如何扇出更新
+durable writeback 的真正前提不是“每次额外授权”，而是宿主已提供或可可靠推断以下最低条件：
 
-```mermaid
-stateDiagram-v2
-    [*] --> ArchiveSourceToRaw
-    ArchiveSourceToRaw --> UpdateSourceSummary
-    UpdateSourceSummary --> ReviewImpactedPages
+- `wiki_root` 可发现
+- 本次 writable target 可判定
+- target 不在 `protected scope`
+- 至少存在一种可执行的 raw ref 引用方式
 
-    ReviewImpactedPages --> UpdateExistingPages: existing pages cover it
-    ReviewImpactedPages --> CreateNewCanonicalPage: new high-level page needed
+以下属于可选增强项，缺失时应回退 baseline，而不是自动阻断：
 
-    UpdateExistingPages --> SyncIndexIfNeeded
-    CreateNewCanonicalPage --> SyncIndexIfNeeded
+- `writable_scopes`
+- `page_families`
+- `naming_rule`
+- `citation_rule`
+- `index_surface`
+- `log_surface`
+- `search_policy`
 
-    SyncIndexIfNeeded --> LogIngest
-    LogIngest --> [*]
-```
+## Protected Scope
 
-- ingest 不能停在 `sources/`；必须回查 `entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/`。
+必须保护：
 
-## query 默认输出
+- raw roots
+- 宿主显式声明的禁写目录 / 文件 / field / section / operation
 
-1. 答案
-2. 关键依据
-3. 冲突 / 不确定性
-4. 下一步 wiki 动作
+冲突时遵守：**更具体的 deny 覆盖更宽泛的 allow**。
+
+## 主工作流
+
+1. **bootstrap**：发现 wiki root、导航面、可写范围与 protected scope
+2. **ingest**：从 raw 直接更新 durable pages
+3. **query**：先回答，再判断是否 durable writeback
+4. **lint**：检查结构债、证据问题与维护缺口
+
+## durable writeback 判断
+
+写回前按顺序判断：
+
+1. 是否形成 durable knowledge
+2. 是否能定位既有 canonical page 或合法新页
+3. 是否有足够 raw ref 支撑关键结论
+4. 是否命中 protected scope
+5. 若涉及新页 / rename / split / merge，index 是否允许同步
+
+只有 1-3 成立且 4-5 不阻断时，才执行正常写回。
+
+## 非目标
+
+- 不引入脚本、CLI、索引器或新系统
+- 不要求统一 frontmatter 或统一 citation 字面格式
+- 不要求删除已有 `source summary`
 
 ## 读取导航
 
-- 需要理解固定目录结构与规范化规则时，读 [references/canonical-layout.md](./references/canonical-layout.md)
-- 需要理解三层职责与复利式维护模型时，读 [references/architecture.md](./references/architecture.md)
-- 需要判断页面该落在哪类、何时创建 / 更新时，读 [references/page-types.md](./references/page-types.md)
-- 需要执行 bootstrap / ingest / query / lint 的标准步骤与自检时，读 [references/workflows.md](./references/workflows.md)
-- 需要维护命名、citation、日志、状态标记与互链规则时，读 [references/conventions.md](./references/conventions.md)
+- 架构与边界：读 [references/architecture.md](./references/architecture.md)
+- 工作流：读 [references/workflows.md](./references/workflows.md)
+- 约定与证据纪律：读 [references/conventions.md](./references/conventions.md)
+- 页型：读 [references/page-types.md](./references/page-types.md)
+- raw 模型：读 [references/raw-model.md](./references/raw-model.md)
+- 典型场景：读 [references/scenarios.md](./references/scenarios.md)
+- layout 与默认目录/页型关系：读 [references/canonical-layout.md](./references/canonical-layout.md)
+- lint 硬检查：读 [references/lint-contract.md](./references/lint-contract.md)
+- 页面模板：读 [references/templates.md](./references/templates.md)

@@ -1,66 +1,125 @@
 # 约定
 
-## 1. 导航：固定使用 `index.md`
+## 1. raw ref 约定
 
-- `index.md` 是唯一导航入口，不使用替代导航文件。
-- `index.md` 至少按 page family 列出：`sources/`、`entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/`。
-- 每个页面条目至少包含：链接 + 一句话说明。
-- 新增、删除、合并、重命名页面后，要同步更新 `index.md`。
+durable page 中的关键结论应直接附 raw ref。raw ref 的语义最少包括：
 
-## 2. 日志：固定使用 `log.md`
+- `source_id`
+- `locator`
 
-- `log.md` 是唯一时间线，采用 append-only。
-- 推荐标题前缀：
-  - `## [YYYY-MM-DD] bootstrap | normalization`
-  - `## [YYYY-MM-DD] ingest | <source-id>`
-  - `## [YYYY-MM-DD] query | <page-id>`
-  - `## [YYYY-MM-DD] lint | <scope>`
-- 每条日志至少包含：动作类型、触达页面、变更摘要、follow-up。
-- 动作级最小字段：
-  - **bootstrap**：规范化内容、创建的控制文件、后续待办。
-  - **ingest**：source ID、触达页面、是否更新了高层页、关键结论。
-  - **query**：目标页 ID、为什么值得写回、关键更新。
-  - **lint**：scope、问题摘要、修复动作或残余缺口。
-- 日志只写安全摘要，不复制敏感原文、密钥、隐私数据或内部路径。
+可选补充：
 
-## 3. 命名
+- 安全短摘录
+- 注释
+- 置信说明
 
-- markdown 页面文件名统一用 kebab-case。
-- source summary 文件名与对应 raw source 的 stem 一致。
-- comparison 页面优先使用问题或对象对的 kebab-case slug。
-- 页面只放在 canonical page family 中，不创建平行目录。
+关键要求：后续 agent 必须能靠 raw ref 回到 raw bundle 重新定位证据。
 
-## 4. citation
+## 2. citation 约定
 
-- 每个稳定结论都必须能回溯到 source summary；必要时再回到 `raw/` 中的原始文件页码或片段。
-- 页面底部固定保留 `## Sources` 区块。
-- `## Sources` 至少列出：source summary 链接，以及 raw source 的页码 / 章节信息（若适用）。
-- 若某条内容暂时无法追溯来源，只能标为 `needs-verification`。
+- baseline 只规定**可追溯语义**，不强制统一 markdown 字面格式
+- 宿主可自定义脚注、内链、表格列、frontmatter 字段等表现形式
+- 不允许退化成“只写模糊来源标题、无法重新定位证据”
+- durable knowledge 不应依赖 `source summary` 作为 canonical 中转层
+
+## 3. evidence discipline
+
+默认区分三类内容：
+
+1. **来源事实**：可直接由 raw ref 支撑
+2. **wiki 综合判断**：基于多个 raw ref 或 durable page 的综合结论
+3. **待验证推测**：证据不足但值得保留的问题或假设
+
+规则：
+
+- 关键事实直引 raw ref
+- 推测必须显式标记，不能伪装成确定事实
+- 冲突证据应保留双方，不静默覆盖
+- 需要时使用 `needs-verification`、`contested`、`superseded`
+
+## 4. 日志安全
+
+`log.md` 或宿主等价日志面只记录安全摘要，例如：
+
+- source id
+- page id / page slug
+- 动作类型（ingest / query writeback / lint / blocked-by-host）
+- 阻断原因或降级原因
+
+不要在日志中：
+
+- 复制大段原文
+- 暴露敏感路径
+- 记录超出必要范围的隐私信息
+- 把 log 写成知识正文
 
 ## 5. 状态标记
 
-- 统一使用：`confirmed`、`needs-verification`、`contested`、`superseded`。
-- 新 source 与旧结论冲突时，不静默覆盖；先保留冲突，再更新状态。
+推荐使用下列语义状态：
 
-## 6. 互链
+- `needs-verification`：证据不足或 selector 不稳定
+- `contested`：存在冲突证据或竞争解释
+- `superseded`：旧结论已被新证据取代，但仍保留历史上下文
+- `archived`：页面保留历史价值，但不再是当前 canonical 入口
+- `merged`：内容已并入其他 canonical page
 
-- 新页面创建后，至少补两类链接：
-  - 回到 `index.md` 可导航；
-  - 连到至少一个相关页面或 source summary。
-- 若发现两个页面承载同一主题，优先合并，而不是长期并存。
+状态标记用于暴露不确定性与生命周期，不是装饰性标签。
 
-## 7. 复利优先
+## 6. page lifecycle 约定
 
-- 新 source 到来后，优先更新已有高层页，而不是并排再造一个近似摘要页。
-- query 如果形成稳定综合，应写回 canonical page family，而不是只留在聊天里。
-- 页面数量增长不是目标；减少重复发现、提高下一次进入成本更低，才是目标。
+### split
 
-## 8. 最小自检
+适用：页面过载、主题分叉、子主题已具备独立 durable value。
 
-每次 ingest / durable query writeback / lint 后，至少确认：
+要求：
 
-1. raw source 内容未被改写；
-2. 页面落点符合 canonical layout；
-3. `index.md` 已反映结构变化；
-4. `log.md` 已追加记录；
-5. 新结论可追溯，且没有把猜测写成事实。
+- 原页保留摘要与跳转
+- index 反映 canonical 去向
+
+### merge
+
+适用：多个页面实际描述同一对象 / 问题。
+
+要求：
+
+- 明确 canonical page
+- 被合并页保留回链或状态标记
+
+### archive
+
+适用：历史价值保留，但不再作为当前入口。
+
+要求：
+
+- 不制造孤儿页
+- 保留可导航回链
+
+### supersede
+
+适用：旧结论被新证据替代，但保留历史仍有价值。
+
+要求：
+
+- 保留 superseded 标记
+- 新旧结论都可回溯到各自证据
+
+默认先 append / update / 标记状态；只有结构负担明显时才做结构性生命周期动作。
+
+## 7. 互链与导航
+
+- index 负责主导航
+- durable pages 之间可互链，但互链不能替代 index 的 canonical 发现职责
+- 新 canonical page、rename、split、merge、archive、supersede 后应同步 index
+- search 只是定位增强器，不是引用来源
+
+## 8. 自检约定
+
+写回前快速检查：
+
+1. 目标页是否位于可写 wiki scope？
+2. 是否命中 protected scope？
+3. 关键结论是否有 raw ref？
+4. 是否误把一次性回答写成 durable knowledge？
+5. 是否需要同步 index？
+6. log 不可写时，我是否正确降级而非绕写？
+7. 我是否避免创建或更新新的 `source summary`？

@@ -1,59 +1,155 @@
 # 架构
 
-## 目标
+## 1. 总体模型
 
-把授权的 wiki 根目录维护成一个**会持续积累知识的 markdown 知识库**，而不是每次 query 都回到 raw source 临时重新拼答案。
+`llm-wiki` 采用三层模型：
 
-## 固定三层
+1. **raw layer**：原始来源层；只读；最终证据层
+2. **wiki layer**：durable knowledge layer；主知识产物
+3. **schema layer**：结构与边界契约；描述命名、引用、可写范围、禁区与导航面
 
-### 1. raw sources (`raw/`)
+核心精神：**wiki 是主 artifact，LLM 是 wiki 的程序员**。
 
-- 角色：原始输入层，存放 PDF、网页归档、文章、会议纪要、截图说明、数据摘录等 source。
-- 约束：内容只读，不改写。
-- 允许动作：归档进 `raw/`、规范命名、引用、摘要。
+## 2. 第一原则
 
-### 2. wiki pages (`sources/`、`entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/`)
+1. **wiki 优先于聊天**：高价值知识优先沉淀到 wiki。
+2. **raw 不可变**：raw bundle 永远只读。
+3. **schema 是契约，不是审批器**：负责结构 / 禁区 / 命名 / 引用 / 可写范围，不把正常维护变成逐回合授权。
+4. **index-first**：默认先读导航面，再读页面，再回 raw。
+5. **证据直达 raw**：关键结论必须能追溯到 raw ref。
+6. **host override 优先**：宿主规则高于 baseline。
+7. **protected scope 优先**：命中禁区即阻断。
+8. **最小机制**：不引入与文档重写无关的新系统。
 
-- 角色：LLM 维护的知识层。
-- 责任：
-  - 吸收新 source；
-  - 更新旧页面中的结论、互链与冲突；
-  - 把可复用 query 结果编译回 wiki；
-  - 记录证据缺口与待验证项。
+## 3. host contract
 
-### 3. canonical control files (`index.md`、`log.md`)
+### 3.1 最低写回前提
 
-- `index.md`：唯一导航入口。
-- `log.md`：唯一追加式时间线。
-- 本 skill 不支持替代导航 / 日志机制；固定就用这两个文件。
+只有以下条件成立时，durable writeback 才可正常发生：
 
-## 单一 canonical layout
+- 能发现或可靠推断 `wiki_root`
+- 能判定本次写回的具体 target
+- target 不在 `protected scope`
+- 至少存在一种可执行的 raw ref 写法
 
-- 根目录固定为一个完整的 wiki root，而不是等待外部 schema 来定义结构。
-- 页面 family 固定，目录职责固定，写回边界固定。
-- 如果目录里已有散落页面或 raw source，先规范化到 canonical layout，再继续维护。
+若缺少以上任一项，应降级为只回答、maintenance，或 `blocked-by-host`。
 
-## 复利式维护
+### 3.2 可选增强项
 
-- ingest 不只是新增 source summary；还必须回查现有 `entities/`、`topics/`、`comparisons/`、`overviews/`、`maintenance/` 页面是否需要修正。
-- query 不只是回答；当答案具有可复用价值时，应被编译成 canonical wiki 页面，而不是遗失在聊天记录里。
-- lint 不只是找错；还要找“哪些知识还停留在零散页面或聊天回答里，尚未沉淀成稳定页面”。
-- 如果 source 不断增加，但高层页长期不更新，说明 wiki 正在退化回临时检索，而不是持续积累。
+以下项目用于提升体验，缺失时不应自动阻断：
 
-## 本 skill 拥有什么权力
+- `raw_roots`
+- `writable_scopes`
+- `page_families` 扩展映射
+- `naming_rule`
+- `citation_rule`
+- `index_surface`
+- `log_surface`
+- `search_policy`
 
-- 可以创建、重命名、移动、整理 canonical wiki 页面与 control files。
-- 可以把 source 归档进 `raw/` 并保持其内容只读。
-- 可以重建 `index.md`、维护 `log.md`、拆分过载页面、补齐缺失页、整理目录结构。
-- 不应把归档结果写到 canonical layout 之外，也不应依赖外部规则文件决定 page family。
+baseline 可以保守回退，但不能越过宿主已声明的边界。
 
-## 搜索的角色
+## 4. protected scope
 
-- 默认入口永远是 `index.md`。
-- 搜索只用于加速定位，不改变 canonical 结构，也不替代 source 证据。
+`protected scope` 可以按以下粒度表达：
 
-## 为什么这样设计
+- 目录
+- 文件
+- section
+- field
+- operation（如 rename / archive / supersede）
 
-- 目录结构固定，意味着 agent 不必每次重新判断“哪儿可写、哪儿是导航、哪儿该记账”。
-- raw source、source summary、高层综合页之间的关系固定，意味着新 source 到来时更容易做系统性更新。
-- `index.md` + `log.md` + 固定 page families，让 wiki 既可浏览，也可持续维护。
+冲突优先级：
+
+`operation > section/field > file > directory`
+
+总规则：**更具体的 deny 覆盖更宽泛的 allow**。
+
+raw roots 永远属于天然 protected scope。
+
+## 5. wiki 工作面
+
+### 5.1 index
+
+- `index.md` 或宿主等价导航面是默认工作面
+- index 负责可发现性、canonical 去向、结构入口
+- 只有结构变化时才必须同步：新 canonical page、rename、split、merge、archive、supersede
+- index 不是时间线，不承担正文事实主来源职责
+
+### 5.2 log
+
+- `log.md` 或宿主等价面是追加式变更时间线
+- 用于审计、最近活动、安全摘要、阻断原因
+- log 不是知识正文，不承载 canonical facts
+- 若 log 不可写，属于 `logging degraded`；不可改写其他文件代偿
+
+### 5.3 search
+
+- search 只是定位增强器，不是事实来源
+- 只有在导航不足且宿主允许时才使用
+- 搜索命中后仍需回到 durable page 或 raw ref 验证
+
+## 6. page families 边界
+
+baseline durable pages 只保留五类：
+
+- `entity`
+- `topic`
+- `comparison`
+- `synthesis`
+- `maintenance`
+
+`source summary` 不再是 baseline page family，也不是 ingest 第一落点。
+
+legacy `source summary`：
+
+- 可读取
+- 非 canonical
+- 默认不新建
+- 默认不更新
+- 不做破坏性清理
+
+## 7. 证据路径
+
+canonical 证据路径应为：
+
+`raw bundle -> raw locator -> raw ref -> durable page`
+
+而不是：
+
+`raw -> source summary -> durable page`
+
+durable page 的关键结论必须能沿 raw ref 回到 raw；durable pages 之间可以互相引用，但不能替代 raw 证据链本身。
+
+## 8. 写回边界
+
+### 8.1 正常写回
+
+当结果具有 durable value，且 target 明确、证据充分、未命中 protected scope 时：
+
+- 更新既有 canonical page，或
+- 在允许范围内创建新 canonical page，或
+- 在不宜直接定论时写入 maintenance
+
+必要时同步 index；若宿主允许，再追加 log。
+
+### 8.2 blocked-by-host
+
+以下情况应返回 `blocked-by-host`：
+
+- 无法可靠发现 `wiki_root`
+- 无法安全判定 writable target
+- 命中 `protected scope`
+- 需要创建新 canonical page，但 index 不可写且会破坏可发现性
+
+`blocked-by-host` 的语义是：答案照常给出，但不写回 wiki，也不绕写其他文件。
+
+### 8.3 degraded but allowed
+
+以下情况一般允许继续正文写回：
+
+- `log.md` 不可写
+- 缺少宿主专用 `citation_rule`
+- 缺少宿主专用 `naming_rule`
+
+此时应使用 baseline，并在输出中注明降级点。

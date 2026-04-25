@@ -5,11 +5,13 @@ import {
   lstatSync,
   realpathSync,
   mkdirSync,
+  readdirSync,
   readFileSync,
   renameSync,
   rmSync,
   writeFileSync,
 } from 'fs';
+import { randomUUID } from 'crypto';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'path';
 
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
@@ -43,51 +45,6 @@ export interface TaskPhaseTask {
 export interface TaskPhase {
   name: string;
   tasks: TaskPhaseTask[];
-}
-
-interface Proposal {
-  id: string;
-  taskId: string;
-  name: string;
-  goal: string;
-  rationale: string;
-  problem?: string;
-  acceptance?: string[];
-  assumptions?: string[];
-  constraints?: string[];
-  risks?: string[];
-  points: string[];
-  scope: string[];
-  designIndex?: string;
-  designSummary?: string[];
-  phases: Array<{ name: string; tasks: Array<{ description: string; acceptance: string }> }>;
-  proposedBy: string;
-  proposedAt: string;
-  status: 'pending' | 'approved' | 'rejected';
-  decidedAt?: string;
-  decidedBy?: string;
-  reason?: string;
-  createdTaskId?: string;
-}
-
-interface ConfigTaskEntry {
-  id: string;
-  name: string;
-  status: 'active' | 'paused' | 'archived';
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface LegionConfig {
-  version: string;
-  currentTask: string | null;
-  settings: {
-    autoRemind: boolean;
-    remindBeforeReset: boolean;
-    taskCreationPolicy: string;
-  };
-  tasks: ConfigTaskEntry[];
-  pendingProposals: Proposal[];
 }
 
 interface ContextState {
@@ -181,41 +138,14 @@ export function ensureInitialized(ctx: CliContext) {
 export function initLegion(ctx: CliContext) {
   assertRepoControlledPath(ctx, ctx.legionRoot, { allowMissingLeaf: true, rejectManagedSymlink: true });
   mkdirSync(join(ctx.legionRoot, 'tasks'), { recursive: true });
-  const configPath = join(ctx.legionRoot, 'config.json');
-  if (!existsSync(configPath)) {
-    writeJsonAtomic(ctx, configPath, {
-      version: '1.0.0',
-      currentTask: null,
-      settings: {
-        autoRemind: true,
-        remindBeforeReset: true,
-        taskCreationPolicy: 'direct-create',
-      },
-      tasks: [],
-      pendingProposals: [],
-    } satisfies LegionConfig);
-  }
-  const ledgerPath = join(ctx.legionRoot, 'ledger.csv');
-  if (!existsSync(ledgerPath)) {
-    writeTextAtomic(ctx, ledgerPath, 'timestamp,action,task_id,task_name,user,params_summary,result\n');
-  }
-}
-
-export function loadConfig(ctx: CliContext): LegionConfig {
-  ensureInitialized(ctx);
-  return JSON.parse(readFileSync(join(ctx.legionRoot, 'config.json'), 'utf-8')) as LegionConfig;
-}
-
-export function saveConfig(ctx: CliContext, config: LegionConfig) {
-  writeJsonAtomic(ctx, join(ctx.legionRoot, 'config.json'), config);
 }
 
 export function currentTaskId(ctx: CliContext, explicit?: string): string {
-  const config = loadConfig(ctx);
-  const taskId = explicit ?? config.currentTask;
+  const taskId = explicit?.trim();
   if (!taskId) {
-    throw new CliError('NO_ACTIVE_TASK', '当前没有活跃任务', '传入 --task-id 或先切换任务');
+    throw new CliError('SCHEMA_INVALID', '该命令必须显式提供 taskId', '传入 --task-id 或在 JSON 中提供 taskId');
   }
+  validateTaskId(taskId);
   return taskId;
 }
 
@@ -224,6 +154,28 @@ export function taskRoot(ctx: CliContext, taskId: string): string {
   const root = join(ctx.legionRoot, 'tasks', taskId);
   assertRepoControlledPath(ctx, root, { allowMissingLeaf: true, rejectManagedSymlink: true });
   return root;
+}
+
+function requireTaskDirectory(ctx: CliContext, taskId: string): string {
+  ensureInitialized(ctx);
+  const root = taskRoot(ctx, taskId);
+  if (!existsSync(root)) {
+    throw new CliError('TASK_NOT_FOUND', `未找到任务目录: .legion/tasks/${taskId}`, `检查 .legion/tasks/${taskId} 是否存在`);
+  }
+  if (!lstatSync(root).isDirectory()) {
+    throw new CliError('TASK_CORRUPTED', `任务目录损坏: .legion/tasks/${taskId}`, '目标路径不是有效任务目录');
+  }
+  return root;
+}
+
+function requireTaskFile(ctx: CliContext, taskId: string, file: 'plan.md' | 'log.md' | 'tasks.md'): string {
+  const root = requireTaskDirectory(ctx, taskId);
+  const fullPath = join(root, file);
+  assertRepoControlledPath(ctx, fullPath, { allowMissingLeaf: false, rejectManagedSymlink: true });
+  if (!existsSync(fullPath) || !lstatSync(fullPath).isFile()) {
+    throw new CliError('TASK_CORRUPTED', `任务目录缺少必要文件: .legion/tasks/${taskId}/${file}`, `补齐 ${file} 后重试`);
+  }
+  return fullPath;
 }
 
 export function safeRepoPath(ctx: CliContext, maybePath: string): string {
@@ -244,201 +196,55 @@ export function repoRelative(ctx: CliContext, path: string): string {
   return relative(ctx.repoRoot, absolute) || '.';
 }
 
-export function createTask(ctx: CliContext, input: Record<string, unknown>, fromProposal?: Proposal) {
+export function createTask(ctx: CliContext, input: Record<string, unknown>) {
   validateFields(input, ['taskId', 'name', 'goal', 'rationale', 'problem', 'acceptance', 'assumptions', 'constraints', 'risks', 'points', 'scope', 'designIndex', 'designSummary', 'phases']);
-  const config = loadConfig(ctx);
-  const draft = prepareTaskDraft(ctx, input, fromProposal, config);
+  const draft = prepareTaskDraft(ctx, input);
   writeTaskDraft(draft);
-  try {
-    applyTaskToConfig(config, draft.taskId, draft.name);
-    saveConfig(ctx, config);
-  } catch (error) {
-    rmSync(draft.root, { recursive: true, force: true });
-    throw error;
-  }
-  appendLedger(ctx, 'legion_create_task', draft.taskId, draft.name, summarizeAuditFields(['taskId', 'goal', 'points', 'scope', 'phases']), 'success');
   return { taskId: draft.taskId, path: draft.root };
-}
-
-export function appendLedger(
-  ctx: CliContext,
-  action: string,
-  taskId: string,
-  taskName: string,
-  paramsSummary: string,
-  result: string,
-) {
-  ensureInitialized(ctx);
-  const row = [new Date().toISOString(), action, taskId, taskName, 'Claude', paramsSummary, result]
-    .map(csvEscape)
-    .join(',');
-  const ledgerPath = join(ctx.legionRoot, 'ledger.csv');
-  assertRepoControlledPath(ctx, ledgerPath, { allowMissingLeaf: false, rejectManagedSymlink: true });
-  writeFileSync(ledgerPath, `${readFileSync(ledgerPath, 'utf-8')}${row}\n`);
-}
-
-export function appendFailureAudit(ctx: CliContext, action: string, error: unknown, taskId = '', taskName = '') {
-  try {
-    if (!existsSync(ctx.legionRoot) || !existsSync(join(ctx.legionRoot, 'ledger.csv'))) {
-      return;
-    }
-    const code = error instanceof CliError ? error.code : 'INTERNAL_ERROR';
-    appendLedger(ctx, action, taskId, taskName, 'failure', `error:${code}`);
-  } catch {
-    // best effort only
-  }
-}
-
-export function createProposal(ctx: CliContext, input: Record<string, unknown>) {
-  validateFields(input, ['taskId', 'name', 'goal', 'rationale', 'problem', 'acceptance', 'assumptions', 'constraints', 'risks', 'points', 'scope', 'designIndex', 'designSummary', 'phases']);
-  const proposal: Proposal = {
-    id: `proposal-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 8)}`,
-    taskId: asTaskId(input.taskId, 'taskId'),
-    name: asString(input.name, 'name'),
-    goal: asString(input.goal, 'goal'),
-    rationale: asString(input.rationale, 'rationale'),
-    problem: asOptionalString(input.problem),
-    acceptance: asOptionalStringArray(input.acceptance, 'acceptance'),
-    assumptions: asOptionalStringArray(input.assumptions, 'assumptions'),
-    constraints: asOptionalStringArray(input.constraints, 'constraints'),
-    risks: asOptionalStringArray(input.risks, 'risks'),
-    points: asStringArray(input.points ?? []),
-    scope: asStringArray(input.scope ?? []),
-    designIndex: asOptionalString(input.designIndex),
-    designSummary: asOptionalStringArray(input.designSummary, 'designSummary'),
-    phases: normalizePhases(input.phases ?? []),
-    proposedBy: 'Claude',
-    proposedAt: new Date().toISOString(),
-    status: 'pending',
-  };
-  const config = loadConfig(ctx);
-  config.pendingProposals.push(proposal);
-  saveConfig(ctx, config);
-  appendLedger(ctx, 'legion_propose_task', '', '', summarizeAuditFields(['taskId', 'name', 'goal', `points:${proposal.points.length}`, `scope:${proposal.scope.length}`, `phases:${proposal.phases.length}`]), 'success');
-  return proposal;
-}
-
-export function listProposals(ctx: CliContext, status: Proposal['status'] | 'all' = 'pending') {
-  const config = loadConfig(ctx);
-  return config.pendingProposals.filter((proposal) => status === 'all' || proposal.status === status);
-}
-
-export function approveProposal(ctx: CliContext, proposalId: string) {
-  const config = loadConfig(ctx);
-  const proposal = config.pendingProposals.find((item) => item.id === proposalId);
-  if (!proposal) {
-    throw new CliError('PROPOSAL_NOT_FOUND', `未找到提案: ${proposalId}`);
-  }
-  const decidedAt = new Date().toISOString();
-  const draft = prepareTaskDraft(ctx, {
-    taskId: proposal.taskId,
-    name: proposal.name,
-    goal: proposal.goal,
-    rationale: proposal.rationale,
-    problem: proposal.problem,
-    acceptance: proposal.acceptance,
-    assumptions: proposal.assumptions,
-    constraints: proposal.constraints,
-    risks: proposal.risks,
-    points: proposal.points,
-    scope: proposal.scope,
-    designIndex: proposal.designIndex,
-    designSummary: proposal.designSummary,
-    phases: proposal.phases,
-  }, proposal, config);
-  writeTaskDraft(draft);
-  try {
-    proposal.status = 'approved';
-    proposal.decidedAt = decidedAt;
-    proposal.decidedBy = 'Claude';
-    proposal.createdTaskId = draft.taskId;
-    applyTaskToConfig(config, draft.taskId, proposal.name);
-    saveConfig(ctx, config);
-  } catch (error) {
-    rmSync(draft.root, { recursive: true, force: true });
-    throw error;
-  }
-  appendLedger(ctx, 'legion_approve_proposal', draft.taskId, proposal.name, summarizeAuditFields(['proposalId']), 'success');
-  return { taskId: draft.taskId, path: draft.root };
-}
-
-export function rejectProposal(ctx: CliContext, proposalId: string, reason?: string) {
-  const config = loadConfig(ctx);
-  const proposal = config.pendingProposals.find((item) => item.id === proposalId);
-  if (!proposal) {
-    throw new CliError('PROPOSAL_NOT_FOUND', `未找到提案: ${proposalId}`);
-  }
-  proposal.status = 'rejected';
-  proposal.reason = reason;
-  proposal.decidedAt = new Date().toISOString();
-  proposal.decidedBy = 'Claude';
-  saveConfig(ctx, config);
-  appendLedger(ctx, 'legion_reject_proposal', '', '', summarizeAuditFields(['proposalId', reason ? 'reason' : 'no-reason']), 'success');
-  return proposal;
 }
 
 export function listTasks(ctx: CliContext) {
-  return loadConfig(ctx).tasks;
-}
+  ensureInitialized(ctx);
+  const tasksRoot = join(ctx.legionRoot, 'tasks');
+  assertRepoControlledPath(ctx, tasksRoot, { allowMissingLeaf: false, rejectManagedSymlink: true });
+  if (!existsSync(tasksRoot) || !lstatSync(tasksRoot).isDirectory()) {
+    throw new CliError('TASK_CORRUPTED', '`.legion/tasks` 目录缺失或不可访问', '重新运行 init 或修复 .legion/tasks 目录');
+  }
 
-export function switchTask(ctx: CliContext, taskId: string) {
-  validateTaskId(taskId);
-  const config = loadConfig(ctx);
-  const hit = config.tasks.find((task) => task.id === taskId);
-  if (!hit) {
-    throw new CliError('NO_ACTIVE_TASK', `未找到任务: ${taskId}`);
-  }
-  config.currentTask = taskId;
-  config.tasks = config.tasks.map((task) => ({
-    ...task,
-    status: task.id === taskId ? 'active' : task.status === 'archived' ? 'archived' : 'paused',
-    updatedAt: task.id === taskId ? new Date().toISOString() : task.updatedAt,
-  }));
-  saveConfig(ctx, config);
-  appendLedger(ctx, 'legion_switch_task', taskId, hit.name, summarizeAuditFields(['taskId']), 'success');
-  return hit;
-}
+  const tasks = readdirSync(tasksRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name)
+    .filter((taskId) => /^[a-z0-9][a-z0-9-]*$/.test(taskId) && !taskId.includes('..'))
+    .sort()
+    .map((taskId) => {
+      requireTaskFile(ctx, taskId, 'plan.md');
+      requireTaskFile(ctx, taskId, 'log.md');
+      requireTaskFile(ctx, taskId, 'tasks.md');
+      return getStatus(ctx, taskId);
+    });
 
-export function archiveTask(ctx: CliContext, taskId: string) {
-  validateTaskId(taskId);
-  const config = loadConfig(ctx);
-  const hit = config.tasks.find((task) => task.id === taskId);
-  if (!hit) {
-    throw new CliError('NO_ACTIVE_TASK', `未找到任务: ${taskId}`);
-  }
-  hit.status = 'archived';
-  hit.updatedAt = new Date().toISOString();
-  if (config.currentTask === taskId) {
-    config.currentTask = null;
-  }
-  saveConfig(ctx, config);
-  appendLedger(ctx, 'legion_archive_task', taskId, hit.name, summarizeAuditFields(['taskId']), 'success');
-  return hit;
+  return { tasks };
 }
 
 export function getStatus(ctx: CliContext, explicitTaskId?: string) {
   const taskId = currentTaskId(ctx, explicitTaskId);
-  const config = loadConfig(ctx);
-  const task = config.tasks.find((item) => item.id === taskId);
-  if (!task) {
-    throw new CliError('NO_ACTIVE_TASK', `未找到任务: ${taskId}`);
-  }
-  const tasksState = parseTasks(readFile(join(taskRoot(ctx, taskId), 'tasks.md')));
+  const root = requireTaskDirectory(ctx, taskId);
+  const planPath = requireTaskFile(ctx, taskId, 'plan.md');
+  const tasksState = parseTasks(readFile(requireTaskFile(ctx, taskId, 'tasks.md')));
   const total = tasksState.phases.reduce((sum, phase) => sum + phase.tasks.length, 0);
   const done = tasksState.phases.reduce((sum, phase) => sum + phase.tasks.filter((item) => item.completed).length, 0);
   const current = tasksState.phases.flatMap((phase) => phase.tasks).find((item) => item.current);
   return {
     taskId,
-    name: task.name,
-    status: task.status,
-    currentTask: current?.description ?? null,
+    name: titleFromHeading(readFile(planPath)),
+    currentChecklistItem: current?.description ?? null,
     progress: { completed: done, total },
+    path: relative(ctx.repoRoot, root),
   };
 }
 
 export function readContextCommand(ctx: CliContext, taskId: string, section: string, includeReviews: boolean) {
-  const root = taskRoot(ctx, taskId);
-  const content = readFile(join(root, 'log.md'));
+  const content = readFile(requireTaskFile(ctx, taskId, 'log.md'));
   const result = section === 'all' ? content : extractHeadingSection(content, sectionToHeading(section));
   return includeReviews ? { content: result, reviews: listReviews(ctx, taskId, 'all', 'all') } : { content: result };
 }
@@ -446,10 +252,8 @@ export function readContextCommand(ctx: CliContext, taskId: string, section: str
 export function updateContextCommand(ctx: CliContext, payload: Record<string, unknown>) {
   validateFields(payload, ['taskId', 'progress', 'addFile', 'addDecision', 'addConstraint', 'handoff']);
   const taskId = currentTaskId(ctx, asOptionalString(payload.taskId));
-  const root = taskRoot(ctx, taskId);
-  const contextPath = join(root, 'log.md');
+  const contextPath = requireTaskFile(ctx, taskId, 'log.md');
   const original = readFile(contextPath);
-  const title = titleFromHeading(original).replace(/ - 日志$/, '');
   const state = parseContext(original);
   const progress = payload.progress as Record<string, unknown> | undefined;
   if (progress) {
@@ -497,19 +301,17 @@ export function updateContextCommand(ctx: CliContext, payload: Record<string, un
   updated = replaceSectionBody(updated, '快速交接', mergeFreeformSection(renderHandoffSection(state.handoffNext, state.handoffNotes), filterHandoffExtras));
   updated = replaceFooterTimestamp(updated, 'by Legion CLI');
   writeTextAtomic(ctx, contextPath, updated);
-  appendLedger(ctx, 'legion_update_log', taskId, title, summarizeAuditFields(Object.keys(payload)), 'success');
   return { taskId };
 }
 
 export function readTasksCommand(ctx: CliContext, taskId: string) {
-  return { content: readFile(join(taskRoot(ctx, taskId), 'tasks.md')) };
+  return { content: readFile(requireTaskFile(ctx, taskId, 'tasks.md')) };
 }
 
 export function updateTasksCommand(ctx: CliContext, payload: Record<string, unknown>) {
   validateFields(payload, ['taskId', 'completeTask', 'setCurrentTask', 'addTask', 'addDiscoveredTask']);
   const taskId = currentTaskId(ctx, asOptionalString(payload.taskId));
-  const root = taskRoot(ctx, taskId);
-  const tasksPath = join(root, 'tasks.md');
+  const tasksPath = requireTaskFile(ctx, taskId, 'tasks.md');
   const original = readFile(tasksPath);
   const parsed = parseTasks(original);
 
@@ -561,17 +363,14 @@ export function updateTasksCommand(ctx: CliContext, payload: Record<string, unkn
   updated = replaceSectionBody(updated, '发现的新任务', mergeFreeformSection(renderDiscovered(parsed.discovered), filterTaskSectionExtras));
   updated = replaceFooterTimestamp(updated);
   writeTextAtomic(ctx, tasksPath, updated);
-  appendLedger(ctx, 'legion_update_tasks', taskId, parsed.title, summarizeAuditFields(Object.keys(payload)), 'success');
   return { taskId };
 }
 
 export function updatePlanCommand(ctx: CliContext, payload: Record<string, unknown>) {
   validateFields(payload, ['taskId', 'goal', 'points', 'scope', 'phases']);
   const taskId = currentTaskId(ctx, asOptionalString(payload.taskId));
-  const root = taskRoot(ctx, taskId);
-  const planPath = join(root, 'plan.md');
+  const planPath = requireTaskFile(ctx, taskId, 'plan.md');
   let current = readFile(planPath);
-  const title = titleFromHeading(current);
   if (payload.goal) {
     current = replaceSectionBody(current, '目标', mergeFreeformSection(asString(payload.goal, 'goal'), filterSimpleSectionExtras));
   }
@@ -586,7 +385,6 @@ export function updatePlanCommand(ctx: CliContext, payload: Record<string, unkno
   }
   current = replaceUpdatedDate(current);
   writeTextAtomic(ctx, planPath, current);
-  appendLedger(ctx, 'legion_update_plan', taskId, title, summarizeAuditFields(Object.keys(payload)), 'success');
   return { taskId };
 }
 
@@ -594,7 +392,7 @@ export function listReviews(ctx: CliContext, taskId: string, status: string, typ
   const files = ['plan.md', 'log.md', 'tasks.md'] as const;
   const results: Array<Record<string, Json>> = [];
   for (const file of files) {
-    const fullPath = join(taskRoot(ctx, taskId), file);
+    const fullPath = requireTaskFile(ctx, taskId, file);
     const lines = readFile(fullPath).split('\n');
     for (let index = 0; index < lines.length; index += 1) {
       const line = lines[index];
@@ -643,8 +441,7 @@ export function respondReview(ctx: CliContext, payload: Record<string, unknown>)
   if (!['plan.md', 'log.md', 'tasks.md'].includes(file)) {
     throw new CliError('SCHEMA_INVALID', `不支持的 review 文件: ${file}`);
   }
-  const root = taskRoot(ctx, taskId);
-  const fullPath = join(root, file);
+  const fullPath = requireTaskFile(ctx, taskId, file as 'plan.md' | 'log.md' | 'tasks.md');
   const lines = readFile(fullPath).split('\n');
   const statusValue = assertEnum(asString(payload.status, 'status'), 'status', ['resolved', 'wontfix', 'need-info']);
   const lineNo = parsedReviewTarget?.line ?? Number(reviewId);
@@ -661,22 +458,21 @@ export function respondReview(ctx: CliContext, payload: Record<string, unknown>)
   }
   lines.splice(cursor, 0, `> [RESPONSE] ${asMarkdownLine(payload.response, 'response')}`, `> [STATUS:${statusValue}]`);
   writeTextAtomic(ctx, fullPath, `${lines.join('\n').replace(/\n+$/, '')}\n`);
-  appendLedger(ctx, 'legion_respond_review', taskId, titleFromHeading(readFile(fullPath)), summarizeAuditFields(['file', 'reviewId', 'status']), 'success');
   return { taskId, file, reviewId };
 }
 
 export function generateDashboard(ctx: CliContext, taskId: string, format: 'markdown' | 'html', sections: string[], outputPath?: string) {
   const status = getStatus(ctx, taskId);
-  const contextContent = readFile(join(taskRoot(ctx, taskId), 'log.md'));
+  const contextContent = readFile(requireTaskFile(ctx, taskId, 'log.md'));
   const decisions = parseContext(contextContent).decisions;
   const bodyMd = [
     `# ${status.name} Dashboard`,
     '',
-    sections.includes('status') ? `- 状态: ${status.status}` : '',
+    sections.includes('status') ? `- 当前检查项: ${status.currentChecklistItem ?? '(none)'}` : '',
     sections.includes('progress') ? `- 进度: ${status.progress.completed}/${status.progress.total}` : '',
     sections.includes('blockers') ? '## Blockers\n' + (parseContext(contextContent).blocked.map((item) => `- ${item}`).join('\n') || '- (none)') : '',
     sections.includes('decisions') ? '## Decisions\n' + (decisions.map((item) => `- ${item.date}｜${item.decision}`).join('\n') || '- (none)') : '',
-    sections.includes('recent_activity') ? '## Recent Activity\n- 查看 ledger query 获取最近写操作。' : '',
+    sections.includes('recent_activity') ? '## Recent Activity\n- 查看 log.md 中的“会话进展”获取最近活动。' : '',
   ].filter(Boolean).join('\n');
   const body = format === 'html'
     ? `<html><body><pre>${escapeHtml(bodyMd)}</pre></body></html>\n`
@@ -688,33 +484,7 @@ export function generateDashboard(ctx: CliContext, taskId: string, format: 'mark
     writeTextAtomic(ctx, absolute, body);
     savedTo = relative(ctx.repoRoot, absolute);
   }
-  appendLedger(ctx, 'legion_generate_dashboard', taskId, status.name, summarizeAuditFields(['format', outputPath ? 'output' : 'stdout']), 'success');
   return { taskId, format, content: body, outputPath: savedTo };
-}
-
-export function queryLedger(ctx: CliContext, filters: {
-  taskId?: string;
-  action?: string;
-  since?: string;
-  until?: string;
-  limit?: number;
-}) {
-  const limit = filters.limit == null ? 100 : ensurePositiveLimit(filters.limit, 500);
-  const rows = parseCsvRows(readFile(join(ctx.legionRoot, 'ledger.csv'))).slice(1).map((row) => ({
-    timestamp: row[0] ?? '',
-    action: row[1] ?? '',
-    task_id: row[2] ?? '',
-    task_name: row[3] ?? '',
-    user: row[4] ?? '',
-    params_summary: row[5] ?? '',
-    result: row[6] ?? '',
-  }));
-  return rows
-    .filter((row) => !filters.taskId || row.task_id === filters.taskId)
-    .filter((row) => !filters.action || row.action === filters.action)
-    .filter((row) => !filters.since || row.timestamp >= filters.since)
-    .filter((row) => !filters.until || row.timestamp <= filters.until)
-    .slice(0, limit);
 }
 
 export function printSuccess(data: Json, hint?: string) {
@@ -736,10 +506,6 @@ export function validateFields(payload: Record<string, unknown>, allowed: string
   }
 }
 
-function summarizeAuditFields(fields: string[]): string {
-  return fields.filter(Boolean).join('|');
-}
-
 function titleFromHeading(content: string): string {
   return content.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? 'Untitled';
 }
@@ -755,17 +521,14 @@ interface TaskDraft {
   tasks: string;
 }
 
-function prepareTaskDraft(ctx: CliContext, input: Record<string, unknown>, fromProposal: Proposal | undefined, config: LegionConfig): TaskDraft {
-  const taskId = resolveTaskId(input, fromProposal);
+function prepareTaskDraft(ctx: CliContext, input: Record<string, unknown>): TaskDraft {
+  const taskId = resolveTaskId(input);
   const name = asString(input.name, 'name');
   const goal = asString(input.goal, 'goal');
-  const contractSeed = normalizeTaskContractSeed(input, fromProposal);
+  const contractSeed = normalizeTaskContractSeed(input);
   const points = asStringArray(input.points ?? []);
   const scope = asStringArray(input.scope ?? []);
   const phases = normalizePhases(input.phases ?? []);
-  if (config.tasks.some((task) => task.id === taskId)) {
-    throw new CliError('TASK_ALREADY_EXISTS', `任务已存在: ${taskId}`);
-  }
   const root = taskRoot(ctx, taskId);
   if (existsSync(root)) {
     throw new CliError('TASK_ALREADY_EXISTS', `任务目录已存在: ${taskId}`);
@@ -779,7 +542,7 @@ function prepareTaskDraft(ctx: CliContext, input: Record<string, unknown>, fromP
     plan: renderPlan({
       title: name,
       goal,
-      problem: contractSeed.problem ?? fromProposal?.rationale ?? '待补充问题陈述。',
+      problem: contractSeed.problem ?? '待补充问题陈述。',
       acceptance: contractSeed.acceptance ?? [
         'CLI/流程能够在当前范围内完成约定交付。',
         '相关文档与脚本入口保持一致。',
@@ -789,7 +552,7 @@ function prepareTaskDraft(ctx: CliContext, input: Record<string, unknown>, fromP
       risks: contractSeed.risks ?? ['如脚本/文档入口不一致，可能导致工作流漂移。'],
       points,
       scope,
-      designIndex: contractSeed.designIndex ?? (fromProposal ? '.legion/tasks/<task-id>/docs/rfc.md' : '（暂无）'),
+      designIndex: contractSeed.designIndex ?? '（暂无）',
       designSummary: contractSeed.designSummary ?? [
         '核心流程: 先恢复任务契约，再按阶段推进实现。',
         '验证策略: 运行已有 smoke/test/check 命令并记录结果。',
@@ -822,18 +585,45 @@ function prepareTaskDraft(ctx: CliContext, input: Record<string, unknown>, fromP
 }
 
 function writeTaskDraft(draft: TaskDraft) {
-  assertRepoControlledPath(draft.ctx, join(draft.root, 'docs'), { allowMissingLeaf: true, rejectManagedSymlink: true });
-  mkdirSync(join(draft.root, 'docs'), { recursive: true });
-  writeTextAtomic(draft.ctx, join(draft.root, 'plan.md'), draft.plan);
-  writeTextAtomic(draft.ctx, join(draft.root, 'log.md'), draft.context);
-  writeTextAtomic(draft.ctx, join(draft.root, 'tasks.md'), draft.tasks);
+  const tasksRoot = dirname(draft.root);
+  assertRepoControlledPath(draft.ctx, tasksRoot, { allowMissingLeaf: true, rejectManagedSymlink: true });
+  mkdirSync(tasksRoot, { recursive: true });
+
+  const stagingRoot = createTaskStagingRoot(draft.ctx, tasksRoot, draft.taskId);
+  try {
+    const docsRoot = join(stagingRoot, 'docs');
+    assertRepoControlledPath(draft.ctx, docsRoot, { allowMissingLeaf: true, rejectManagedSymlink: true });
+    mkdirSync(docsRoot, { recursive: true });
+    writeTextAtomic(draft.ctx, join(stagingRoot, 'plan.md'), draft.plan);
+    writeTextAtomic(draft.ctx, join(stagingRoot, 'log.md'), draft.context);
+    writeTextAtomic(draft.ctx, join(stagingRoot, 'tasks.md'), draft.tasks);
+    renameSync(stagingRoot, draft.root);
+  } catch (error) {
+    cleanupTaskStagingRoot(draft.ctx, stagingRoot);
+    throw error;
+  }
 }
 
-function applyTaskToConfig(config: LegionConfig, taskId: string, name: string) {
-  const now = new Date().toISOString();
-  config.tasks.push({ id: taskId, name, status: 'active', createdAt: now, updatedAt: now });
-  config.tasks = config.tasks.map((task) => ({ ...task, status: task.id === taskId ? 'active' : task.status === 'archived' ? 'archived' : 'paused' }));
-  config.currentTask = taskId;
+function createTaskStagingRoot(ctx: CliContext, tasksRoot: string, taskId: string): string {
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const stagingRoot = join(tasksRoot, `.tmp-${taskId}-${randomUUID()}`);
+    assertRepoControlledPath(ctx, stagingRoot, { allowMissingLeaf: true, rejectManagedSymlink: true });
+    if (existsSync(stagingRoot)) {
+      continue;
+    }
+    mkdirSync(stagingRoot);
+    return stagingRoot;
+  }
+  throw new CliError('INTERNAL_ERROR', `无法创建任务 staging 目录: ${taskId}`);
+}
+
+function cleanupTaskStagingRoot(ctx: CliContext, stagingRoot: string) {
+  try {
+    assertRepoControlledPath(ctx, stagingRoot, { allowMissingLeaf: true, rejectManagedSymlink: true });
+    rmSync(stagingRoot, { recursive: true, force: true });
+  } catch {
+    // best-effort cleanup only
+  }
 }
 
 function renderPlan(input: {
@@ -1064,7 +854,7 @@ function filterOrderedExtras(oldBody: string): string[] {
 }
 
 function filterQuickRecoveryExtras(oldBody: string): string[] {
-  return oldBody.split('\n').filter((line) => line.trim() && !line.startsWith('**当前阶段**:') && !line.startsWith('**当前任务**:') && !line.startsWith('**进度**:'));
+  return oldBody.split('\n').filter((line) => line.trim() && !line.startsWith('**当前阶段**:') && !line.startsWith('**当前任务**:') && !line.startsWith('**当前检查项**:') && !line.startsWith('**进度**:'));
 }
 
 function filterTaskSectionExtras(oldBody: string): string[] {
@@ -1096,8 +886,8 @@ function renderQuickRecovery(parsed: ParsedTaskList): string {
   const done = flat.filter((task) => task.completed).length;
   const total = flat.length;
   const currentPhaseIndex = parsed.phases.findIndex((phase) => phase.tasks.some((task) => task.current));
-  const currentTask = flat.find((task) => task.current)?.description ?? '(none)';
-  return `**当前阶段**: ${currentPhaseIndex >= 0 ? `阶段 ${currentPhaseIndex + 1} - ${parsed.phases[currentPhaseIndex]?.name}` : '(none)'}\n**当前任务**: ${currentTask}\n**进度**: ${done}/${total} 任务完成`;
+  const currentChecklistItem = flat.find((task) => task.current)?.description ?? '(none)';
+  return `**当前阶段**: ${currentPhaseIndex >= 0 ? `阶段 ${currentPhaseIndex + 1} - ${parsed.phases[currentPhaseIndex]?.name}` : '(none)'}\n**当前检查项**: ${currentChecklistItem}\n**进度**: ${done}/${total} 任务完成`;
 }
 
 function renderPhaseTasks(tasks: TaskPhaseTask[]): string {
@@ -1158,16 +948,6 @@ function nearestExistingAncestor(path: string): string {
     current = parent;
   }
   return current;
-}
-
-function ensurePositiveLimit(value: number, max: number): number {
-  if (!Number.isInteger(value) || value <= 0) {
-    throw new CliError('SCHEMA_INVALID', 'limit 必须是正整数');
-  }
-  if (value > max) {
-    throw new CliError('SCHEMA_INVALID', `limit 不能超过 ${max}`);
-  }
-  return value;
 }
 
 function assertRepoControlledPath(
@@ -1325,8 +1105,8 @@ function asTaskId(value: unknown, field: string): string {
   return taskId;
 }
 
-function resolveTaskId(input: Record<string, unknown>, fromProposal?: Proposal): string {
-  const taskId = input.taskId ?? fromProposal?.taskId;
+function resolveTaskId(input: Record<string, unknown>): string {
+  const taskId = input.taskId;
   if (taskId == null) {
     throw new CliError('SCHEMA_INVALID', 'taskId 必须由上游 LLM/编排层显式提供');
   }
@@ -1418,10 +1198,6 @@ function readFile(path: string): string {
   return readFileSync(path, 'utf-8');
 }
 
-function writeJsonAtomic(ctx: CliContext, path: string, data: unknown) {
-  writeTextAtomic(ctx, path, `${JSON.stringify(data, null, 2)}\n`);
-}
-
 function writeTextAtomic(ctx: CliContext, path: string, data: string) {
   assertRepoControlledPath(ctx, path, { allowMissingLeaf: true, rejectManagedSymlink: true });
   mkdirSync(dirname(path), { recursive: true });
@@ -1440,53 +1216,6 @@ function renderOrdered(items: string[]): string {
 
 function today() {
   return new Date().toISOString().slice(0, 10);
-}
-
-function csvEscape(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
-
-function parseCsvRows(content: string): string[][] {
-  const rows: string[][] = [];
-  let row: string[] = [];
-  let cell = '';
-  let inQuotes = false;
-  for (let i = 0; i < content.length; i += 1) {
-    const char = content[i];
-    const next = content[i + 1];
-    if (char === '"') {
-      if (inQuotes && next === '"') {
-        cell += '"';
-        i += 1;
-      } else {
-        inQuotes = !inQuotes;
-      }
-      continue;
-    }
-    if (char === ',' && !inQuotes) {
-      row.push(cell);
-      cell = '';
-      continue;
-    }
-    if (char === '\n' && !inQuotes) {
-      row.push(cell.replace(/^\uFEFF/, ''));
-      rows.push(row);
-      row = [];
-      cell = '';
-      continue;
-    }
-    if (char !== '\r') {
-      cell += char;
-    }
-  }
-  if (cell || row.length) {
-    row.push(cell.replace(/^\uFEFF/, ''));
-    rows.push(row);
-  }
-  return rows;
 }
 
 function escapeRegex(input: string): string {

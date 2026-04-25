@@ -1,6 +1,6 @@
 # Legion CLI 参考
 
-> **默认入口**: `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" <command> ...`
+> **本地 CLI 调用方式**: `node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" <command> ...`
 
 ---
 
@@ -8,14 +8,12 @@
 
 | 命令 | 描述 | 关键参数 |
 | :--- | :--- | :--- |
-| **`init --cwd <dir>`** | 初始化 `.legion/` 目录结构 | `--cwd` |
+| **`init --cwd <dir>`** | 初始化 `.legion/tasks/` 目录结构（不预建 wiki skeleton） | `--cwd` |
 | **`task create --json '{...}'`** | **正常主干**：在 `brainstorm` 收敛后直接创建任务 | `taskId`, `name`, `goal`, `phases`；可选：`rationale`, `problem`, `acceptance`, `assumptions`, `constraints`, `risks`, `points`, `scope`, `designIndex`, `designSummary` |
-| **`propose --json '{...}'`** | 历史兼容 / 显式审批场景下提交任务提案 | `taskId`, `name`, `goal`, `rationale`, `scope`, `phases`；可选：`problem`, `acceptance`, `assumptions`, `constraints`, `risks`, `designIndex`, `designSummary` |
-| **`proposal approve --proposal-id <id>`** | 历史兼容 / 显式审批场景下批准提案并创建任务文件 | `proposalId` |
-| **`proposal reject --proposal-id <id> [--reason ...]`** | 拒绝提案 | `proposalId`, `reason` |
-| **`task archive --task-id <id>`** | 归档已完成的任务 | `taskId` |
 
-> 主干语义：新任务默认走 `brainstorm` → `task create`。proposal/approval 不再是普通 mainline，也不是 direct create 失败时的 silent fallback。
+> CLI 现在是文件系统驱动的本地薄工具层：它只读写 `.legion/tasks/<task-id>/` 中的 Markdown 真源，不再维护 `config.json` / `ledger.csv` 之类的运行时注册表或审计账本。工作流入口门禁与阶段语义仍以 `legion-workflow` 为准。
+
+> 主干语义：新任务默认走 `brainstorm` → `task create`。`propose`、`proposal *`、`task switch`、`task archive`、`ledger query` 已移除；调用时统一返回 `UNSUPPORTED_COMMAND`。
 
 > 命名语义：`taskId` 必须在调用 CLI 前由上游 LLM/编排层显式提供；CLI 只做校验，不再从 `name` 推导或回退生成机器名。
 
@@ -23,16 +21,17 @@
 
 | 命令 | 描述 | 关键参数 |
 | :--- | :--- | :--- |
-| **`status [--task-id <id>]`** | 获取当前任务摘要 | `taskId` (可选) |
-| **`log read [--task-id <id>] [--section ...] [--include-reviews true|false]`** | 读取日志内容 | `taskId`, `section`, `includeReviews` |
-| **`task list`** | 列出所有任务及状态 | - |
-| **`review list [--task-id <id>] [--status ...] [--type ...]`** | 列出 Review 块 | `status`, `type` |
-| **`ledger query [--task-id <id>] [--action ...] [--limit N]`** | 查询审计日志 | `taskId`, `action`, `limit` |
+| **`status --task-id <id>`** | 获取任务摘要（名称、当前检查项、进度、路径） | `taskId` |
+| **`log read --task-id <id> [--section ...] [--include-reviews true|false]`** | 读取日志内容 | `taskId`, `section`, `includeReviews` |
+| **`task list`** | 从 `.legion/tasks/*` 枚举任务，并从 `plan.md` / `tasks.md` 推导名称与进度 | - |
+| **`tasks read --task-id <id>`** | 读取任务清单 | `taskId` |
+| **`review list --task-id <id> [--status ...] [--type ...]`** | 列出 Review 块 | `taskId`, `status`, `type` |
 
 ## 3. 更新（状态变更）
 
 ### `tasks update --json '{...}'`
 更新结构化任务清单。
+- **`taskId`**: 必填。
 - **`completeTask`**: `{ phase, taskDescription }` - 标记为完成。
 - **`setCurrentTask`**: `{ phase, taskDescription }` - 标记为 `← CURRENT`。
 - **`addTask`**: `{ phase, description, acceptance }` - 追加到阶段末尾。
@@ -41,6 +40,7 @@
 
 ### `log update --json '{...}'`
 更新叙述性日志。
+- **`taskId`**: 必填。
 - **`progress`**: `{ completed: [], inProgress: [], blocked: [] }` - 更新状态区域。
 - **`addDecision`**: `{ decision, reason, alternatives }` - 追加到决策表。
 - **`addFile`**: `{ path, purpose, status, notes }` - 更新关键文件列表。
@@ -49,18 +49,18 @@
 
 ### `plan update --json '{...}'`
 更新不可变计划（仅限少量修改）。
-- **参数**: `goal`, `points`, `scope`, `phases`。
+- **参数**: `taskId`, `goal`, `points`, `scope`, `phases`。
 - **注意**: `plan.md` 仍保持摘要级；详细设计继续放 RFC。
 
 ### `review respond`
 回复 Review 块。
-- **参数**: `file`, `reviewId` (或行号), `response`, `status` (resolved/wontfix/need-info)。
+- **参数**: `taskId`, `file`, `reviewId` (或行号), `response`, `status` (resolved/wontfix/need-info)。
 
 ## 4. 仪表盘
 
 | 命令 | 描述 | 关键参数 |
 | :--- | :--- | :--- |
-| **`dashboard generate --format <markdown|html>`** | 生成 HTML/MD 报告 | `format`, `outputPath`, `includeSections` |
+| **`dashboard generate --task-id <id> --format <markdown|html>`** | 生成 HTML/MD 报告 | `taskId`, `format`, `outputPath`, `includeSections` |
 
 ---
 
@@ -75,22 +75,21 @@
 ## 错误码
 
 - **`NOT_INITIALIZED`**: 请先运行 `init`。
-- **`NO_ACTIVE_TASK`**: 请指定 `taskId` 或切换到活跃任务。
 - **`TASK_ALREADY_EXISTS`**: 任务名称/ID 重复。
-- **`PROPOSAL_NOT_FOUND`**: 提案不存在。
+- **`TASK_NOT_FOUND`**: 指定任务目录不存在。
+- **`TASK_CORRUPTED`**: 任务目录缺少本命令所需的必要文件。
 - **`SCHEMA_INVALID`**: payload 缺字段、字段类型错误或含未知字段。
 - **`OUT_OF_SCOPE`**: 路径越界或试图写出 repo/.legion 边界。
 - **`REVIEW_NOT_FOUND`**: reviewId/行号未命中。
+- **`UNSUPPORTED_COMMAND`**: 调用了已移除的旧命令。
 
 ---
 
-## 6. 历史映射（非默认）
+## 6. 历史映射（保留命令）
 
 | 历史名称 | CLI 等价命令 |
 | :--- | :--- |
 | `legion_init` | `init` |
-| `legion_propose_task` | `propose` |
-| `legion_approve_proposal` | `proposal approve` |
 | `legion_get_status` | `status` |
 | `legion_update_log` | `log update` |
 | `legion_update_tasks` | `tasks update` |

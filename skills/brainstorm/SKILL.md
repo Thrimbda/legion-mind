@@ -20,7 +20,7 @@ description: Use when a Legion task has no stable contract yet, especially for n
 
 ## When to Use
 
-- 没有 active task
+- 当前请求没有明确恢复到既有任务目录
 - 恢复后发现 contract 已漂移
 - 目标、验收、范围、约束、假设、风险或阶段拆分仍不稳定
 - 虽然问题大致明确，但还没有被整理成可执行的 task contract
@@ -135,7 +135,7 @@ flowchart TD
 
 | Excuse | Reality |
 |---|---|
-| "需求已经很清楚，可以跳过" | 新任务默认入口就是 `brainstorm`。 |
+| "需求已经很清楚，可以跳过" | 当前请求没有恢复到既有任务目录时，入口路径就是 `brainstorm`。 |
 | "先建 task 容器，后面再补" | 容器不是 contract。 |
 | "先让 engineer 做起来更快" | 没有稳定 contract 的实现只会制造漂移。 |
 | "先把整份设计一次性讲完" | `brainstorm` 要靠逐步确认收敛，不是长文轰炸。 |

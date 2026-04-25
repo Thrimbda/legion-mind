@@ -15,7 +15,7 @@
 
 ## 3. Existing Conventions（项目规约/习惯用法）
 - 约定：...
-- 证据：`docs/...` / `.legion/playbook.md` / 现有代码模式
+- 证据：`docs/...` / `.legion/wiki/**` / 现有代码模式
 
 ## 4. Historical Decisions（相关历史决策）
 - ADR/RFC/Commit：...（链接或路径）

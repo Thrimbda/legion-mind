@@ -8,12 +8,12 @@ LegionMind 不是另一个“让智能体多写一点代码”的工作流包。
 
 ## 为什么需要 LegionMind
 
-当你真正把多智能体协作跑起来，最先撞到的通常不是“模型不够聪明”，而是这些更硬的问题：
+当我们开始使用 Multi-Agent Vibe Coding 体协作运行起来，最先碰到的问题通常是这些更底层的问题。
 
-- 并行执行能放大 token 吞吐，但也会把错误方向一起放大。
+- 并行执行能放大 token 吞吐量，但也会把错误方向一起放大。
 - 真正的瓶颈会从“写代码”转移到人的上下文管理、验收和决策。
-- 智能体最容易翻车的不是世界知识，而是项目里的隐含知识墙。
-- 没有设计门禁、分层验证和证据化汇报，多智能体只会更快地返工。
+- 智能体最容易翻车的不是世界知识，而是项目里的隐含知识墙，也就是本项目中具备主见的部分：各类历史决策，局部的最佳实践。
+- 没有设计门禁（中高风险改动先在 `plan.md` / `docs/rfc.md` 说清为什么改、影响什么、怎么回滚）、分层验证（把安装校验、任务验证、文档一致性分开检查）和证据化汇报（用 `test-report.md`、`report-walkthrough.md`、`pr-body.md` 带着证据交付），多智能体只会更快地返工。
 - 当模型越来越强，工作流不该只靠感觉调参，而要走向证据驱动的工程化迭代。
 
 LegionMind 试图把这些问题当成系统问题来处理，而不是继续堆提示词、堆技能、堆智能体数量。
@@ -53,14 +53,17 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
   - `log.md`: 过程日志与决策记录
   - `tasks.md`: 状态板与阶段进度
 - **Wiki 记忆**：`.legion/wiki/**`
-  - **它并不记录任务的旧状态，而是持续追踪仓库的当前状态快照**
-  - 提升跨任务仍然有效的决策、模式、维护债务和任务摘要
+  - **它不保存任务过程，而是沉淀跨任务仍然有效的当前知识**
+  - 统一收口决策、可复用模式、维护债务和任务摘要
 - **规则 / 运行时层**：`skills/**` + `.opencode/**`
-  - 工作流真源、技能边界、代理接线、CLI 主干
+  - 工作流真源、技能边界、代理接线，以及本地管理脚本
+
+这里所说的 active task，只指当前请求明确恢复并继续推进的 `.legion/tasks/<task-id>/` 任务目录，不是 CLI 持久化注册表。
 
 它的核心边界也应该是显式的：
 
-- `legion` 负责门禁、恢复、路由、写回与只读综合
+- `legion-workflow` 负责门禁、恢复、路由、写回与只读综合（按当前 schema / wiki / raw docs 给出收敛后的判断）
+- `skills/legion-workflow/scripts/legion.ts` 只负责本地初始化、查询和有限更新（不解释工作流阶段）
 - `brainstorm` 负责收敛任务契约
 - `spec-rfc` / `review-rfc` 负责设计门禁
 - `engineer` 负责受边界约束的实现
@@ -115,11 +118,16 @@ node scripts/setup-opencode.ts rollback
 bunx legion-mind-opencode install
 ```
 
-### 命令行主入口
+### 本地管理命令
+
+CLI 在当前架构里更适合被理解为 `.legion/tasks/**` 的本地初始化、查询和更新薄工具，而不是状态注册表或审计层；真正的入口门禁与阶段主干真源仍然是 `legion-workflow`。
+
+`init` 当前只保证 `.legion/tasks/` 存在；`.legion/wiki/**` 由后续 writeback 按需建立。
 
 ```bash
 node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" init
-node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" status --format json
+node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" task list --format json
+node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" status --task-id your-task-id --format json
 ```
 
 ### GitHub Actions 入口
@@ -131,14 +139,16 @@ node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion
 
 ## 验证模型
 
-LegionMind 不应该靠“看起来能跑”来证明自己，而应该靠分层验证。
+LegionMind 不应该靠“看起来能跑”来证明自己，而应该把检查拆层：先看能不能安装和回滚，再看任务级证据是否完整，最后看当前真源文档是否一致。
 
 当前验证模型分成三层:
 
 1. **安装 / 严格校验 / 回滚**
-   - 证明它能安全进入用户环境，也能在失败时恢复。
-2. **真源收敛**
-   - 证明 README、AGENTS、工作流内核与参考文档对当前入口和阶段主干的说法一致。
+    - 证明它能安全进入用户环境，也能在失败时恢复。
+2. **任务级验证证据**
+    - 证明具体任务留下了 `test-report.md`、`review-change.md`、`report-walkthrough.md` 这类可复核交付物，而不是只说“已经测过”。
+3. **真源收敛**
+    - 证明 README、AGENTS、工作流内核、`.legion/wiki/**` 与参考文档对当前入口和阶段主干的说法一致。
 
 当前核心迭代**不**把已删除的工作流本地回归脚本视为默认验收路径；验证叙事只承认当前仍存在的安装 / 校验 / 回滚主路径。
 
@@ -156,7 +166,7 @@ LegionMind 不应该靠“看起来能跑”来证明自己，而应该靠分层
 ### 还没有毕业的部分
 
 - 自动化验证层还偏薄，离系统化回归验证链还有距离
-- README、使用说明、CLI、工作流心智模型还需要进一步完全收敛
+- README、使用说明、本地 CLI 工具与工作流心智模型还需要进一步完全收敛
 - 发布闭环和“默认可发布”信号还不够强
 - 从早期内核走向低摩擦产品，还需要更多真实项目压力测试
 
@@ -168,7 +178,7 @@ LegionMind 不应该靠“看起来能跑”来证明自己，而应该靠分层
 
 如果要把这个仓库推进到真正可交付的 v1，我会用下面这些硬门槛来判断：
 
-1. 默认入口、文档叙事、CLI 真源和实际行为完全一致
+1. 入口门禁、文档叙事、本地 CLI 工具和实际行为完全一致
 2. 安装后的 `verify --strict` 成为稳定默认验收路径
 3. 除烟雾验证外，存在可重复执行的系统化自动化验证链
 4. 发布、回滚、兼容性与 CI 形成完整闭环
@@ -194,7 +204,7 @@ README 在这个仓库里不只是入口文档，也应该是这个 v1 的目标
 ## 相关文档
 
 - 使用说明：`docs/legionmind-usage.md`
-- 执行 `init` 后生成的 wiki 索引：`.legion/wiki/index.md`
+- wiki 索引（由后续 writeback 按需建立）：`.legion/wiki/index.md`
 - 工作流内核：`skills/legion-workflow/SKILL.md`
 
 ## 最后再说一句

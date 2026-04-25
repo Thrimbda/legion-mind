@@ -7,7 +7,7 @@ description: Use when building, updating, or querying the Legion wiki layer unde
 
 ## Overview
 
-`legion-wiki` 负责 Legion 的 **wiki / synthesis 层**。它不替代 `.legion/tasks/**` 的 raw task docs，而是把跨任务可查询知识收敛到 `.legion/wiki/**`。在 `legion-workflow` 里，它还是固定 closing stage：任务完成前必须执行 wiki writeback。
+`legion-wiki` 负责 Legion 的 **wiki / synthesis 层**。它不替代 `.legion/tasks/**` 的 raw task docs，而是把跨任务可查询知识收敛到 `.legion/wiki/**`。原先 playbook 风格的 durable conventions 也由这里统一吸收：按内容写入 `decisions.md`、`patterns.md` 或 `maintenance.md`。在 `legion-workflow` 里，它还是固定 closing stage：任务完成前必须执行 wiki writeback。
 
 raw / wiki / schema 的分工是：
 
@@ -52,7 +52,7 @@ flowchart TD
 - `.legion/wiki/index.md`：总导航与查询入口
 - `.legion/wiki/log.md`：wiki 层自己的更新日志
 - `.legion/wiki/decisions.md`：当前有效的跨任务决策
-- `.legion/wiki/patterns.md`：可复用模式
+- `.legion/wiki/patterns.md`：可复用模式与 former playbook 风格约定
 - `.legion/wiki/maintenance.md`：待迁移 / 待清理 / 待确认事项
 - `.legion/wiki/tasks/<task-id>.md`：每个任务的综合摘要页
 
@@ -64,11 +64,12 @@ schema -> wiki index -> task summary -> raw task docs
 
 ## Writeback Rules
 
-- task-specific 结论先写 `tasks/<task-id>.md`
-- 跨任务仍然有效的规则写 `decisions.md`
-- 可复用工作方式写 `patterns.md`
-- 缺口、迁移债务、历史清理需求写 `maintenance.md`
-- 每次 durable writeback 后，必要时同步 `index.md` 与 `log.md`
+- task-specific 结论先判断是否需要 `tasks/<task-id>.md`；只有当该任务结果后续值得查询时才创建 summary
+- 跨任务仍然有效、可被当作当前规则使用的结论写 `decisions.md`
+- 可复用工作方式、实现惯例、former playbook 风格约定默认写 `patterns.md`
+- 暂时无法稳定分类、仍待补证据或待清理的项目写 `maintenance.md`
+- `index.md` 只维护导航与入口说明；每次新增 durable 页面或重点条目后同步更新入口
+- 每次 durable writeback 后，必要时同步 `log.md`
 - 本 skill 负责 closing writeback，但**不**回写 workflow 主干或 schema 真源
 
 ## Common Mistakes
@@ -76,6 +77,7 @@ schema -> wiki index -> task summary -> raw task docs
 - 让 `.legion/tasks/**` 继续兼任 wiki
 - 把 schema 规则抄进 wiki，造成第二套真源
 - 只写 task summary，不把跨任务有效结论提升到 decisions / patterns
+- 继续把可复用约定写进独立 playbook 概念，而不是统一收口到 wiki
 - 直接从 raw docs 回答“当前真相”，跳过 wiki 层
 
 ## References

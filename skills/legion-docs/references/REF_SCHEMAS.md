@@ -1,6 +1,6 @@
 # Legion 文档结构
 
-> **范围**: 定义目录结构、Plan、Log、Tasks、Config、Ledger 和 Review 语法。
+> **范围**: 定义目录结构、Plan、Log、Tasks、Wiki 和 Review 语法。
 
 ---
 
@@ -8,14 +8,18 @@
 
 ```text
 .legion/
-├── config.json          # 全局状态与任务注册表
-├── ledger.csv           # 所有操作的审计日志
-├── playbook.md          # 跨任务沉淀（推荐）
+├── wiki/                # 跨任务当前知识层（按需建立）
+│   ├── index.md
+│   ├── decisions.md
+│   ├── patterns.md
+│   ├── maintenance.md
+│   ├── log.md
+│   └── tasks/
+│       └── <task-id>.md
 └── tasks/{task-id}/     # 任务级产物
     ├── plan.md          # 唯一任务契约：问题/验收/范围/设计入口/阶段概览
     ├── log.md           # 进展日志与交接文档
     ├── tasks.md         # 结构化任务清单
-    ├── config.json      # 任务级配置（可选，Scope mirror）
     ├── docs/            # 设计/评审/报告（推荐）
     │   ├── research.md              # RFC Heavy：证据驱动现状摸底（推荐/强制）
     │   ├── rfc.md
@@ -30,6 +34,12 @@
     │   └── pr-body.md
     └── reports/         # 可选：benchmark、profiling、截图等
 ```
+
+补充约束：
+
+- `.legion/tasks/**` 始终是 raw evidence，不兼任 wiki。
+- `.legion/wiki/**` 是统一的跨任务知识层；former playbook 风格的约定也按页面职责写入这里。
+- `init` 不要求预建整套 wiki skeleton；页面由后续 writeback 按需创建。
 
 ---
 
@@ -95,7 +105,7 @@
 - **设计内容**: 详细设计（接口、流程图、取舍）**应该**放在 RFC 或 design-lite 文档中。此文件仅提供链接和 1-2 段简要摘要。
 - **设计索引条件**: 当任务存在 design-lite 或任何 RFC/设计文档时，`## 设计索引` 为必需；否则可省略。
 - **职责边界**: `plan.md` 要覆盖问题、验收和风险，但只能保留摘要级信息；不要粘贴大段 RFC 正文、迁移细节、测试矩阵或实现推导。
-- **Scope 真源**: `## 范围` 是唯一的人类可读授权边界；`config.json` 若存在，只能镜像这里的 Scope，不能独立收紧、扩展或否定 `plan.md`。
+- **Scope 真源**: `## 范围` 是唯一的人类可读授权边界；不要再引入平行的任务级机器配置去重定义或覆盖它。
 
 ---
 
@@ -207,14 +217,14 @@ Heavy 模板参考：
 
 ## 快速恢复
 **当前阶段**: Phase 1
-**当前任务**: Task 1
+**当前检查项**: Task 1
 **进度**: 1/10 任务完成
 
 ---
 
 ## 阶段 1: Phase Name 🟡 IN PROGRESS
 - [x] 已完成任务 | 验收: 标准
-- [ ] 当前任务 | 验收: 标准 ← CURRENT
+- [ ] 当前检查项 | 验收: 标准 ← CURRENT
 - [ ] 待办任务 | 验收: 标准
 ```
 
@@ -252,30 +262,7 @@ Reviewer 可以在三个文件的任意位置插入 Review 块。
 
 ---
 
-## 6. tasks/<task-id>/config.json (任务级配置，可选)
-
-**目的**: 提供机器可校验的 Scope mirror，避免“自然语言范围”难以约束。
-
-### 示例
-```json
-{
-  "scope": {
-    "allow": ["src/auth/**", "src/utils/*.ts"],
-    "deny": ["infra/**", "**/*.sql"]
-  }
-}
-```
-
-### 规则
-- `allow` / `deny` 使用 Glob（与常用 gitignore/minimatch 语义一致）。
-- `deny` 优先级最高：匹配 `deny` 即视为越界。
-- 若存在 `allow`，则所有改动必须命中 `allow` 且不命中 `deny`。
-- `plan.md` 的 `## 范围` 是人类可读的 Scope 真源；`config.json` 只能镜像或结构化表达同一范围，不能独立收紧、扩展或否定 `plan.md`。
-- 若缺失 `config.json`，允许直接以 `plan.md` 的 Scope 列表为准。
-
----
-
-## 7. docs/ 与 reports/ 约定（推荐）
+## 6. docs/ 与 reports/ 约定（推荐）
 
 **目的**: 统一文档输出位置，便于 orchestrator 与子 agent 读取/写入。
 
@@ -297,19 +284,22 @@ Reviewer 可以在三个文件的任意位置插入 Review 块。
 
 ---
 
-## 8. playbook.md（跨任务沉淀，推荐）
+## 7. `.legion/wiki/**`（跨任务当前知识层，按需建立）
 
-**目的**: 将可复用模式/策略从单一任务中抽离，形成长期知识资产。
+**目的**：把跨任务仍然有效的知识从单一任务中提升出来，同时保持 raw docs 与综合层分离。
 
-**建议结构**:
-```markdown
-# Legion Playbook
+### 页面路由
 
-## 模式：...
-- 来源任务：task-xxx
-- 背景：...
-- 方案：...
-- 适用边界：...
-- 陷阱：...
-- 最小示例：...
-```
+| 页面 | 适用内容 | 最小要求 |
+|---|---|---|
+| `index.md` | 总导航、查询入口、重点页面 | 只写导航，不复制细节 |
+| `decisions.md` | 当前有效、可当规则使用的跨任务结论 | 写清结论、原因、适用范围、来源 |
+| `patterns.md` | 可复用模式、工作方式、former playbook 风格约定 | 写清背景、做法、边界、陷阱、来源 |
+| `maintenance.md` | 迁移债务、待确认项、历史清理 | 写清现状、缺口、后续动作 |
+| `tasks/<task-id>.md` | 单任务综合摘要 | 链接回 raw task docs，不复制正文 |
+
+### 路由原则
+
+- 某条信息若仍然只服务当前任务，就留在 `.legion/tasks/<task-id>/**`。
+- 某条信息若跨任务复用，优先判断它是 **decision**、**pattern** 还是 **maintenance**，而不是新建平行载体。
+- former playbook 风格条目默认写进 `patterns.md`，除非它已经是必须遵守的当前规则。

@@ -27,7 +27,7 @@
 - 删除旧的决策记录（除非事实错误，否则保留历史）。
 
 ### 交接前检查清单
-- [ ] `tasks.md` 中的 `currentTask` 是否准确？
+- [ ] `tasks.md` 中的 `← CURRENT` 标记是否准确？
 - [ ] 所有已完成步骤是否都打上了 `[x]`？
 - [ ] `log.md` 中的“下一步”是否清晰到陌生人也能接手？
 
@@ -54,7 +54,7 @@
 
 1.  **Read**: 开始工作前，先运行 `review list` 检查 Review。
 2.  **Prioritize**: `[REVIEW:blocking]` 必须在写代码前解决。
-3.  **Respond**: 使用 `review respond` 标记 `[STATUS:resolved]`。只有 orchestrator 在 break-glass 模式下才允许手动编辑文本，且需注明无 ledger 审计。
+3.  **Respond**: 使用 `review respond` 标记 `[STATUS:resolved]`。只有 orchestrator 在 break-glass 模式下才允许手动编辑文本，并需在交接中明确说明原因。
 
 ---
 

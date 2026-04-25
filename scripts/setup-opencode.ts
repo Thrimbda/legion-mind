@@ -87,6 +87,13 @@ interface SyncItem {
   targetPath: string;
 }
 
+type VerifyManagedState =
+  | { kind: 'ok'; path: string; state: ManagedState }
+  | { kind: 'missing'; path: string }
+  | { kind: 'invalid'; path: string; error: string };
+
+const MANAGED_FILE_ACTIONS = new Set(['install', 'update', 'rollback', 'uninstall']);
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const PROJECT_ROOT = dirname(__dirname);
@@ -332,6 +339,89 @@ function collectFilesRecursive(sourceRoot: string, targetRoot: string): SyncItem
   return files;
 }
 
+function collectExpectedSyncItems(opts: CliOptions): SyncItem[] {
+  const syncItems: SyncItem[] = [];
+  for (const map of SOURCE_TARGETS) {
+    const src = join(PROJECT_ROOT, map.sourceRoot);
+    if (!existsSync(src) && map.optional) {
+      continue;
+    }
+    syncItems.push(...collectFilesRecursive(src, join(opts.configDir, map.targetRoot)));
+  }
+
+  for (const skill of INSTALLED_SKILLS) {
+    const skillSource = join(PROJECT_ROOT, 'skills', skill);
+    if (!existsSync(skillSource)) {
+      continue;
+    }
+    syncItems.push(...collectFilesRecursive(skillSource, join(opts.opencodeHome, 'skills', skill)));
+  }
+
+  return syncItems;
+}
+
+function collectMissingExpectedSourceRoots(): string[] {
+  const missing: string[] = [];
+  for (const map of SOURCE_TARGETS) {
+    const src = join(PROJECT_ROOT, map.sourceRoot);
+    if (!existsSync(src) && !map.optional) {
+      missing.push(src);
+    }
+  }
+  for (const skill of INSTALLED_SKILLS) {
+    const skillSource = join(PROJECT_ROOT, 'skills', skill);
+    if (!existsSync(skillSource)) {
+      missing.push(skillSource);
+    }
+  }
+  return missing;
+}
+
+function loadManagedStateForVerify(opts: CliOptions): VerifyManagedState {
+  const path = join(opts.configDir, MANAGED_DIR_NAME, MANAGED_FILES_FILE);
+  if (!existsSync(path)) {
+    return { kind: 'missing', path };
+  }
+
+  try {
+    const parsed = JSON.parse(readFileSync(path, 'utf-8')) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return { kind: 'invalid', path, error: 'unexpected manifest shape' };
+    }
+
+    const candidate = parsed as Partial<ManagedState>;
+    if (candidate.version !== 1 || typeof candidate.updatedAt !== 'string' || !candidate.files || typeof candidate.files !== 'object' || Array.isArray(candidate.files)) {
+      return { kind: 'invalid', path, error: 'unexpected manifest shape' };
+    }
+
+    for (const [target, record] of Object.entries(candidate.files)) {
+      if (!record || typeof record !== 'object' || Array.isArray(record)) {
+        return { kind: 'invalid', path, error: `invalid managed file record for ${target}` };
+      }
+      const managed = record as Partial<ManagedFile>;
+      if (typeof managed.targetPath !== 'string') {
+        return { kind: 'invalid', path, error: `invalid managed file record for ${target}: targetPath must be a string` };
+      }
+      if (typeof managed.sourcePath !== 'string') {
+        return { kind: 'invalid', path, error: `invalid managed file record for ${target}: sourcePath must be a string` };
+      }
+      if (typeof managed.checksum !== 'string') {
+        return { kind: 'invalid', path, error: `invalid managed file record for ${target}: checksum must be a string` };
+      }
+      if (typeof managed.installedAt !== 'string') {
+        return { kind: 'invalid', path, error: `invalid managed file record for ${target}: installedAt must be a string` };
+      }
+      if (typeof managed.lastAction !== 'string' || !MANAGED_FILE_ACTIONS.has(managed.lastAction)) {
+        return { kind: 'invalid', path, error: `invalid managed file record for ${target}: lastAction must be install, update, rollback, or uninstall` };
+      }
+    }
+
+    return { kind: 'ok', path, state: candidate as ManagedState };
+  } catch (error) {
+    return { kind: 'invalid', path, error: error instanceof Error ? error.message : 'invalid json' };
+  }
+}
+
 function ensureParentDir(targetPath: string, dryRun: boolean) {
   if (dryRun) {
     return;
@@ -426,10 +516,6 @@ function canOverwrite(
     return { allowed: true, reason: 'managed-unchanged' };
   }
 
-  if (stat.isFile() && strategy === 'symlink' && managed && managed.checksum === sourceFingerprintValue) {
-    return { allowed: false, reason: 'same-content' };
-  }
-
   if (!managed) {
     if (!force) {
       return { allowed: false, reason: 'unmanaged-existing' };
@@ -471,8 +557,22 @@ function syncOneFile(
 
   if (!decision.allowed) {
     if (decision.reason === 'same-content') {
+      managedState.files[item.targetPath] = {
+        targetPath: item.targetPath,
+        sourcePath: item.sourcePath,
+        checksum: sourceChecksum,
+        installedAt: previousManaged?.installedAt ?? new Date().toISOString(),
+        lastAction: previousManaged ? 'update' : 'install',
+      };
+
+      if (!previousManaged) {
+        counters.skipped += 1;
+        reporter.emit('OK_ADOPT', 'sync', 'same-content', item.targetPath, 'already matches source; recorded as managed without overwrite');
+        return;
+      }
+
       counters.skipped += 1;
-      reporter.emit('OK_SKIP', 'sync', 'same-content', item.targetPath, 'already up-to-date');
+      reporter.emit('OK_VERIFY', 'sync', 'same-content', item.targetPath, 'already managed and up-to-date');
       return;
     }
 
@@ -545,22 +645,7 @@ function runInstall(opts: CliOptions, runId: string, reporter: Reporter): Instal
     entries: [],
   };
 
-  const syncItems: SyncItem[] = [];
-  for (const map of SOURCE_TARGETS) {
-    const src = join(PROJECT_ROOT, map.sourceRoot);
-    if (!existsSync(src) && map.optional) {
-      continue;
-    }
-    syncItems.push(...collectFilesRecursive(src, join(opts.configDir, map.targetRoot)));
-  }
-
-  for (const skill of INSTALLED_SKILLS) {
-    const skillSource = join(PROJECT_ROOT, 'skills', skill);
-    if (!existsSync(skillSource)) {
-      continue;
-    }
-    syncItems.push(...collectFilesRecursive(skillSource, join(opts.opencodeHome, 'skills', skill)));
-  }
+  const syncItems = collectExpectedSyncItems(opts);
 
   const counters = { copied: 0, linked: 0, skipped: 0 };
   for (const item of syncItems) {
@@ -606,8 +691,8 @@ function parseMcpConfigured(configPath: string): boolean {
   }
 }
 
-function runVerify(opts: CliOptions, runId: string, reporter: Reporter): InstallState {
-  const checks = [
+function requiredVerifyChecks(opts: CliOptions) {
+  return [
     {
       checkId: 'assets.agents',
       target: join(opts.configDir, 'agents', 'legion.md'),
@@ -644,22 +729,110 @@ function runVerify(opts: CliOptions, runId: string, reporter: Reporter): Install
       required: true,
     })),
   ];
+}
 
+function verifyStrictItem(
+  item: SyncItem,
+  managedState: ManagedState,
+  reporter: Reporter,
+): number {
+  const checkId = `asset.${relative(PROJECT_ROOT, item.sourcePath)}`;
+  if (!existsSync(item.sourcePath)) {
+    reporter.emit('E_VERIFY_SOURCE_MISSING', 'verify', checkId, item.sourcePath, 'repository install source is incomplete; reinstall package or run from complete checkout');
+    return 1;
+  }
+
+  let stat;
+  try {
+    stat = lstatSync(item.targetPath);
+  } catch {
+    reporter.emit('E_VERIFY_MISSING', 'verify', checkId, item.targetPath, 'run setup-opencode install to restore missing asset');
+    return 1;
+  }
+
+  const managed = managedState.files[item.targetPath];
+  if (!managed) {
+    reporter.emit('E_VERIFY_UNMANAGED', 'verify', checkId, item.targetPath, 'required asset is not managed; run install --force to back up unmanaged file and install Legion asset');
+    return 1;
+  }
+
+  if (managed.checksum.startsWith('symlink:')) {
+    const expected = sourceFingerprint(item.sourcePath, 'symlink');
+    if (!stat.isSymbolicLink()) {
+      reporter.emit('E_VERIFY_TYPE_MISMATCH', 'verify', checkId, item.targetPath, 'target type differs from managed install; remove or force reinstall after backup');
+      return 1;
+    }
+    const current = `symlink:${resolvedLinkTarget(item.targetPath)}`;
+    if (current !== expected || managed.checksum !== expected) {
+      reporter.emit('E_VERIFY_LINK_DRIFT', 'verify', checkId, item.targetPath, 'symlink target drifted; rerun install --strategy=symlink --force');
+      return 1;
+    }
+    reporter.emit('OK_VERIFY', 'verify', checkId, item.targetPath, 'managed symlink matches source');
+    return 0;
+  }
+
+  if (!stat.isFile()) {
+    reporter.emit('E_VERIFY_TYPE_MISMATCH', 'verify', checkId, item.targetPath, 'target type differs from managed install; remove or force reinstall after backup');
+    return 1;
+  }
+  const expected = sourceFingerprint(item.sourcePath, 'copy');
+  if (sha256(item.targetPath) !== expected || managed.checksum !== expected) {
+    reporter.emit('E_VERIFY_CHECKSUM', 'verify', checkId, item.targetPath, 'local drift detected; run setup-opencode install --force to overwrite after reviewing local changes');
+    return 1;
+  }
+  reporter.emit('OK_VERIFY', 'verify', checkId, item.targetPath, 'managed copy matches source');
+  return 0;
+}
+
+function runVerify(opts: CliOptions, runId: string, reporter: Reporter): InstallState {
   let hardFailures = 0;
-  for (const check of checks) {
-    if (existsSync(check.target)) {
-      reporter.emit('OK_VERIFY', 'verify', check.checkId, check.target, 'present');
-    } else {
+
+  const verifyManifest = loadManagedStateForVerify(opts);
+  if (verifyManifest.kind !== 'ok') {
+    const hint = verifyManifest.kind === 'missing'
+      ? 'managed manifest missing; run install to create managed-files.v1.json; use --force if conflicts are reported'
+      : `managed manifest invalid (${verifyManifest.error}); run install to recreate it, or use --force if conflicts are reported`;
+    reporter.emit(opts.strict ? 'E_VERIFY_MANIFEST' : 'W_VERIFY_MANIFEST', 'verify', 'manifest', verifyManifest.path, hint);
+    if (opts.strict) {
       hardFailures += 1;
-      const code = opts.strict ? 'E_VERIFY_STRICT' : 'W_VERIFY_MISSING';
-      reporter.emit(code, 'verify', check.checkId, check.target, 'missing required file');
+    }
+  }
+
+  if (opts.strict) {
+    for (const sourceRoot of collectMissingExpectedSourceRoots()) {
+      reporter.emit('E_VERIFY_SOURCE_MISSING', 'verify', `source.${relative(PROJECT_ROOT, sourceRoot)}`, sourceRoot, 'repository install source is incomplete; reinstall package or run from complete checkout');
+      hardFailures += 1;
+    }
+
+    const syncItems = collectExpectedSyncItems(opts);
+    for (const item of syncItems) {
+      if (verifyManifest.kind === 'ok') {
+        hardFailures += verifyStrictItem(item, verifyManifest.state, reporter);
+        continue;
+      }
+
+      if (!existsSync(item.sourcePath)) {
+        reporter.emit('E_VERIFY_SOURCE_MISSING', 'verify', `asset.${relative(PROJECT_ROOT, item.sourcePath)}`, item.sourcePath, 'repository install source is incomplete; reinstall package or run from complete checkout');
+        hardFailures += 1;
+      } else if (!existsSync(item.targetPath)) {
+        reporter.emit('E_VERIFY_MISSING', 'verify', `asset.${relative(PROJECT_ROOT, item.sourcePath)}`, item.targetPath, 'run setup-opencode install to restore missing asset');
+        hardFailures += 1;
+      }
+    }
+  } else {
+    for (const check of requiredVerifyChecks(opts)) {
+      if (existsSync(check.target)) {
+        reporter.emit('OK_VERIFY', 'verify', check.checkId, check.target, 'present');
+      } else {
+        reporter.emit('W_VERIFY_MISSING', 'verify', check.checkId, check.target, 'missing required file');
+      }
     }
   }
 
   const mcpConfigured = parseMcpConfigured(join(opts.configDir, 'opencode.json'))
     || parseMcpConfigured(join(opts.opencodeHome, 'opencode.json'));
   if (!mcpConfigured) {
-    reporter.emit('W_MCP_OPTIONAL', 'verify', 'mcp.optional', 'mcp.legionmind', 'not configured; CLI remains the default path');
+    reporter.emit('W_MCP_OPTIONAL', 'verify', 'mcp.optional', 'mcp.legionmind', 'not configured; filesystem-backed CLI remains optional tooling, while legion-workflow stays the control-plane entry');
   } else {
     reporter.emit('OK_VERIFY', 'verify', 'mcp.optional', 'mcp.legionmind', 'configured as historical compatibility');
   }

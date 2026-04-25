@@ -7,7 +7,7 @@ description: Use when creating, updating, or validating `.legion` task documents
 
 ## Overview
 
-`.legion/tasks/**` 是 raw evidence，不是跨任务 wiki。核心约束是：`plan.md` 管契约，`log.md` 管过程，`tasks.md` 管状态，`docs/*.md` 管设计与验证产物。
+`.legion/tasks/**` 是 raw evidence，不是跨任务 wiki。核心约束是：`plan.md` 管契约，`log.md` 管过程，`tasks.md` 管状态，`docs/*.md` 管设计与验证产物；跨任务可复用知识统一进入 `.legion/wiki/**`，不再单列 playbook。
 
 ## When to Use
 
@@ -30,7 +30,7 @@ flowchart TD
     D -- no --> E{Design, review, test, PR artifact?}
     E -- yes --> DOC[<taskRoot>/docs/*.md]
     E -- no --> F{Reusable across tasks?}
-    F -- yes --> PB[.legion/playbook.md]
+    F -- yes --> W[.legion/wiki/decisions.md / patterns.md / maintenance.md]
     F -- no --> X[Do not persist yet / re-evaluate]
 ```
 
@@ -38,16 +38,16 @@ flowchart TD
 
 - `plan.md`：面向 tech lead 的任务契约；描述了这个任务的概要设计，不涉及具体实现细节但是要清晰展示技术决策和反响，这将是本任务最重要的 spec
 - `log.md`：append-only 过程日志 / 决策 / handoff
-- `tasks.md`：状态板；只保留阶段、当前任务、完成状态
+- `tasks.md`：状态板；只保留阶段、当前检查项、完成状态
 - `<taskRoot>/docs/*.md`：RFC、review、test-report、walkthrough、pr-body
 
 | Information type                              | Best home             |
 | --------------------------------------------- | --------------------- |
 | 最终的技术决策、验收标准、范围、风险边界      | `plan.md`             |
 | 本轮决策、今日进展、阻塞、handoff             | `log.md`              |
-| 当前阶段、当前任务、checklist 状态            | `tasks.md`            |
-| rollback 细节、测试输出、review 证据、PR 摘要 | `docs/*.md`           |
-| 跨任务复用规则                                | `.legion/playbook.md` |
+| 当前阶段、当前检查项、checklist 状态          | `tasks.md`            |
+| rollback 细节、测试输出、review 证据、PR 摘要 | `docs/*.md`                                   |
+| 跨任务复用规则 / 当前结论                     | `.legion/wiki/decisions.md` / `patterns.md` |
 
 Within `docs/*.md`:
 
@@ -62,7 +62,7 @@ Within `docs/*.md`:
 - 把 `plan.md` 扩写成 mini-RFC
 - 把进度、设计、验证证据混写到同一层
 - 把 rollback 细节或测试输出塞进 `log.md`，而不是写入 `docs/*.md`
-- 把 task-local 决策写进 playbook，导致跨任务知识被污染
+- 把 task-local 决策直接提升进 wiki，导致跨任务知识被污染
 
 ## References
 
