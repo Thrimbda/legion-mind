@@ -4,10 +4,10 @@
 
 - 来源任务：`add-git-worktree-pr-envelope`
 - 背景：Legion 原有闭环覆盖 contract、设计、实现、验证、审查、汇报和 wiki writeback，但未强制仓库交付生命周期，Agent 仍可能在主工作区直接改动、跳过 worktree、直接 push、或把“PR 已创建”当作完成。
-- 做法：凡会写入仓库内容、运行验证、commit、push、创建/更新 PR 或处理 checks/review 的开发任务，必须进入 `git-worktree-pr` envelope。主工作区只允许仓库准备、只读检查和最终基线刷新；所有开发动作在 `.worktrees/<task-id>/` 内完成，默认基于最新 `origin/master`。
+- 做法：凡会写入仓库内容、运行验证、commit、push、创建/更新 PR 或处理 checks/review 的开发任务，必须进入 `git-worktree-pr` envelope。主工作区只允许仓库准备、只读检查和最终基线刷新；所有开发动作在 `.worktrees/<task-id>/` 内完成，默认基于最新 `origin/master`。进入 envelope 后，commit、push PR branch、创建/更新 PR、checks/review/auto-merge follow-up、cleanup 和主工作区 refresh 都是默认 lifecycle action；用户没有逐项说出 commit / push / PR 不是停止条件。
 - Completion：PR-backed 开发任务完成必须同时满足 Legion 证据链完成、PR 已合并或已关闭/确认废弃且原因和下一步已记录、review/checks 已处理、worktree 已删除、主工作区已刷新到最新 base。PR 创建、blocked handoff、保留 worktree 或跳过刷新都不是完成。
 - 适用边界：`git-worktree-pr` 是 lifecycle envelope，不是第四种执行模式；三种执行模式仍由 `legion-workflow` 与 dispatch matrix 定义。
-- 常见陷阱：不要在主工作区编写 spec/plan/代码/测试；push 前必须在 worktree 内 `git fetch origin && git rebase origin/master`；不要直接 push `master`/`main` 或使用本地 `master`/`main` 开发；不要绕过 branch protection、checks 或 review；不要在 checks/review/cleanup/main refresh 未闭环时宣告完成；不要把持久化产物写到 repo 外。
+- 常见陷阱：不要在主工作区编写 spec/plan/代码/测试；不要因为用户没有逐项要求 commit / push / PR 就停在本地 diff；push 前必须在 worktree 内 `git fetch origin && git rebase origin/master`；不要直接 push `master`/`main` 或使用本地 `master`/`main` 开发；不要绕过 branch protection、checks 或 review；不要在 checks/review/cleanup/main refresh 未闭环时宣告完成；不要把持久化产物写到 repo 外。
 
 ## 模式：Legion 入口门禁先于探索
 

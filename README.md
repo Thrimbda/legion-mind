@@ -60,7 +60,7 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 
 在由 Legion 管理的仓库中，任何非简单的多步骤工程工作都必须先过 `legion-workflow` 这一 mandatory first gate；在完成入口判断前，不应先做代码、git 或文件探索，也不应开始实现或派生子代理。
 
-会修改仓库文件的开发任务还必须进入 `git-worktree-pr` envelope：从默认 `origin/master` 基线创建 `.worktrees/<task-id>/` worktree，在其中实现并通过 PR lifecycle 交付。push 前必须在 worktree 内 `git fetch origin && git rebase origin/master`。完成不等于“已开 PR”或 blocked handoff，而是 Legion 证据闭环加上 PR 合并/关闭/确认废弃、review/checks 处理完成、worktree 删除和主工作区基线刷新。
+会修改仓库文件的开发任务还必须进入 `git-worktree-pr` envelope：从默认 `origin/master` 基线创建 `.worktrees/<task-id>/` worktree，在其中实现并通过 PR lifecycle 交付。进入该 envelope 后，commit、push PR branch、创建或更新 PR、跟进 checks/review/auto-merge、cleanup 和主工作区基线刷新都是默认生命周期动作，不需要用户逐项显式授权；用户沉默不是跳过 commit / push / PR 的理由。只有用户明确要求不提交、不 push、不开 PR、不继续 PR lifecycle，或明确 bypass 时，才改变默认闭环，并记录为 explicit bypass/blocker。push 前必须在 worktree 内 `git fetch origin && git rebase origin/master`。完成不等于“已开 PR”或 blocked handoff，而是 Legion 证据闭环加上 PR 合并/关闭/确认废弃、review/checks 处理完成、worktree 删除和主工作区基线刷新。
 
 这里所说的 active task，只指当前请求明确恢复并继续推进的 `.legion/tasks/<task-id>/` 任务目录，不是 CLI 持久化注册表。
 

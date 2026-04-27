@@ -4,6 +4,7 @@
 >
 > 自动推进只减少非阻塞的人类打扰；不减少入口门、阶段顺序、设计门禁、验证证据、报告或 wiki writeback。
 > 对修改型开发任务，自动推进也不豁免 `git-worktree-pr` envelope；速度表达不允许跳过 worktree、push 前 rebase、PR auto-merge 尝试、checks/review、cleanup 或主工作区刷新。
+> 一旦进入 `git-worktree-pr` envelope，commit、push PR branch、创建或更新 PR、跟进 checks/review/auto-merge、cleanup 和主工作区 refresh 是默认生命周期动作，不需要用户逐项显式授权；用户明确禁止或 bypass 时才停止对应动作，并记录为 explicit bypass/blocker。
 
 ---
 
@@ -13,6 +14,7 @@
 2) **PR 即批准载体**：设计门禁不再强制阻塞对话，改为“先开 PR → 人类评审 → 合并即批准”；PR 创建不是完成。
 3) **默认可回滚**：优先选择可回滚、局部、最小侵入的实现路径。  
 4) **默认保守**：涉及安全/数据迁移/外部合约变更时自动升级为中/高风险，增加 RFC 与审查。
+5) **默认完成 Git lifecycle**：修改型开发任务进入 `git-worktree-pr` 后，默认继续到 commit、push PR branch、创建/更新 PR、checks/review/auto-merge follow-up、cleanup 与主工作区 refresh；不要因为用户没有逐项说出 commit / push / PR 而停止。
 
 ---
 
@@ -33,6 +35,7 @@
 - 分支命名：`legion/<task-id>-<slug>`（slug 可用 2-4 个关键词）
 - worktree 路径：`.worktrees/<task-id>/`；默认 base ref：`origin/master`，除非仓库或用户规则覆盖
 - push 前：必须在 worktree 内执行 `git fetch origin && git rebase origin/master`
+- commit / push / PR：进入 `git-worktree-pr` envelope 后默认执行并继续跟进 PR lifecycle；只有用户明确要求不提交、不 push、不开 PR、不跟进，或明确 bypass 时才停止，并记录 explicit bypass/blocker
 - 提交信息：Conventional Commits（`fix:` / `feat:` / `refactor:` / `test:` / `docs:`）
 - 验证：优先跑最快的单测/静态检查；无法确定命令时按 lockfile 探测（npm/pnpm/bun/go/pytest 等）
 - 文档：所有产物写入 `.legion/tasks/<id>/docs/`，对话只贴路径 + 一句话摘要
@@ -58,7 +61,8 @@
 - 运行时入口包装层只能映射模式（如默认实现模式 / 已批准设计后的续跑模式 / 重型仅设计模式），不能再定义另一套派生真源。
 - `git-worktree-pr` 是修改型开发任务的 lifecycle envelope，包裹既有模式，不是第四种模式。
 - 新任务主干固定为：`brainstorm` 收敛 → `task create`；CLI 不再提供 proposal/approval、switch/archive、ledger query 这类旧状态模型命令。
-- “autopilot / don’t ask me” 不等于跳过 `legion-workflow` 入口判断、`git-worktree-pr` envelope、contract 稳定性检查、design-lite/RFC、verification、review、report 或 `legion-wiki`；它只表示在非阻塞处继续推进并记录假设。
+- “autopilot / don’t ask me” 不等于跳过 `legion-workflow` 入口判断、`git-worktree-pr` envelope、contract 稳定性检查、design-lite/RFC、verification、review、report 或 `legion-wiki`；它表示在非阻塞处继续推进并记录假设，包括默认完成 commit、push PR branch、创建/更新 PR 和 PR lifecycle follow-up。
+- 用户没有逐项明确要求 commit / push / PR / follow-up 不是停止条件；用户明确禁止或明确 bypass 才改变默认流程，并必须记录为 explicit bypass/blocker。
 
 ---
 
