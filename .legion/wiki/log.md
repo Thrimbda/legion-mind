@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-04-27] writeback | fix-aim-autonomous-pr-flow
+
+- Tightened `git-worktree-pr` autonomous delivery semantics: commit, push PR branch, PR create/update, PR follow-up, cleanup, and main refresh are default lifecycle actions after the envelope applies.
+- Recorded that user silence or lack of per-action commit/push/PR wording is not a stop condition; explicit no-commit/no-push/no-PR or bypass must be recorded as explicit bypass/blocker.
+- Preserved strict Git safety constraints and completion definition.
+
 ## [2026-04-25] writeback | fix-openclaw-setup-install
 
 - Added task summary for `fix-openclaw-setup-install` under `tasks/`.

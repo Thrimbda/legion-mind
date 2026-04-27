@@ -18,7 +18,9 @@ description: 强制 Legion 修改型开发任务在隔离 Git worktree 中实现
 - push 前必须在 worktree 内执行 `git fetch origin && git rebase origin/master`（或明确覆盖后的 base ref）；禁止基于过时 base 直接 push。
 - 禁止直接向 `master` / `main` 提交或推送；禁止使用本地 `master` / `main` 分支承载开发、验证或临时改动。
 - 任何写操作、任务产物、日志、临时诊断输出或持久化缓存都必须留在当前 repo 内；禁止写到用户主目录、系统临时目录或 repo 外路径。
-- “快点”“直接改”“autopilot / don’t ask me”等通用提速表达不豁免本 envelope；只有用户明确要求绕过或不使用 worktree/PR 时才升级确认并记录。
+- 一旦开发任务进入本 envelope，commit、push PR branch、创建或更新 PR、跟进 checks/review、尝试 auto-merge、cleanup 和主工作区 refresh 都是默认 lifecycle action；不需要用户逐项显式授权。
+- 用户沉默或没有逐项要求 commit / push / PR / follow-up 不是停止条件；只有用户明确要求不提交、不 push、不开 PR、不跟进 PR，或明确 bypass 本 envelope 时，才改变默认流程，并必须在任务日志中记录为 explicit bypass/blocker。
+- “快点”“直接改”“autopilot / don’t ask me”等通用提速表达不豁免本 envelope；显式 bypass、不使用 worktree 或不使用 PR 的要求必须记录为 explicit bypass/blocker，不能把“用户没逐项要求 commit / push / PR”解释成 bypass。
 
 ## 主工作区边界
 
@@ -39,10 +41,10 @@ description: 强制 Legion 修改型开发任务在隔离 Git worktree 中实现
 1. **Prepare**：在主工作区执行 `git fetch origin`，确认 task id、scope、base ref、仓库状态与分支名。
 2. **Open worktree**：只从最新 `origin/master`（或明确覆盖后的 base ref）创建 `.worktrees/<task-id>/`，禁止从本地分支创建。
 3. **Run Legion mode**：在 worktree 内运行 `legion-workflow` 选定的既有阶段链。
-4. **Commit**：只提交 scope 内变更；不得提交到 `master` / `main`。
+4. **Commit**：默认提交 scope 内变更；不得提交到 `master` / `main`。除非用户明确禁止提交并记录为 explicit bypass/blocker，否则不要因“用户没有要求 commit”停在本地 diff。
 5. **Rebase before push**：push 前必须在 worktree 内执行 `git fetch origin && git rebase origin/master`（或明确覆盖后的 base ref）。
-6. **Push branch**：只 push PR 分支，禁止直接 push `master` / `main`。
-7. **Open PR**：创建 PR，并链接或摘要 Legion 证据（plan/RFC/test-report/review/walkthrough/wiki）。
+6. **Push branch**：默认 push PR 分支，禁止直接 push `master` / `main`。除非用户明确禁止 push 并记录为 explicit bypass/blocker，否则不要因“用户没有要求 push”停止。
+7. **Open / update PR**：默认创建或更新 PR，并链接或摘要 Legion 证据（plan/RFC/test-report/review/walkthrough/wiki）。除非用户明确禁止开 PR 并记录为 explicit bypass/blocker，否则不要因“用户没有要求 PR”停止。
 8. **Enable auto-merge**：PR 创建后必须立即尝试启用 auto-merge；若仓库策略、权限或平台状态不允许，记录阻塞原因并持续跟进，直到启用或确认无法启用。
 9. **Follow PR**：持续跟进 checks 与 review；优先使用 `gh pr checks <pr> --watch --required` 等待 required checks，避免无界手动轮询。范围内失败要修复，权限/保护规则/产品决策阻塞要记录。
 10. **Terminal decision**：PR merged 是成功路径；closed 或 confirmed abandoned 是非成功终态，必须记录原因、影响和下一步；blocked 只是 handoff，不是任务完成。
@@ -52,6 +54,8 @@ description: 强制 Legion 修改型开发任务在隔离 Git worktree 中实现
 ## Checks / review / auto-merge 语义
 
 - PR 创建不是完成。
+- commit、push PR branch、创建或更新 PR、checks/review follow-up、auto-merge 尝试、cleanup 和 main refresh 是默认生命周期动作，而不是等待用户逐项批准的动作。
+- 用户明确要求不提交、不 push、不开 PR 或不继续 PR follow-up 时，按用户指令停止对应动作，但必须记录 explicit bypass/blocker、已完成动作、未完成动作和恢复条件。
 - PR 创建后必须立即尝试启用 auto-merge；无法启用时记录阻塞并持续跟进，直到启用或确认无法启用。
 - 跟进 required checks 时优先使用 `gh pr checks <pr-url-or-number> --watch --required`，不得用无界手动轮询替代。
 - checks failing 且修复在 scope 内时，继续在 worktree 分支修复；超出 scope 时记录 blocker。
@@ -80,6 +84,7 @@ description: 强制 Legion 修改型开发任务在隔离 Git worktree 中实现
 
 - 在 envelope 应打开后仍直接改主工作区。
 - 把“PR created”或“branch pushed”说成 done。
+- 因用户没有逐项说出 commit / push / PR / follow-up，就停在本地 diff 或未完成 PR lifecycle。
 - 从可 fetch 但未 fetch 的陈旧 base 创建分支。
 - push 前跳过 `git fetch origin && git rebase origin/master`。
 - 直接 commit/push `master` 或 `main`，或用本地 `master` / `main` 承载开发。
@@ -95,6 +100,7 @@ description: 强制 Legion 修改型开发任务在隔离 Git worktree 中实现
 |---|---|
 | “只是文档/一行小改，主工作区更快。” | 只要是修改型开发任务，就进入 worktree；低风险不等于无 envelope。 |
 | “PR 已经开了，所以任务完成。” | PR 创建只是交付载体开始；还要 checks/review/终态/cleanup/refresh。 |
+| “用户没明确要求 commit / push / PR，所以只能停在本地改动。” | 进入 envelope 后这些都是默认 lifecycle action；只有明确禁止或 bypass 才改变流程，并要记录。 |
 | “autopilot 表示不用等 review/checks。” | autopilot 表示继续跟进并少打扰人，不表示跳过保护规则。 |
 | “worktree 以后再清。” | cleanup 是完成条件；保留必须记录原因。 |
 | “先 push，之后再 rebase。” | push 前必须 fetch + rebase 最新 base；过时分支不能出站。 |
