@@ -1,0 +1,6 @@
+{
+  "id": "game-2048-v1",
+  "name": "2048 Game",
+  "description": "Browser 2048 implementation task family (MVP metadata only).",
+  "cases": ["game-2048-v1"]
+}

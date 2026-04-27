@@ -53,3 +53,21 @@
 - 做法：`setup-openclaw` 以 `skills/<name>/SKILL.md` 动态发现 LegionMind skills，默认安装到 OpenClaw local skills root `~/.openclaw/skills/<skill>/`，并在 `~/.openclaw/.legionmind/managed-files.v1.json` 记录 managed ownership；`skills.load.extraDirs` 仍默认更新以兼容旧行为。
 - 安全边界：默认不覆盖 unmanaged 或 locally modified 目标；需要 `--force` 才会备份并覆盖。copy/symlink 的 verify 必须以 expected source items 驱动，而不是让 manifest 任意路径驱动遍历。
 - 验证提示：至少覆盖 isolated install、strict verify、idempotent reinstall、checksum drift detection、force repair；避免测试真实 `~/.openclaw`。
+
+## 模式：HUT 本地执行使用 repo 外临时根
+
+- 来源任务：`build-vibeharnessbench-mvp`、`complete-vibeharnessbench-v01`
+- 背景：benchmark runner 若把 HUT workspace 放在 repo 内 `results/`，local subprocess 可以通过父目录遍历到 `tasks/**/verifier`、`oracle`、`negative_controls`，即使 env 没有显式暴露 protected path。
+- 做法：HUT runtime workspace、visible inputs 与 artifacts 先 materialize 到 repo 外临时 execution root；adapter env 只暴露这个临时根下的 allowlisted paths；adapter 退出后再将 reviewer artifacts copy back 到 `results/`。
+- 适用边界：适用于 MVP/local subprocess 型 benchmark runner。它降低 repo 祖先路径泄露风险，但不是完整 sandbox、container 或 chroot。
+- 常见陷阱：不要只检查 env 是否包含 protected path；还要检查 runtime cwd 的祖先路径是否能到达 protected task pack。
+- 验证提示：覆盖 repo 内 execution root 被拒绝、adapter env 不含 repo/protected path、noop run 失败为 `FAIL_HIDDEN` 而非 infra crash。
+
+## 模式：Hidden verifier 使用 verifier-owned temp copy
+
+- 来源任务：`complete-vibeharnessbench-v01`
+- 背景：Systems Go verifier 需要注入 hidden tests。如果直接写入 HUT workspace，runner copy-back 会把 hidden test source 持久化到 `results/**/workspace`，破坏 hidden verifier 可信度。
+- 做法：verifier 把 HUT workspace copy 到 verifier-owned temp root，只在该 temp root 注入 hidden tests 并执行；原始 HUT workspace 不被写入 protected verifier content，temp root 执行后删除。
+- 适用边界：适用于 local-first verifier 需要注入测试、fixtures 或 probes 的 benchmark case。对 Docker/container 模式也同样适用：hidden content 应只存在于 verifier trust boundary 内。
+- 常见陷阱：不要只保证 adapter env 不暴露 verifier path；也要检查 verifier 是否把 hidden tests 写回 HUT workspace 或 persisted report artifacts。
+- 验证提示：检查 `results/**/workspace` 中不存在 injected hidden test 文件，且 `selfcheck` oracle/negative 仍能通过/失败于预期语义。

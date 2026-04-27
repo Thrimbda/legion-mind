@@ -1,0 +1,5 @@
+{
+  "schema": "vbh.contract.v1",
+  "case_id": "kvsrv-core-v1",
+  "capability_markers": ["kv-api", "errmaybe-handling", "idempotent-retry"]
+}

@@ -1,0 +1,2 @@
+export * from '../../../oracle/src/engine.mjs';
+export function createGame(seed=1,board=null){return {board:board||[[2,2,2,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],score:0,rng:seed,history:[]}} export function move(s,d){return {...s,board:[[4,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]],score:4}} export function undo(s){return s} export const exportReplay=JSON.stringify; export const importReplay=JSON.parse; export const saveState=JSON.stringify; export const loadState=JSON.parse;

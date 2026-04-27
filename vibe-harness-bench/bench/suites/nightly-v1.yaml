@@ -1,0 +1,10 @@
+{
+  "id": "nightly-v1",
+  "description": "Nightly metadata suite with broader seeds reserved for future high-fidelity verifiers.",
+  "cases": [
+    {"family_id": "pelican-bike-gif-v1", "case_id": "pelican-bike-gif-v1"},
+    {"family_id": "game-2048-v1", "case_id": "game-2048-v1"},
+    {"family_id": "systems-go-v1", "case_id": "mr-full-v1"},
+    {"family_id": "systems-go-v1", "case_id": "kvsrv-core-v1"}
+  ]
+}

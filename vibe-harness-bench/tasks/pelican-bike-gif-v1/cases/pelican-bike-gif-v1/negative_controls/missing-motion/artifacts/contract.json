@@ -1,0 +1,5 @@
+{
+  "schema": "vbh.contract.v1",
+  "case_id": "pelican-bike-gif-v1",
+  "capability_markers": ["animated-pelican"]
+}

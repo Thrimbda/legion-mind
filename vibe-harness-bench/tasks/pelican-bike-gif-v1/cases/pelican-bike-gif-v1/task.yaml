@@ -1,0 +1,21 @@
+{
+  "id": "pelican-bike-gif-v1",
+  "family_id": "pelican-bike-gif-v1",
+  "kind": "artifact",
+  "language_stack": ["node"],
+  "mvp_status": "semantic-v0.1",
+  "starter_dir": "starter",
+  "public_dir": "public",
+  "protected_verifier_dir": "verifier",
+  "protected_oracle_dir": "oracle",
+  "protected_negative_controls_dir": "negative_controls",
+  "budgets": {"wall_time_sec": 30, "verifier_wall_time_sec": 20},
+  "gate_seeds": [11],
+  "nightly_seeds": [11, 29, 47],
+  "runtime": {"requires": ["node"]},
+  "visible_verify_cmd": ["node", "public/run_visible.mjs"],
+  "hidden_verify_cmd": ["node", "verifier/run_hidden.mjs"],
+  "required_markers": [],
+  "verifier": {"command": ["node", "verifier/run_hidden.mjs"], "reason": "semantic v0.1 hidden verifier"},
+  "selfcheck": {"oracle": {"workspace_dir": "oracle"}, "negative_controls": [{"id": "static-scene", "workspace_dir": "negative_controls/static-scene"}, {"id": "desync-motion", "workspace_dir": "negative_controls/desync-motion"}]}
+}
