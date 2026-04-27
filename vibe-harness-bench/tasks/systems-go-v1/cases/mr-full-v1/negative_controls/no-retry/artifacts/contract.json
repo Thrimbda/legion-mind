@@ -1,0 +1,5 @@
+{
+  "schema": "vbh.contract.v1",
+  "case_id": "mr-full-v1",
+  "capability_markers": ["map-reduce-api", "deterministic-output"]
+}

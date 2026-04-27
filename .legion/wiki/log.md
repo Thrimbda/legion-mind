@@ -29,6 +29,18 @@
 - Added task summary for `harden-legion-workflow-gate` under `tasks/`.
 - Recorded current mode taxonomy: three execution modes after stable contract; `bypass` / `restore` / `brainstorm` remain entry runtime states.
 
+## [2026-04-25] writeback | complete-vibeharnessbench-v01
+
+- Added task summary for `complete-vibeharnessbench-v01` under `tasks/`.
+- Promoted verifier-owned temp copy for hidden test injection as a durable benchmark isolation pattern in `patterns.md`.
+- Updated maintenance to mark MVP contract-verifier upgrade as completed in local-first semantic scope and to preserve remaining Docker/GIF/RPC/browser/sandbox boundaries.
+
+## [2026-04-25] writeback | build-vibeharnessbench-mvp
+
+- Added task summary for `build-vibeharnessbench-mvp` under `tasks/`.
+- Promoted repo-outside HUT execution root as a durable benchmark isolation pattern in `patterns.md`.
+- Recorded benchmark MVP follow-ups for high-fidelity verifiers, Docker/offline runtimes, sandboxing and symlink hardening in `maintenance.md`.
+
 ## [2026-04-25] writeback | harden-strict-verify-integrity
 
 - Promoted strict install verification as a durable CLI pattern in `patterns.md`.

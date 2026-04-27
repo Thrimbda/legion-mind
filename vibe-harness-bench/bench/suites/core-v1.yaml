@@ -1,0 +1,10 @@
+{
+  "id": "core-v1",
+  "description": "Core MVP suite covering all four atomic cases.",
+  "cases": [
+    {"family_id": "pelican-bike-gif-v1", "case_id": "pelican-bike-gif-v1"},
+    {"family_id": "game-2048-v1", "case_id": "game-2048-v1"},
+    {"family_id": "systems-go-v1", "case_id": "mr-full-v1"},
+    {"family_id": "systems-go-v1", "case_id": "kvsrv-core-v1"}
+  ]
+}

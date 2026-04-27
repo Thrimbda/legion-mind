@@ -20,3 +20,5 @@
 - `task create` 现在采用 staging + rename 物化模式，见 `patterns.md`。
 - `setup-opencode verify --strict` 现在必须校验安装资产内容与 managed ownership，见 `patterns.md` 与 `tasks/harden-strict-verify-integrity.md`。
 - `setup-openclaw` 现在采用 OpenClaw local skills root + managed manifest + strict verify 的安装路径，见 `patterns.md` 与 `tasks/fix-openclaw-setup-install.md`。
+- VibeHarnessBench local-first semantic v0.1 已落地在 `vibe-harness-bench/**`；当前结论见 `tasks/complete-vibeharnessbench-v01.md`。
+- Benchmark HUT local subprocess runtime 必须使用 repo 外临时根；hidden verifier 注入内容必须留在 verifier-owned temp copy，见 `patterns.md`。

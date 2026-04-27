@@ -1,0 +1,5 @@
+{
+  "schema": "vbh.contract.v1",
+  "case_id": "game-2048-v1",
+  "capability_markers": ["grid-4x4", "merge-rules", "deterministic-spawn"]
+}

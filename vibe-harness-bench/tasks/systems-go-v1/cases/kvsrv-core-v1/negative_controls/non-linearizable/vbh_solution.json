@@ -1,0 +1,1 @@
+{"VersionedGetPut":true,"RetryDrops":true,"ErrMaybe":true,"DuplicateSafe":true,"Linearizable":false}

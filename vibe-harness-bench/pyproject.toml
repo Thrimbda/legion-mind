@@ -1,0 +1,11 @@
+[project]
+name = "vibe-harness-bench"
+version = "0.1.0"
+description = "MVP benchmark harness for VibeHarnessBench"
+requires-python = ">=3.10"
+
+[project.scripts]
+vibe-harness-bench = "bench.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

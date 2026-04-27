@@ -1,0 +1,6 @@
+{
+  "id": "systems-go-v1",
+  "name": "Systems Go",
+  "description": "Clean-room Go systems tasks inspired by distributed systems capabilities.",
+  "cases": ["mr-full-v1", "kvsrv-core-v1"]
+}

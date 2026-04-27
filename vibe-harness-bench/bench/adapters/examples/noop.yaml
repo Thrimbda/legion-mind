@@ -1,0 +1,7 @@
+{
+  "id": "noop",
+  "mode": "command",
+  "command": ["python", "-c", "import json, os; json.dump({'status':'completed','notes':'noop adapter intentionally does not solve the task'}, open(os.environ['BENCH_SUMMARY_OUT'], 'w'))"],
+  "timeout_grace_sec": 5,
+  "supports_metrics": false
+}
