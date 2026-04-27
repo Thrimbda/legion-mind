@@ -250,17 +250,22 @@ npm run test:regression
 
 ### 已经成型的部分
 
-- 有明确的工作流内核：`legion-workflow`
-- 有任务记忆 / wiki 记忆 / 规则层的三层分工
-- 有安装 / 校验 / 回滚的安装资产管理脚本
-- 有 GitHub Actions 接线，可以把 `legion` 带到仓库外运行
+- 有明确的工作流内核：`legion-workflow` 负责入口门禁、恢复、路由、写回与只读综合，阶段技能围绕它形成稳定分工。
+- 有任务记忆 / wiki 记忆 / 规则层的三层分工：`.legion/tasks/**` 保存任务证据，`.legion/wiki/**` 沉淀当前知识，`skills/**` 与 runtime 配置承载执行规则。
+- OpenCode / OpenClaw 两条维护入口已经对齐到共享 setup core，具备 managed manifest、strict verify、rollback / uninstall 等安装资产 lifecycle。
+- `npm run test:regression` 已经覆盖 setup lifecycle、skill surface、CLI 文件系统不变量，以及 destructive rollback / uninstall path safety。
+- VibeHarnessBench v0.1 已经落地为 local-first semantic benchmark，用来给工作流内核演化提供可重复的本地评估入口。
+- 有 GitHub Actions OpenCode 接线，可以把 LegionMind 工作流带到仓库外的 issue / PR 评论入口中运行。
+- 根 `docs/` 历史材料已经退出 current truth；当前真源收敛到 README、`.legion/wiki/**`、`skills/**` 与 `vibe-harness-bench/README.md`。
 
 ### 还没有毕业的部分
 
-- 自动化验证层已经有 setup / skill surface / CLI 文件系统不变量回归，但还需要更多真实项目压力测试
-- README、本地 CLI 工具与工作流心智模型仍需持续收敛
-- 发布闭环和“默认可发布”信号还不够强
-- 从早期内核走向低摩擦产品，还需要更多真实项目压力测试
+- 发布、CI 和“默认可发布”信号还没有形成完整闭环，当前不能按成熟 OS 或稳定发行包来理解。
+- 还需要更多真实项目、长周期任务和多人协作场景的压力测试，验证这套门禁和记忆机制在仓库外持续成立。
+- CLI 仍然是 `.legion/tasks/**` 的本地初始化、查询和有限更新薄工具，不是 runtime orchestrator、状态注册表或审计层。
+- 当前维护的 runtime 支持面只有 OpenCode 与 OpenClaw；不要把 README 解读成对其他代理运行时的泛化支持承诺。
+- VibeHarnessBench 仍是 local-first v0.1，不是完整 sandbox、完整 full-stack benchmark，也不是生产级隔离执行平台。
+- 低摩擦产品化和 onboarding 还需要继续打磨，真实使用者仍可能需要理解 wiki、阶段技能和 PR lifecycle 才能顺畅使用。
 
 所以今天更准确的说法不是“LegionMind 已经是一套成熟的智能体操作系统”，而是：
 
@@ -270,12 +275,13 @@ npm run test:regression
 
 如果要把这个仓库推进到真正可交付的 v1，我会用下面这些硬门槛来判断：
 
-1. 入口门禁、文档叙事、本地 CLI 工具和实际行为完全一致
-2. 安装后的 `verify --strict` 成为稳定默认验收路径
-3. 除烟雾验证外，存在可重复执行的系统化自动化验证链
-4. 发布、回滚、兼容性与 CI 形成完整闭环
-5. 真实使用者不需要读任务原始文档，也能通过 README + wiki 理解系统怎么工作
-6. 任何额外验证层若要回归，必须在核心 workflow 稳定后按独立问题重新设计
+1. 入口门禁、README / wiki 叙事、阶段技能、本地 CLI 薄工具和实际行为持续一致。
+2. OpenCode / OpenClaw 安装后的 `verify --strict`、rollback / uninstall 与 `npm run test:regression` 成为稳定默认验收路径。
+3. 除本地回归和 smoke 外，存在可重复、可审计的 CI / release 信号，能判断一次变更是否真的可发布。
+4. 发布、回滚、兼容性和 CI 形成完整闭环，而不是只在本地仓库里证明能跑。
+5. 真实项目压力测试覆盖足够多的任务类型、失败路径和多人协作场景。
+6. 真实使用者不需要读任务原始文档，也能通过 README + wiki + onboarding 理解系统怎么安装、怎么开工、怎么验收。
+7. 如果要扩展 runtime 支持或把 CLI 做成 orchestrator，必须按独立设计问题重新进入门禁，而不是从当前 OpenCode / OpenClaw 支持面自然外推。
 
 README 在这个仓库里不只是入口文档，也应该是这个 v1 的目标约束。
 

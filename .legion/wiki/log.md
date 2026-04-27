@@ -1,5 +1,10 @@
 # Legion Wiki Log
 
+## [2026-04-27] writeback | refresh-readme-current-reality
+
+- Added task summary for `refresh-readme-current-reality` under `tasks/`.
+- Recorded that README current reality now explicitly reflects the post-hardening repository state: workflow kernel, OpenCode/OpenClaw setup parity, regression suite, VibeHarnessBench v0.1, current-truth convergence, and still-ungraduated CI/release/onboarding/runtime/sandbox boundaries.
+
 ## [2026-04-27] writeback | harden-v1-kernel-harness
 
 - Added task summary for `harden-v1-kernel-harness` under `tasks/`.
