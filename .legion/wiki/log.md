@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-04-27] writeback | harden-v1-kernel-harness
+
+- Added task summary for `harden-v1-kernel-harness` under `tasks/`.
+- Promoted setup lifecycle shared core, OpenClaw rollback/uninstall parity, regression suite coverage, and docs current-truth convergence as durable patterns.
+- Recorded one non-blocking setup-core auditability follow-up around managed root textual/canonical correspondence.
+
 ## [2026-04-27] writeback | fix-aim-autonomous-pr-flow
 
 - Tightened `git-worktree-pr` autonomous delivery semantics: commit, push PR branch, PR create/update, PR follow-up, cleanup, and main refresh are default lifecycle actions after the envelope applies.

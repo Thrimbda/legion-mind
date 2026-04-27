@@ -2,6 +2,8 @@
 
 This is a local-first semantic benchmark harness for the four v0.1 atomic cases. It supports command adapters, out-of-tree HUT workspace materialization, per-case visible and hidden verifier commands, protected oracle/negative-control selfcheck, JSON/Markdown reports, and run comparison.
 
+This README is the current truth for the benchmark harness. The benchmark requires Python, Node for the 2048 verifier, and Go for the systems verifiers; use a local toolchain or nix/dev-shell equivalent that provides those commands.
+
 ## Commands
 
 Run from this directory:

@@ -10,8 +10,12 @@
     "opencode:install": "node scripts/setup-opencode.ts install",
     "opencode:verify": "node scripts/setup-opencode.ts verify --strict",
     "opencode:rollback": "node scripts/setup-opencode.ts rollback",
+    "opencode:uninstall": "node scripts/setup-opencode.ts uninstall",
     "openclaw:install": "node --experimental-strip-types scripts/setup-openclaw.ts install",
-    "openclaw:verify": "node --experimental-strip-types scripts/setup-openclaw.ts verify --strict"
+    "openclaw:verify": "node --experimental-strip-types scripts/setup-openclaw.ts verify --strict",
+    "openclaw:rollback": "node --experimental-strip-types scripts/setup-openclaw.ts rollback",
+    "openclaw:uninstall": "node --experimental-strip-types scripts/setup-openclaw.ts uninstall",
+    "test:regression": "node --test --experimental-strip-types tests/regression/*.test.ts"
   },
   "engines": {
     "node": ">=22.6.0"

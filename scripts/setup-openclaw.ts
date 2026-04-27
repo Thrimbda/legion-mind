@@ -1,27 +1,39 @@
 #!/usr/bin/env node --experimental-strip-types
 
 import {
-  copyFileSync,
   existsSync,
-  lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
-  readlinkSync,
-  realpathSync,
-  renameSync,
-  rmSync,
   statSync,
-  symlinkSync,
   writeFileSync,
 } from 'fs';
-import { basename, dirname, join, relative, resolve, sep } from 'path';
+import { dirname, join, relative, resolve } from 'path';
 import { homedir } from 'os';
-import { createHash, randomUUID } from 'crypto';
+import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
-
-type Command = 'install' | 'verify';
-type Strategy = 'copy' | 'symlink';
+import {
+  type BackupBatch,
+  type BackupIndex,
+  type Command,
+  type InstallStateBase,
+  type ManagedState,
+  Reporter,
+  type Strategy,
+  type SyncItem,
+  type VerifyManagedState,
+  createManagedRootSet,
+  emptyBackupIndex,
+  emptyManagedState,
+  loadJsonOrDefault,
+  rollbackCore,
+  syncOneFileCore,
+  uninstallCore,
+  validateBackupIndexFile,
+  validateManagedStateFile,
+  verifyStrictItemCore,
+  writeJsonAtomic,
+} from './lib/setup-core.ts';
 
 interface CliOptions {
   command: Command;
@@ -30,6 +42,7 @@ interface CliOptions {
   force: boolean;
   json: boolean;
   strategy: Strategy;
+  toBackupId: string | null;
   configureExtraDir: boolean;
   configDir: string;
   openclawHome: string;
@@ -47,69 +60,15 @@ interface OpenClawConfig {
   [key: string]: unknown;
 }
 
-interface ManagedFile {
-  targetPath: string;
-  sourcePath: string;
-  checksum: string;
-  installedAt: string;
-  lastAction: 'install' | 'update';
-}
-
-interface ManagedState {
-  version: 1;
-  updatedAt: string;
-  files: Record<string, ManagedFile>;
-}
-
-interface BackupEntry {
-  targetPath: string;
-  backupPath: string;
-  reason: string;
-  preManaged: ManagedFile | null;
-}
-
-interface BackupBatch {
-  backupId: string;
-  createdAt: string;
-  entries: BackupEntry[];
-}
-
-interface BackupIndex {
-  version: 1;
-  updatedAt: string;
-  backups: BackupBatch[];
-}
-
-interface InstallState {
-  version: 1;
-  timestamp: string;
-  runId: string;
-  command: Command;
+interface InstallState extends InstallStateBase {
   code: string;
   configPath: string;
   openclawHome: string;
   sourceSkillsDir: string;
   targetSkillsDir: string;
-  summary: {
-    copied: number;
-    linked: number;
-    skipped: number;
-    warnings: number;
-    failures: number;
-  };
 }
 
-interface SyncItem {
-  sourcePath: string;
-  targetPath: string;
-}
-
-type VerifyManagedState =
-  | { kind: 'ok'; path: string; state: ManagedState }
-  | { kind: 'missing'; path: string }
-  | { kind: 'invalid'; path: string; error: string };
-
-const MANAGED_FILE_ACTIONS = new Set(['install', 'update']);
+const MANAGED_FILE_ACTIONS = new Set(['install', 'update', 'rollback', 'uninstall']);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -122,48 +81,10 @@ const BACKUP_INDEX_FILE = 'backup-index.v1.json';
 
 const SENSITIVE_BASENAMES = new Set(['openclaw.json', 'opencode.json', 'antigravity-accounts.json']);
 
-class Reporter {
-  warnings = 0;
-  failures = 0;
-  private readonly runId: string;
-  private readonly json: boolean;
-
-  constructor(runId: string, json: boolean) {
-    this.runId = runId;
-    this.json = json;
-  }
-
-  emit(code: string, phase: string, checkId: string, target: string, hint: string) {
-    const payload = {
-      timestamp: new Date().toISOString(),
-      runId: this.runId,
-      code,
-      phase,
-      checkId,
-      target,
-      hint,
-    };
-
-    if (code.startsWith('W_')) {
-      this.warnings += 1;
-    }
-    if (code.startsWith('E_')) {
-      this.failures += 1;
-    }
-
-    if (this.json) {
-      console.log(JSON.stringify(payload));
-      return;
-    }
-
-    console.log(`${payload.code} [${payload.phase}/${payload.checkId}] ${payload.target} :: ${payload.hint}`);
-  }
-}
-
 function parseArgs(argv: string[]): CliOptions {
   const commandArg = argv.find((arg) => !arg.startsWith('--'));
   const command = (commandArg as Command | undefined) ?? 'install';
-  if (!['install', 'verify'].includes(command)) {
+  if (!['install', 'verify', 'rollback', 'uninstall'].includes(command)) {
     throw new Error(`Unsupported command: ${command}`);
   }
 
@@ -196,59 +117,12 @@ function parseArgs(argv: string[]): CliOptions {
     force: argv.includes('--force'),
     json: argv.includes('--json'),
     strategy: strategyValue,
+    toBackupId: getValue('--to'),
     configureExtraDir: !argv.includes('--no-extra-dir'),
     configDir,
     openclawHome,
     sourceSkillsDir: resolve(getValue('--skills-dir') ?? join(PROJECT_ROOT, 'skills')),
   };
-}
-
-function sha256(path: string): string {
-  const hash = createHash('sha256');
-  hash.update(readFileSync(path));
-  return hash.digest('hex');
-}
-
-function resolvedLinkTarget(path: string): string {
-  return resolve(dirname(path), readlinkSync(path));
-}
-
-function sourceFingerprint(path: string, strategy: Strategy): string {
-  if (strategy === 'symlink') {
-    return `symlink:${resolve(path)}`;
-  }
-  return sha256(path);
-}
-
-function canonicalFilePath(path: string): string {
-  const absolute = resolve(path);
-  const parent = dirname(absolute);
-  if (!existsSync(parent)) {
-    return absolute;
-  }
-
-  try {
-    return join(realpathSync(parent), basename(absolute));
-  } catch {
-    return absolute;
-  }
-}
-
-function canonicalDirectoryPath(path: string): string {
-  const absolute = resolve(path);
-  if (!existsSync(absolute)) {
-    return absolute;
-  }
-
-  try {
-    return realpathSync(absolute);
-  } catch {
-    return absolute;
-  }
-}
-
-function isWithinRoot(path: string, root: string): boolean {
-  return path === root || path.startsWith(`${root}${sep}`);
 }
 
 function assertDirectory(path: string, label: string) {
@@ -326,27 +200,6 @@ function withSkillsDir(config: OpenClawConfig, skillsDir: string, configPath: st
     },
     changed: true,
   };
-}
-
-function writeJsonAtomic(path: string, value: unknown, dryRun: boolean) {
-  if (dryRun) {
-    return;
-  }
-  mkdirSync(dirname(path), { recursive: true });
-  const tempPath = `${path}.tmp`;
-  writeFileSync(tempPath, `${JSON.stringify(value, null, 2)}\n`);
-  renameSync(tempPath, path);
-}
-
-function loadJsonOrDefault<T>(path: string, fallback: T): T {
-  if (!existsSync(path)) {
-    return fallback;
-  }
-  try {
-    return JSON.parse(readFileSync(path, 'utf-8')) as T;
-  } catch {
-    return fallback;
-  }
 }
 
 function isIgnoredRelativePath(relPath: string): boolean {
@@ -440,255 +293,13 @@ function collectMissingExpectedSourceRoots(opts: CliOptions): string[] {
   return missing;
 }
 
-function managedRoots(opts: CliOptions): string[] {
-  return [join(opts.openclawHome, 'skills')].map(canonicalDirectoryPath);
-}
-
-function isManagedTargetPath(path: string, opts: CliOptions): boolean {
-  const canonicalTarget = canonicalFilePath(path);
-  return managedRoots(opts).some((root) => isWithinRoot(canonicalTarget, root));
+function managedRootPaths(opts: CliOptions): string[] {
+  return [join(opts.openclawHome, 'skills')];
 }
 
 function loadManagedStateForVerify(opts: CliOptions): VerifyManagedState {
   const path = join(opts.openclawHome, MANAGED_DIR_NAME, MANAGED_FILES_FILE);
-  if (!existsSync(path)) {
-    return { kind: 'missing', path };
-  }
-
-  try {
-    const parsed = JSON.parse(readFileSync(path, 'utf-8')) as unknown;
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-      return { kind: 'invalid', path, error: 'unexpected manifest shape' };
-    }
-
-    const candidate = parsed as Partial<ManagedState>;
-    if (candidate.version !== 1 || typeof candidate.updatedAt !== 'string' || !candidate.files || typeof candidate.files !== 'object' || Array.isArray(candidate.files)) {
-      return { kind: 'invalid', path, error: 'unexpected manifest shape' };
-    }
-
-    for (const [target, record] of Object.entries(candidate.files)) {
-      if (!record || typeof record !== 'object' || Array.isArray(record)) {
-        return { kind: 'invalid', path, error: `invalid managed file record for ${target}` };
-      }
-      const managed = record as Partial<ManagedFile>;
-      if (typeof managed.targetPath !== 'string') {
-        return { kind: 'invalid', path, error: `invalid managed file record for ${target}: targetPath must be a string` };
-      }
-      if (typeof managed.sourcePath !== 'string') {
-        return { kind: 'invalid', path, error: `invalid managed file record for ${target}: sourcePath must be a string` };
-      }
-      if (typeof managed.checksum !== 'string') {
-        return { kind: 'invalid', path, error: `invalid managed file record for ${target}: checksum must be a string` };
-      }
-      if (typeof managed.installedAt !== 'string') {
-        return { kind: 'invalid', path, error: `invalid managed file record for ${target}: installedAt must be a string` };
-      }
-      if (typeof managed.lastAction !== 'string' || !MANAGED_FILE_ACTIONS.has(managed.lastAction)) {
-        return { kind: 'invalid', path, error: `invalid managed file record for ${target}: lastAction must be install or update` };
-      }
-    }
-
-    return { kind: 'ok', path, state: candidate as ManagedState };
-  } catch (error) {
-    return { kind: 'invalid', path, error: error instanceof Error ? error.message : 'invalid json' };
-  }
-}
-
-function ensureParentDir(targetPath: string, dryRun: boolean) {
-  if (dryRun) {
-    return;
-  }
-  mkdirSync(dirname(targetPath), { recursive: true });
-}
-
-function removeTarget(path: string, dryRun: boolean) {
-  if (!existsSync(path) || dryRun) {
-    return;
-  }
-
-  const stat = lstatSync(path);
-  if (stat.isDirectory() && !stat.isSymbolicLink()) {
-    rmSync(path, { recursive: true, force: true });
-    return;
-  }
-  rmSync(path, { force: true });
-}
-
-function backupPathFor(targetPath: string, backupId: string): string {
-  return `${targetPath}.backup-${backupId}`;
-}
-
-function safeOverwriteHint(reason: string): string {
-  switch (reason) {
-    case 'user-modified':
-      return 'managed file was modified locally; rerun with --force to overwrite after reviewing local changes';
-    case 'unmanaged-existing':
-      return 'existing target is not managed by legion-mind; rerun with --force to back up and overwrite';
-    case 'non-file-target':
-      return 'existing target is not a regular file; rerun with --force to remove it';
-    default:
-      return `skipped to avoid overwriting existing content (${reason})`;
-  }
-}
-
-function canOverwrite(
-  targetPath: string,
-  sourceFingerprintValue: string,
-  strategy: Strategy,
-  managedState: ManagedState,
-  force: boolean,
-): { allowed: boolean; reason: string } {
-  if (!existsSync(targetPath)) {
-    return { allowed: true, reason: 'missing-target' };
-  }
-
-  const stat = lstatSync(targetPath);
-  if (stat.isDirectory()) {
-    if (!force) {
-      return { allowed: false, reason: 'unmanaged-existing' };
-    }
-    return { allowed: true, reason: 'force-overwrite-directory' };
-  }
-
-  if (stat.isFile() && strategy === 'copy' && sha256(targetPath) === sourceFingerprintValue) {
-    return { allowed: false, reason: 'same-content' };
-  }
-
-  if (stat.isSymbolicLink() && strategy === 'symlink') {
-    const current = `symlink:${resolvedLinkTarget(targetPath)}`;
-    if (current === sourceFingerprintValue) {
-      return { allowed: false, reason: 'same-content' };
-    }
-  }
-
-  const managed = managedState.files[targetPath];
-
-  if (stat.isSymbolicLink() && managed) {
-    const current = `symlink:${resolvedLinkTarget(targetPath)}`;
-    if (current === managed.checksum) {
-      return { allowed: true, reason: 'managed-unchanged' };
-    }
-    if (!force) {
-      return { allowed: false, reason: 'user-modified' };
-    }
-    return { allowed: true, reason: 'force-overwrite-managed' };
-  }
-
-  if (stat.isSymbolicLink() && !managed) {
-    if (!force) {
-      return { allowed: false, reason: 'unmanaged-existing' };
-    }
-    return { allowed: true, reason: 'force-overwrite-unmanaged' };
-  }
-
-  if (stat.isFile() && strategy === 'copy' && managed && sha256(targetPath) === managed.checksum) {
-    return { allowed: true, reason: 'managed-unchanged' };
-  }
-
-  if (!managed) {
-    if (!force) {
-      return { allowed: false, reason: 'unmanaged-existing' };
-    }
-    return { allowed: true, reason: 'force-overwrite-unmanaged' };
-  }
-
-  if (!stat.isFile()) {
-    if (!force) {
-      return { allowed: false, reason: 'non-file-target' };
-    }
-    return { allowed: true, reason: 'force-overwrite-managed' };
-  }
-
-  const currentChecksum = sha256(targetPath);
-  if (currentChecksum === managed.checksum) {
-    return { allowed: true, reason: 'managed-unchanged' };
-  }
-
-  if (!force) {
-    return { allowed: false, reason: 'user-modified' };
-  }
-
-  return { allowed: true, reason: 'force-overwrite-managed' };
-}
-
-function syncOneFile(
-  item: SyncItem,
-  opts: CliOptions,
-  managedState: ManagedState,
-  backupBatch: BackupBatch,
-  reporter: Reporter,
-  counters: { copied: number; linked: number; skipped: number },
-) {
-  if (!isManagedTargetPath(item.targetPath, opts)) {
-    reporter.emit('E_PRECHECK', 'sync', 'invalid-target', item.targetPath, 'target path is outside OpenClaw managed skills root');
-    return;
-  }
-
-  const existedBefore = existsSync(item.targetPath);
-  const previousManaged = managedState.files[item.targetPath] ?? null;
-  const sourceChecksum = sourceFingerprint(item.sourcePath, opts.strategy);
-  const decision = canOverwrite(item.targetPath, sourceChecksum, opts.strategy, managedState, opts.force);
-
-  if (!decision.allowed) {
-    if (decision.reason === 'same-content') {
-      managedState.files[item.targetPath] = {
-        targetPath: item.targetPath,
-        sourcePath: item.sourcePath,
-        checksum: sourceChecksum,
-        installedAt: previousManaged?.installedAt ?? new Date().toISOString(),
-        lastAction: previousManaged ? 'update' : 'install',
-      };
-
-      counters.skipped += 1;
-      reporter.emit(previousManaged ? 'OK_VERIFY' : 'OK_ADOPT', 'sync', 'same-content', item.targetPath, previousManaged ? 'already managed and up-to-date' : 'already matches source; recorded as managed without overwrite');
-      return;
-    }
-
-    counters.skipped += 1;
-    reporter.emit('W_SAFE_SKIP', 'sync', decision.reason, item.targetPath, safeOverwriteHint(decision.reason));
-    return;
-  }
-
-  if (existsSync(item.targetPath)) {
-    const backupPath = backupPathFor(item.targetPath, backupBatch.backupId);
-    if (existsSync(backupPath)) {
-      removeTarget(backupPath, opts.dryRun);
-    }
-    if (!opts.dryRun) {
-      renameSync(item.targetPath, backupPath);
-    }
-    backupBatch.entries.push({
-      targetPath: item.targetPath,
-      backupPath,
-      reason: decision.reason,
-      preManaged: previousManaged ? { ...previousManaged } : null,
-    });
-    reporter.emit('OK_BACKUP', 'sync', 'backup-created', item.targetPath, backupPath);
-  }
-
-  ensureParentDir(item.targetPath, opts.dryRun);
-
-  if (opts.strategy === 'copy') {
-    if (!opts.dryRun) {
-      copyFileSync(item.sourcePath, item.targetPath);
-    }
-    counters.copied += 1;
-  } else {
-    if (!opts.dryRun) {
-      symlinkSync(item.sourcePath, item.targetPath);
-    }
-    counters.linked += 1;
-  }
-
-  managedState.files[item.targetPath] = {
-    targetPath: item.targetPath,
-    sourcePath: item.sourcePath,
-    checksum: sourceChecksum,
-    installedAt: new Date().toISOString(),
-    lastAction: existedBefore ? 'update' : 'install',
-  };
-
-  reporter.emit('OK_SYNC', 'sync', opts.strategy, item.targetPath, relative(PROJECT_ROOT, item.sourcePath));
+  return validateManagedStateFile(path, MANAGED_FILE_ACTIONS);
 }
 
 function configureExtraSkillsDir(opts: CliOptions, reporter: Reporter): boolean {
@@ -720,16 +331,8 @@ function runInstall(opts: CliOptions, runId: string, reporter: Reporter): Instal
   const managedFilePath = join(stateDir, MANAGED_FILES_FILE);
   const backupIndexPath = join(stateDir, BACKUP_INDEX_FILE);
 
-  const managedState = loadJsonOrDefault<ManagedState>(managedFilePath, {
-    version: 1,
-    updatedAt: new Date(0).toISOString(),
-    files: {},
-  });
-  const backupIndex = loadJsonOrDefault<BackupIndex>(backupIndexPath, {
-    version: 1,
-    updatedAt: new Date(0).toISOString(),
-    backups: [],
-  });
+  const managedState = loadJsonOrDefault<ManagedState>(managedFilePath, emptyManagedState());
+  const backupIndex = loadJsonOrDefault<BackupIndex>(backupIndexPath, emptyBackupIndex());
 
   const backupBatch: BackupBatch = {
     backupId: `${Date.now()}-${runId.slice(0, 8)}`,
@@ -741,8 +344,9 @@ function runInstall(opts: CliOptions, runId: string, reporter: Reporter): Instal
 
   const syncItems = collectExpectedSyncItems(opts);
   const counters = { copied: 0, linked: 0, skipped: 0 };
+  const lifecycleContext = { projectRoot: PROJECT_ROOT, strategy: opts.strategy, dryRun: opts.dryRun, force: opts.force, managedRoots: createManagedRootSet(managedRootPaths(opts)) };
   for (const item of syncItems) {
-    syncOneFile(item, opts, managedState, backupBatch, reporter, counters);
+    syncOneFileCore(item, lifecycleContext, managedState, backupBatch, reporter, counters);
   }
 
   managedState.updatedAt = new Date().toISOString();
@@ -804,60 +408,6 @@ function requiredVerifyChecks(opts: CliOptions) {
   }));
 }
 
-function verifyStrictItem(
-  item: SyncItem,
-  managedState: ManagedState,
-  reporter: Reporter,
-): number {
-  const checkId = `asset.${relative(PROJECT_ROOT, item.sourcePath)}`;
-  if (!existsSync(item.sourcePath)) {
-    reporter.emit('E_VERIFY_SOURCE_MISSING', 'verify', checkId, item.sourcePath, 'repository install source is incomplete; reinstall package or run from complete checkout');
-    return 1;
-  }
-
-  let stat;
-  try {
-    stat = lstatSync(item.targetPath);
-  } catch {
-    reporter.emit('E_VERIFY_MISSING', 'verify', checkId, item.targetPath, 'run setup-openclaw install to restore missing asset');
-    return 1;
-  }
-
-  const managed = managedState.files[item.targetPath];
-  if (!managed) {
-    reporter.emit('E_VERIFY_UNMANAGED', 'verify', checkId, item.targetPath, 'required asset is not managed; run install --force to back up unmanaged file and install Legion asset');
-    return 1;
-  }
-
-  if (managed.checksum.startsWith('symlink:')) {
-    const expected = sourceFingerprint(item.sourcePath, 'symlink');
-    if (!stat.isSymbolicLink()) {
-      reporter.emit('E_VERIFY_TYPE_MISMATCH', 'verify', checkId, item.targetPath, 'target type differs from managed install; remove or force reinstall after backup');
-      return 1;
-    }
-    const current = `symlink:${resolvedLinkTarget(item.targetPath)}`;
-    if (current !== expected || managed.checksum !== expected) {
-      reporter.emit('E_VERIFY_LINK_DRIFT', 'verify', checkId, item.targetPath, 'symlink target drifted; rerun install --strategy=symlink --force');
-      return 1;
-    }
-    reporter.emit('OK_VERIFY', 'verify', checkId, item.targetPath, 'managed symlink matches source');
-    return 0;
-  }
-
-  if (!stat.isFile()) {
-    reporter.emit('E_VERIFY_TYPE_MISMATCH', 'verify', checkId, item.targetPath, 'target type differs from managed install; remove or force reinstall after backup');
-    return 1;
-  }
-
-  const expected = sourceFingerprint(item.sourcePath, 'copy');
-  if (sha256(item.targetPath) !== expected || managed.checksum !== expected) {
-    reporter.emit('E_VERIFY_CHECKSUM', 'verify', checkId, item.targetPath, 'local drift detected; run setup-openclaw install --force to overwrite after reviewing local changes');
-    return 1;
-  }
-  reporter.emit('OK_VERIFY', 'verify', checkId, item.targetPath, 'managed copy matches source');
-  return 0;
-}
-
 function runVerify(opts: CliOptions, runId: string, reporter: Reporter): InstallState {
   let hardFailures = 0;
 
@@ -886,7 +436,7 @@ function runVerify(opts: CliOptions, runId: string, reporter: Reporter): Install
     const syncItems = collectExpectedSyncItems(opts);
     for (const item of syncItems) {
       if (verifyManifest.kind === 'ok') {
-        hardFailures += verifyStrictItem(item, verifyManifest.state, reporter);
+        hardFailures += verifyStrictItemCore(item, verifyManifest.state, reporter, PROJECT_ROOT, 'setup-openclaw');
         continue;
       }
 
@@ -936,6 +486,59 @@ function runVerify(opts: CliOptions, runId: string, reporter: Reporter): Install
   };
 }
 
+function runRollback(opts: CliOptions, runId: string, reporter: Reporter): InstallState {
+  const stateDir = join(opts.openclawHome, MANAGED_DIR_NAME);
+  const managedFilePath = join(stateDir, MANAGED_FILES_FILE);
+  const backupIndexPath = join(stateDir, BACKUP_INDEX_FILE);
+
+  const base = {
+    version: 1 as const,
+    timestamp: new Date().toISOString(),
+    runId,
+    command: 'rollback' as const,
+    configPath: join(opts.configDir, 'openclaw.json'),
+    openclawHome: opts.openclawHome,
+    sourceSkillsDir: opts.sourceSkillsDir,
+    targetSkillsDir: join(opts.openclawHome, 'skills'),
+  };
+
+  const managedState = loadJsonOrDefault<ManagedState>(managedFilePath, emptyManagedState());
+  const backupIndexResult = validateBackupIndexFile(backupIndexPath);
+  if (backupIndexResult.kind !== 'ok') {
+    reporter.emit('E_PRECHECK', 'rollback', 'backup-index', backupIndexResult.path, backupIndexResult.kind === 'missing' ? 'backup index missing' : `backup index invalid (${backupIndexResult.error})`);
+    return { ...base, code: 'E_PRECHECK', summary: { copied: 0, linked: 0, skipped: 0, warnings: reporter.warnings, failures: 1 } };
+  }
+  const result = rollbackCore({ managedState, backupIndex: backupIndexResult.index, backupIndexPath, toBackupId: opts.toBackupId, ctx: { projectRoot: PROJECT_ROOT, strategy: opts.strategy, dryRun: opts.dryRun, force: opts.force, managedRoots: createManagedRootSet(managedRootPaths(opts)) }, reporter });
+  if (!result.code.startsWith('E_')) {
+    writeJsonAtomic(managedFilePath, result.managedState, opts.dryRun);
+    writeJsonAtomic(backupIndexPath, result.backupIndex, opts.dryRun);
+  }
+  return { ...base, code: result.code, summary: { copied: result.restored, linked: 0, skipped: result.skipped, warnings: reporter.warnings, failures: result.code.startsWith('E_') ? 1 : reporter.failures } };
+}
+
+function runUninstall(opts: CliOptions, runId: string, reporter: Reporter): InstallState {
+  const stateDir = join(opts.openclawHome, MANAGED_DIR_NAME);
+  const managedFilePath = join(stateDir, MANAGED_FILES_FILE);
+  const managedState = loadJsonOrDefault<ManagedState>(managedFilePath, emptyManagedState());
+  const result = uninstallCore({ managedState, ctx: { projectRoot: PROJECT_ROOT, strategy: opts.strategy, dryRun: opts.dryRun, force: opts.force, managedRoots: createManagedRootSet(managedRootPaths(opts)) }, reporter });
+  if (!result.code.startsWith('E_')) {
+    writeJsonAtomic(managedFilePath, result.managedState, opts.dryRun);
+  }
+
+  return {
+    version: 1,
+    timestamp: new Date().toISOString(),
+    runId,
+    command: 'uninstall',
+    code: result.code,
+    configPath: join(opts.configDir, 'openclaw.json'),
+    openclawHome: opts.openclawHome,
+    sourceSkillsDir: opts.sourceSkillsDir,
+    targetSkillsDir: join(opts.openclawHome, 'skills'),
+    summary: { copied: result.removed, linked: 0, skipped: result.skipped, warnings: reporter.warnings, failures: result.code.startsWith('E_') ? 1 : reporter.failures },
+  };
+}
+
 function run() {
   let opts: CliOptions | null = null;
   try {
@@ -944,9 +547,16 @@ function run() {
     const reporter = new Reporter(runId, opts.json);
     const installStatePath = join(opts.openclawHome, MANAGED_DIR_NAME, INSTALL_STATE_FILE);
 
-    const result = opts.command === 'install'
-      ? runInstall(opts, runId, reporter)
-      : runVerify(opts, runId, reporter);
+    let result: InstallState;
+    if (opts.command === 'install') {
+      result = runInstall(opts, runId, reporter);
+    } else if (opts.command === 'verify') {
+      result = runVerify(opts, runId, reporter);
+    } else if (opts.command === 'rollback') {
+      result = runRollback(opts, runId, reporter);
+    } else {
+      result = runUninstall(opts, runId, reporter);
+    }
 
     writeJsonAtomic(installStatePath, result, opts.dryRun);
 
