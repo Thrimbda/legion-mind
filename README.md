@@ -4,7 +4,7 @@ LegionMind 不是另一个“让智能体多写一点代码”的工作流包。
 
 它试图成为一套面向高级智能体使用者的**多智能体工程操作系统内核**：把任务记忆、设计门禁、评审协议、验证与汇报收敛成一套**可安装、可验证、可迭代**的智能体编排内核，让人类从执行者转向指挥、验收者和系统迭代者。
 
-> 当前状态：`早期 / 内核成形中`
+> 当前状态：`可运行内核 / v1 前硬化中`
 
 ## 为什么需要 LegionMind
 
@@ -13,7 +13,7 @@ LegionMind 不是另一个“让智能体多写一点代码”的工作流包。
 - 并行执行能放大 token 吞吐量，但也会把错误方向一起放大。
 - 真正的瓶颈会从“写代码”转移到人的上下文管理、验收和决策。
 - 智能体最容易翻车的不是世界知识，而是项目里的隐含知识墙，也就是本项目中具备主见的部分：各类历史决策，局部的最佳实践。
-- 没有设计门禁（中高风险改动先在 `plan.md` / `docs/rfc.md` 说清为什么改、影响什么、怎么回滚）、分层验证（把安装校验、任务验证、文档一致性分开检查）和证据化汇报（用 `test-report.md`、`report-walkthrough.md`、`pr-body.md` 带着证据交付），多智能体只会更快地返工。
+- 没有设计门禁（中高风险改动先在 `.legion/tasks/<task-id>/plan.md` / `.legion/tasks/<task-id>/docs/rfc.md` 说清为什么改、影响什么、怎么回滚）、分层验证（把安装校验、任务验证、文档一致性分开检查）和证据化汇报（用 `test-report.md`、`report-walkthrough.md`、`pr-body.md` 带着证据交付），多智能体只会更快地返工。
 - 当模型越来越强，工作流不该只靠感觉调参，而要走向证据驱动的工程化迭代。
 
 LegionMind 试图把这些问题当成系统问题来处理，而不是继续堆提示词、堆技能、堆智能体数量。
@@ -55,7 +55,7 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 - **Wiki 记忆**：`.legion/wiki/**`
   - **它不保存任务过程，而是沉淀跨任务仍然有效的当前知识**
   - 统一收口决策、可复用模式、维护债务和任务摘要
-- **规则 / 运行时层**：`skills/**` + `.opencode/**`
+- **规则 / 运行时层**：`skills/**` + `.opencode/**` + OpenClaw 安装入口
   - 工作流真源、技能边界、代理接线，以及本地管理脚本
 
 在由 Legion 管理的仓库中，任何非简单的多步骤工程工作都必须先过 `legion-workflow` 这一 mandatory first gate；在完成入口判断前，不应先做代码、git 或文件探索，也不应开始实现或派生子代理。
@@ -94,7 +94,7 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 
 ## 快速开始
 
-从仓库根目录选择你正在使用的运行时安装一次，然后用 strict verify 证明安装结果可复核。本仓库当前维护 OpenCode 与 OpenClaw 两条入口；二者都会把 `skills/**` 安装到对应工具能发现的位置，并记录 managed manifest。
+从仓库根目录选择你正在使用的运行时安装一次，然后用 strict verify 证明安装结果可复核。本仓库当前只维护 OpenCode 与 OpenClaw 两条入口；其他运行时不在当前支持面，也没有通用 runtime orchestrator 承诺。OpenCode 安装固定核心 skill set，OpenClaw 动态安装带 `SKILL.md` 的 skills；二者都会记录 managed manifest。
 
 前置要求：Node.js `>=22.6.0`。
 
@@ -106,7 +106,7 @@ node --version
 
 ### 安装到 OpenCode
 
-OpenCode 安装会同步 `.opencode/agents`、`.opencode/plugins`（如果存在）和 `skills/**`，并记录 managed manifest / backup index；这是当前带完整 `install / verify / rollback` 的路径。
+OpenCode 安装会同步 `.opencode/agents`、`.opencode/plugins`（如果存在）和固定核心 skill set，并记录 managed manifest / backup index；这是当前带完整 `install / verify / rollback / uninstall` 的路径。
 
 ```bash
 npm run opencode:install
@@ -132,18 +132,30 @@ node scripts/setup-opencode.ts verify --strict --config-dir .cache/opencode-conf
 npm run opencode:rollback
 ```
 
+卸载由 manifest 管理且未漂移的文件：
+
+```bash
+npm run opencode:uninstall
+```
+
 ### 安装到 OpenClaw
 
-OpenClaw 文档支持从 `~/.openclaw/skills`、workspace `skills/` 和 `skills.load.extraDirs` 发现 skills。本仓库的 OpenClaw 安装脚本现在把 local skills root 作为主路径，并保留 `extraDirs` 兼容：
+OpenClaw 文档支持从 `~/.openclaw/skills`、workspace `skills/` 和 `skills.load.extraDirs` 发现 skills。本仓库的 OpenClaw 安装脚本现在把 local skills root 作为主路径，并保留 `extraDirs` 兼容；文件资产的 `install / verify / rollback / uninstall` 语义与 OpenCode 对齐：
 
 - 默认把 `skills/<name>/` 安装到 `~/.openclaw/skills/<name>/`
 - 同时把当前 checkout 的 `skills/` 加入 `~/.openclaw/openclaw.json` 的 `skills.load.extraDirs`（可用 `--no-extra-dir` 跳过）
 - 在 `~/.openclaw/.legionmind` 记录 managed manifest / backup index
 - 用 strict verify 校验 managed ownership 与 checksum drift
+- rollback 只恢复 backup index 记录的 managed skills 文件；uninstall 默认只删除 manifest 管理且未本地漂移的文件，`--force` 才删除漂移目标
+- `openclaw.json` 不作为 managed file 管理，安装只追加缺失的 `skills.load.extraDirs`，回滚/卸载不会删除用户配置；extraDirs 兼容项在 verify 中保持 warning-only，可用 `--no-extra-dir` 跳过
 
 ```bash
 npm run openclaw:install
 npm run openclaw:verify
+npm run openclaw:rollback
+npm run openclaw:uninstall
+
+npm run test:regression
 ```
 
 如果只是想在当前 repo workspace 中试用 OpenClaw，OpenClaw 本身也会扫描 `<workspace>/skills`；全局安装的价值是让这些 skills 在其他 workspace 也可用。
@@ -153,6 +165,13 @@ npm run openclaw:verify
 ```bash
 node --experimental-strip-types scripts/setup-openclaw.ts install --config-dir .cache/openclaw-home
 node --experimental-strip-types scripts/setup-openclaw.ts verify --strict --config-dir .cache/openclaw-home
+```
+
+回滚或卸载 managed skills 文件：
+
+```bash
+npm run openclaw:rollback
+npm run openclaw:uninstall
 ```
 
 遇到已有本地文件冲突时，安装默认会 safe-skip；确认要备份并覆盖后再使用：
@@ -173,9 +192,14 @@ npm run openclaw:install -- --no-extra-dir
 npm run opencode:install
 npm run opencode:verify
 npm run opencode:rollback
+npm run opencode:uninstall
 
 npm run openclaw:install
 npm run openclaw:verify
+npm run openclaw:rollback
+npm run openclaw:uninstall
+
+npm run test:regression
 ```
 
 当前 npm package 暴露的 bin 是 `legion-mind-opencode`，对应 OpenCode 安装脚本；正式发布入口仍以发行包文档为准。
@@ -210,7 +234,13 @@ LegionMind 不应该靠“看起来能跑”来证明自己，而应该把检查
 2. **任务级验证证据**
     - 证明具体任务留下了 `test-report.md`、`review-change.md`、`report-walkthrough.md` 这类可复核交付物，而不是只说“已经测过”。
 3. **真源收敛**
-    - 证明 README、AGENTS、工作流内核、`.legion/wiki/**` 与参考文档对当前入口和阶段主干的说法一致。
+    - 证明 README、AGENTS、工作流内核、`.legion/wiki/**`、skills 与 benchmark README 对当前入口和阶段主干的说法一致。
+
+核心本地回归入口：
+
+```bash
+npm run test:regression
+```
 
 当前核心迭代**不**把已删除的工作流本地回归脚本视为默认验收路径；验证叙事只承认当前仍存在的安装 / 校验 / 回滚主路径。
 
@@ -227,8 +257,8 @@ LegionMind 不应该靠“看起来能跑”来证明自己，而应该把检查
 
 ### 还没有毕业的部分
 
-- 自动化验证层还偏薄，离系统化回归验证链还有距离
-- README、使用说明、本地 CLI 工具与工作流心智模型还需要进一步完全收敛
+- 自动化验证层已经有 setup / skill surface / CLI 文件系统不变量回归，但还需要更多真实项目压力测试
+- README、本地 CLI 工具与工作流心智模型仍需持续收敛
 - 发布闭环和“默认可发布”信号还不够强
 - 从早期内核走向低摩擦产品，还需要更多真实项目压力测试
 
@@ -251,7 +281,7 @@ README 在这个仓库里不只是入口文档，也应该是这个 v1 的目标
 
 ## 适用对象
 
-- 已经在高频使用 Claude / OpenCode / Codex / 多智能体工作流的人
+- 已经使用 OpenCode 或 OpenClaw 承载工程代理工作流的人
 - 已经意识到提示词工程不足以解决上下文、验证、汇报和治理问题的人
 - 需要设计门禁、交付物、评审协议和可持续记忆的复杂工程项目
 - 想把“我自己怎么扩展”变成“系统如何扩展我”的人
@@ -265,9 +295,10 @@ README 在这个仓库里不只是入口文档，也应该是这个 v1 的目标
 
 ## 相关文档
 
-- 使用说明：`docs/legionmind-usage.md`
-- wiki 索引（由后续 writeback 按需建立）：`.legion/wiki/index.md`
-- 工作流内核：`skills/legion-workflow/SKILL.md`
+- 产品入口与支持边界：`README.md`
+- wiki 当前知识：`.legion/wiki/**`
+- 工作流内核与阶段真源：`skills/**`
+- benchmark 当前真源：`vibe-harness-bench/README.md`
 
 ## 最后再说一句
 

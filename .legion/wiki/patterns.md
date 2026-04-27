@@ -48,11 +48,26 @@
 
 ## 模式：OpenClaw skills 安装使用 local root + managed manifest
 
-- 来源任务：`fix-openclaw-setup-install`
+- 来源任务：`fix-openclaw-setup-install`、`harden-v1-kernel-harness`
 - 背景：OpenClaw 文档支持 `skills.load.extraDirs`，但只写 config 会让安装依赖当前 checkout 路径，且无法验证 installed files 的 ownership / checksum / drift。
-- 做法：`setup-openclaw` 以 `skills/<name>/SKILL.md` 动态发现 LegionMind skills，默认安装到 OpenClaw local skills root `~/.openclaw/skills/<skill>/`，并在 `~/.openclaw/.legionmind/managed-files.v1.json` 记录 managed ownership；`skills.load.extraDirs` 仍默认更新以兼容旧行为。
-- 安全边界：默认不覆盖 unmanaged 或 locally modified 目标；需要 `--force` 才会备份并覆盖。copy/symlink 的 verify 必须以 expected source items 驱动，而不是让 manifest 任意路径驱动遍历。
-- 验证提示：至少覆盖 isolated install、strict verify、idempotent reinstall、checksum drift detection、force repair；避免测试真实 `~/.openclaw`。
+- 做法：`setup-openclaw` 以 `skills/<name>/SKILL.md` 动态发现 LegionMind skills，默认安装到 OpenClaw local skills root `~/.openclaw/skills/<skill>/`，并在 `~/.openclaw/.legionmind/managed-files.v1.json` 记录 managed ownership；`skills.load.extraDirs` 仍默认追加以兼容旧行为。OpenClaw 现在支持与 OpenCode 对齐的 `install / verify / rollback / uninstall` 文件资产 lifecycle，并复用 `scripts/lib/setup-core.ts` 的共享 lifecycle primitives。
+- 安全边界：默认不覆盖 unmanaged 或 locally modified 目标；需要 `--force` 才会备份并覆盖。copy/symlink 的 verify 必须以 expected source items 驱动，而不是让 manifest 任意路径驱动遍历。rollback / uninstall 必须验证 backup index shape、拒绝 managed-root-as-target、拒绝 symlinked managed root 的破坏性操作，并要求 target / backup 同时满足 adapter 声明的 textual root 与 canonical containment。
+- 验证提示：至少覆盖 isolated install、strict verify、idempotent reinstall、checksum drift detection、force repair、rollback `--to`、uninstall drift safe-skip/force、tampered manifest/backup path rejection、symlinked managed-root refusal、invalid backup-index blocking；避免测试真实 `~/.openclaw`。
+
+## 模式：Setup regression suite 锁定安装与 CLI 不变量
+
+- 来源任务：`harden-v1-kernel-harness`
+- 背景：LegionMind 已有 setup automation 与 CLI 薄工具，但缺少可重复回归入口来防止安装 lifecycle、skill surface 与 CLI 文件系统不变量漂移。
+- 做法：使用 Node built-in `node:test` 维护 `tests/regression/**`，并通过 `npm run test:regression` 运行。当前覆盖 OpenCode/OpenClaw isolated setup lifecycle、OpenCode 固定核心 skill list 与 OpenClaw dynamic skill surface 的包含关系、以及 `legion.ts init -> task create -> status -> task list` 文件系统不变量。
+- 安全边界：测试必须在 repo-local `.cache/regression` 下创建临时根，避免把 Legion 任务产物、日志或临时缓存写到 repo 外；真实 home 目录不得参与 regression。
+- 常见陷阱：不要把 regression 扩成端到端 agent runtime harness；不要让 README 声称支持 OpenCode/OpenClaw 之外的运行时；不要把 CLI 测试写成 workflow phase decision 测试，CLI 仍只是薄文件工具。
+
+## 模式：Current truth 不再放根 `docs/`
+
+- 来源任务：`harden-v1-kernel-harness`
+- 背景：根 `docs/` 中的 benchmark、usage 与历史设计材料已经和当前 workflow / setup / benchmark surface 发生漂移，继续作为入口会制造第二套 current truth。
+- 做法：根 `docs/` 退出当前真源。当前用户入口为 `README.md`；跨任务当前知识为 `.legion/wiki/**`；workflow / phase 真源为 `skills/**`；benchmark 当前使用说明为 `vibe-harness-bench/README.md`。
+- 常见陷阱：不要在 README 或 wiki current-surface 中继续链接已删除的 `docs/benchmark.md`、`docs/legionmind-usage.md`、`docs/skill-split-plan.md` 或 `docs/legion-context-management-raw-wiki-schema.md`；历史材料需要时回 git history 或 `.legion/tasks/**` raw docs。
 
 ## 模式：HUT 本地执行使用 repo 外临时根
 
