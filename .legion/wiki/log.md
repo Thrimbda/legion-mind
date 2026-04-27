@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-04-25] writeback | fix-openclaw-setup-install
+
+- Added task summary for `fix-openclaw-setup-install` under `tasks/`.
+- Promoted OpenClaw local skills root + managed manifest installation as a durable CLI pattern in `patterns.md`.
+- Recorded current conclusion: `setup-openclaw` should install to `~/.openclaw/skills` and use strict verify for ownership/checksum drift, while keeping `skills.load.extraDirs` compatibility.
+
 ## [2026-04-25] writeback | add-git-worktree-pr-envelope
 
 - Promoted Git worktree + PR lifecycle envelope as a durable development-task pattern in `patterns.md`.

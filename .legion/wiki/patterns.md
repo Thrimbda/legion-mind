@@ -45,3 +45,11 @@
 - 常见陷阱：不要让 `verify --strict` 退回 presence-only；也不要让 manifest 任意路径驱动遍历，verify 主循环必须由当前 expected items 驱动。
 - 迁移提示：手工复制但内容与源一致的 legacy 安装可由普通 `install` 通过 `OK_ADOPT` 补写 ownership；内容不同的 unmanaged 冲突仍需审阅后 `install --force`。
 - 验证提示：至少覆盖 copy/symlink strict success、checksum drift、unmanaged safe-skip、same-content adoption、invalid manifest、symlink type drift + force repair、rollback 后不误报 READY。
+
+## 模式：OpenClaw skills 安装使用 local root + managed manifest
+
+- 来源任务：`fix-openclaw-setup-install`
+- 背景：OpenClaw 文档支持 `skills.load.extraDirs`，但只写 config 会让安装依赖当前 checkout 路径，且无法验证 installed files 的 ownership / checksum / drift。
+- 做法：`setup-openclaw` 以 `skills/<name>/SKILL.md` 动态发现 LegionMind skills，默认安装到 OpenClaw local skills root `~/.openclaw/skills/<skill>/`，并在 `~/.openclaw/.legionmind/managed-files.v1.json` 记录 managed ownership；`skills.load.extraDirs` 仍默认更新以兼容旧行为。
+- 安全边界：默认不覆盖 unmanaged 或 locally modified 目标；需要 `--force` 才会备份并覆盖。copy/symlink 的 verify 必须以 expected source items 驱动，而不是让 manifest 任意路径驱动遍历。
+- 验证提示：至少覆盖 isolated install、strict verify、idempotent reinstall、checksum drift detection、force repair；避免测试真实 `~/.openclaw`。
