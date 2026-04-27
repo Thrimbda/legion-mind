@@ -19,3 +19,4 @@
 - Git worktree + PR lifecycle envelope 见 `patterns.md` 与 `tasks/add-git-worktree-pr-envelope.md`；执行细节真源是 `skills/git-worktree-pr/SKILL.md`。
 - `task create` 现在采用 staging + rename 物化模式，见 `patterns.md`。
 - `setup-opencode verify --strict` 现在必须校验安装资产内容与 managed ownership，见 `patterns.md` 与 `tasks/harden-strict-verify-integrity.md`。
+- `setup-openclaw` 现在采用 OpenClaw local skills root + managed manifest + strict verify 的安装路径，见 `patterns.md` 与 `tasks/fix-openclaw-setup-install.md`。

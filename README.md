@@ -94,33 +94,91 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 
 ## 快速开始
 
-最短路径是先验证它能否在本地形成最小闭环。
+从仓库根目录选择你正在使用的运行时安装一次，然后用 strict verify 证明安装结果可复核。本仓库当前维护 OpenCode 与 OpenClaw 两条入口；二者都会把 `skills/**` 安装到对应工具能发现的位置，并记录 managed manifest。
 
-### 安装
-
-```bash
-node scripts/setup-opencode.ts install
-node scripts/setup-opencode.ts verify --strict
-```
-
-隔离目录安装：
+前置要求：Node.js `>=22.6.0`。
 
 ```bash
-node scripts/setup-opencode.ts install --config-dir /tmp/opencode-config --opencode-home /tmp/opencode-home
-node scripts/setup-opencode.ts verify --strict --config-dir /tmp/opencode-config --opencode-home /tmp/opencode-home
+node --version
 ```
 
-回滚最近一次备份：
+如果你同时使用 OpenCode 和 OpenClaw，可以两条都安装；否则只跑对应小节即可。
+
+### 安装到 OpenCode
+
+OpenCode 安装会同步 `.opencode/agents`、`.opencode/plugins`（如果存在）和 `skills/**`，并记录 managed manifest / backup index；这是当前带完整 `install / verify / rollback` 的路径。
 
 ```bash
-node scripts/setup-opencode.ts rollback
+npm run opencode:install
+npm run opencode:verify
 ```
 
-发布入口预期为：
+默认目标：
+
+- config: `~/.config/opencode`
+- skills: `~/.opencode/skills`
+- managed state: `~/.config/opencode/.legionmind`
+
+如果要先在仓库内隔离目录里试跑：
 
 ```bash
-bunx legion-mind-opencode install
+node scripts/setup-opencode.ts install --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
+node scripts/setup-opencode.ts verify --strict --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
 ```
+
+回滚最近一次由安装脚本创建的备份：
+
+```bash
+npm run opencode:rollback
+```
+
+### 安装到 OpenClaw
+
+OpenClaw 文档支持从 `~/.openclaw/skills`、workspace `skills/` 和 `skills.load.extraDirs` 发现 skills。本仓库的 OpenClaw 安装脚本现在把 local skills root 作为主路径，并保留 `extraDirs` 兼容：
+
+- 默认把 `skills/<name>/` 安装到 `~/.openclaw/skills/<name>/`
+- 同时把当前 checkout 的 `skills/` 加入 `~/.openclaw/openclaw.json` 的 `skills.load.extraDirs`（可用 `--no-extra-dir` 跳过）
+- 在 `~/.openclaw/.legionmind` 记录 managed manifest / backup index
+- 用 strict verify 校验 managed ownership 与 checksum drift
+
+```bash
+npm run openclaw:install
+npm run openclaw:verify
+```
+
+如果只是想在当前 repo workspace 中试用 OpenClaw，OpenClaw 本身也会扫描 `<workspace>/skills`；全局安装的价值是让这些 skills 在其他 workspace 也可用。
+
+仓库内隔离目录试跑：
+
+```bash
+node --experimental-strip-types scripts/setup-openclaw.ts install --config-dir .cache/openclaw-home
+node --experimental-strip-types scripts/setup-openclaw.ts verify --strict --config-dir .cache/openclaw-home
+```
+
+遇到已有本地文件冲突时，安装默认会 safe-skip；确认要备份并覆盖后再使用：
+
+```bash
+npm run openclaw:install -- --force
+```
+
+如果只想把 skills 安装到 OpenClaw local root，而不改 `openclaw.json`：
+
+```bash
+npm run openclaw:install -- --no-extra-dir
+```
+
+### 常用脚本
+
+```bash
+npm run opencode:install
+npm run opencode:verify
+npm run opencode:rollback
+
+npm run openclaw:install
+npm run openclaw:verify
+```
+
+当前 npm package 暴露的 bin 是 `legion-mind-opencode`，对应 OpenCode 安装脚本；正式发布入口仍以发行包文档为准。
 
 ### 本地管理命令
 

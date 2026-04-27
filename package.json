@@ -11,7 +11,7 @@
     "opencode:verify": "node scripts/setup-opencode.ts verify --strict",
     "opencode:rollback": "node scripts/setup-opencode.ts rollback",
     "openclaw:install": "node --experimental-strip-types scripts/setup-openclaw.ts install",
-    "openclaw:verify": "node --experimental-strip-types scripts/setup-openclaw.ts verify"
+    "openclaw:verify": "node --experimental-strip-types scripts/setup-openclaw.ts verify --strict"
   },
   "engines": {
     "node": ">=22.6.0"
