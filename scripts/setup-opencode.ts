@@ -103,7 +103,7 @@ function parseArgs(argv: string[]): CliOptions {
   }
 
   const configDir = resolve(getValue('--config-dir') ?? join(homedir(), '.config', 'opencode'));
-  const opencodeHome = resolve(getValue('--opencode-home') ?? join(homedir(), '.opencode'));
+  const opencodeHome = resolve(getValue('--opencode-home') ?? join(homedir(), '.agents'));
 
   return {
     command,

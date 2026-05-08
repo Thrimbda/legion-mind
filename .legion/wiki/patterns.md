@@ -54,6 +54,14 @@
 - 安全边界：默认不覆盖 unmanaged 或 locally modified 目标；需要 `--force` 才会备份并覆盖。copy/symlink 的 verify 必须以 expected source items 驱动，而不是让 manifest 任意路径驱动遍历。rollback / uninstall 必须验证 backup index shape、拒绝 managed-root-as-target、拒绝 symlinked managed root 的破坏性操作，并要求 target / backup 同时满足 adapter 声明的 textual root 与 canonical containment。
 - 验证提示：至少覆盖 isolated install、strict verify、idempotent reinstall、checksum drift detection、force repair、rollback `--to`、uninstall drift safe-skip/force、tampered manifest/backup path rejection、symlinked managed-root refusal、invalid backup-index blocking；避免测试真实 `~/.openclaw`。
 
+## 模式：OpenCode setup 的 Legion skills 默认安装到 agents skill root
+
+- 来源任务：`setup-opencode-agents-skills`
+- 背景：当前 agents runtime 从 `~/.agents/skills` 发现 skills；继续把 Legion skills 默认复制到 `~/.opencode/skills` 会让安装位置与运行时发现位置漂移。
+- 做法：`scripts/setup-opencode.ts` 保持 OpenCode config / agents / plugins 管理路径不变（默认 `~/.config/opencode`），但 skill home 默认改为 `~/.agents`，并沿用既有 `skills/<skill>` 拼接，因此最终目标为 `~/.agents/skills/<skill>`。
+- 兼容边界：`--opencode-home` 仍作为显式 override 保留；传入后会继续使用 `<override>/skills/<skill>`，用于测试隔离或历史安装路径。
+- 验证提示：除 lifecycle regression 外，使用 repo-local isolated `HOME` 运行 `install --dry-run --json`，确认输出 target 包含 `.agents/skills/<skill>`，避免写真实 home。
+
 ## 模式：Setup regression suite 锁定安装与 CLI 不变量
 
 - 来源任务：`harden-v1-kernel-harness`
