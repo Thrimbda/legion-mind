@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-05-08] writeback | setup-opencode-agents-skills
+
+- Added task summary for `setup-opencode-agents-skills` under `tasks/`.
+- Promoted the current setup convention that `setup-opencode` keeps OpenCode config/agents defaults while installing Legion skills to `~/.agents/skills` by default.
+- Recorded the compatibility boundary that `--opencode-home` remains an explicit override for tests and historical paths.
+
 ## [2026-04-27] writeback | refresh-readme-current-reality
 
 - Added task summary for `refresh-readme-current-reality` under `tasks/`.

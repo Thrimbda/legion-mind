@@ -116,7 +116,7 @@ npm run opencode:verify
 默认目标：
 
 - config: `~/.config/opencode`
-- skills: `~/.opencode/skills`
+- skills: `~/.agents/skills`
 - managed state: `~/.config/opencode/.legionmind`
 
 如果要先在仓库内隔离目录里试跑：
