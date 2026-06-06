@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Harden report-walkthrough skill | Walkthrough</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96.4% 0.012 91);
+      --paper-deep: oklch(91.5% 0.018 91);
+      --surface: oklch(98.1% 0.009 94);
+      --surface-2: oklch(94.8% 0.012 94);
+      --ink: oklch(23.4% 0.024 142);
+      --ink-soft: oklch(43% 0.031 142);
+      --muted: oklch(55% 0.029 132);
+      --line: oklch(80.5% 0.022 105);
+      --line-strong: oklch(64% 0.036 128);
+      --accent: oklch(45% 0.13 153);
+      --accent-ink: oklch(28% 0.092 153);
+      --accent-soft: oklch(88.8% 0.06 151);
+      --caution: oklch(88.5% 0.07 73);
+      --ok: oklch(89% 0.065 144);
+      --shadow: 0 24px 70px oklch(28% 0.022 140 / 0.14);
+      --shadow-small: 0 10px 28px oklch(28% 0.022 140 / 0.09);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 14px;
+      --content: min(1180px, calc(100vw - 36px));
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 12% 4%, oklch(88% 0.06 148 / 0.74), transparent 30rem),
+        radial-gradient(circle at 88% 8%, oklch(90% 0.048 78 / 0.62), transparent 24rem),
+        linear-gradient(180deg, var(--paper), var(--paper-deep));
+      color: var(--ink);
+      font-family:
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Noto Sans CJK SC",
+        "PingFang SC",
+        sans-serif;
+      line-height: 1.64;
+    }
+
+    a {
+      color: inherit;
+      text-decoration-color: oklch(58% 0.09 153 / 0.5);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.18em;
+    }
+
+    code {
+      border: 1px solid var(--line);
+      border-radius: 0.58em;
+      background: oklch(93.2% 0.012 94);
+      padding: 0.08em 0.38em;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.9em;
+    }
+
+    main {
+      width: var(--content);
+      margin: 0 auto;
+      padding: 52px 0 72px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+      gap: 34px;
+      align-items: end;
+      min-height: 42vh;
+      margin-bottom: 30px;
+    }
+
+    .kicker {
+      margin: 0 0 16px;
+      color: var(--accent-ink);
+      font-size: 0.82rem;
+      font-weight: 780;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 920px;
+      margin: 0;
+      font-size: clamp(2.7rem, 7vw, 6.6rem);
+      line-height: 0.91;
+      letter-spacing: -0.074em;
+    }
+
+    .lede {
+      max-width: 70ch;
+      margin: 24px 0 0;
+      color: var(--ink-soft);
+      font-size: clamp(1.04rem, 1.7vw, 1.24rem);
+    }
+
+    .state-sheet {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .state-sheet::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 100% 0%, oklch(89% 0.06 151 / 0.8), transparent 14rem);
+      pointer-events: none;
+    }
+
+    .state-sheet > * {
+      position: relative;
+    }
+
+    .state-title {
+      margin: 0 0 18px;
+      font-size: 1.04rem;
+      font-weight: 760;
+      letter-spacing: -0.025em;
+    }
+
+    .state-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .state-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: center;
+      min-height: 42px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .state-row:first-child {
+      border-top: 0;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      border: 1px solid oklch(70% 0.052 145);
+      border-radius: 999px;
+      background: var(--ok);
+      color: var(--accent-ink);
+      padding: 0.12rem 0.64rem;
+      font-size: 0.78rem;
+      font-weight: 820;
+      letter-spacing: 0.015em;
+      white-space: nowrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 248px minmax(0, 1fr);
+      gap: 34px;
+      align-items: start;
+    }
+
+    .nav {
+      position: sticky;
+      top: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: oklch(97.2% 0.01 94 / 0.9);
+      box-shadow: var(--shadow-small);
+      padding: 12px;
+    }
+
+    .nav-label {
+      margin: 8px 10px 10px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 760;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .nav a {
+      display: block;
+      border-radius: 12px;
+      color: var(--ink-soft);
+      padding: 8px 10px;
+      text-decoration: none;
+      font-size: 0.93rem;
+    }
+
+    .nav a:hover {
+      background: var(--accent-soft);
+      color: var(--ink);
+    }
+
+    .stack {
+      display: grid;
+      gap: 26px;
+    }
+
+    section {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: var(--surface);
+      box-shadow: var(--shadow-small);
+      padding: clamp(22px, 4vw, 36px);
+    }
+
+    .plain-section {
+      border-color: transparent;
+      background: transparent;
+      box-shadow: none;
+      padding: 8px 0 4px;
+    }
+
+    h2 {
+      max-width: 760px;
+      margin: 0 0 14px;
+      font-size: clamp(1.45rem, 2.8vw, 2.5rem);
+      line-height: 1.04;
+      letter-spacing: -0.055em;
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      font-size: 1.02rem;
+      letter-spacing: -0.02em;
+    }
+
+    p {
+      max-width: 72ch;
+      margin: 0 0 12px;
+      color: var(--ink-soft);
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.1rem;
+    }
+
+    li + li {
+      margin-top: 0.42rem;
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 12px;
+      margin: 22px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .summary-list li {
+      display: grid;
+      grid-template-columns: 32px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      color: var(--ink-soft);
+    }
+
+    .summary-list b {
+      color: var(--ink);
+    }
+
+    .mark {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid oklch(70% 0.052 145);
+      border-radius: 50%;
+      background: var(--ok);
+      color: var(--accent-ink);
+      font-size: 0.82rem;
+      font-weight: 900;
+    }
+
+    .scope-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .scope-box {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--surface-2);
+      padding: 20px;
+    }
+
+    .scope-box.caution {
+      border-color: oklch(75% 0.06 72);
+      background: var(--caution);
+    }
+
+    .scope-box h3 {
+      margin-top: 0;
+    }
+
+    .rail {
+      display: grid;
+      grid-template-columns: 24px minmax(0, 1fr);
+      column-gap: 18px;
+      row-gap: 0;
+      margin-top: 22px;
+    }
+
+    .rail-step {
+      display: contents;
+    }
+
+    .rail-dot {
+      position: relative;
+      display: grid;
+      place-items: start center;
+      min-height: 68px;
+    }
+
+    .rail-dot::before {
+      content: "";
+      width: 12px;
+      height: 12px;
+      margin-top: 8px;
+      border: 2px solid var(--accent);
+      border-radius: 50%;
+      background: var(--surface);
+      z-index: 1;
+    }
+
+    .rail-dot::after {
+      content: "";
+      position: absolute;
+      top: 24px;
+      bottom: -8px;
+      width: 1px;
+      background: var(--line-strong);
+    }
+
+    .rail-step:last-child .rail-dot::after {
+      display: none;
+    }
+
+    .rail-card {
+      padding-bottom: 22px;
+    }
+
+    .rail-card h3 {
+      margin: 0 0 4px;
+    }
+
+    .rail-card p {
+      margin: 0;
+      font-size: 0.96rem;
+    }
+
+    .evidence {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      overflow: hidden;
+      border-radius: var(--radius-lg);
+      font-size: 0.94rem;
+    }
+
+    .evidence th,
+    .evidence td {
+      border-bottom: 1px solid var(--line);
+      padding: 13px 14px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .evidence th {
+      background: oklch(93.8% 0.014 94);
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 820;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .evidence tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .decision {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--surface-2);
+      padding: 18px;
+    }
+
+    .decision strong {
+      display: block;
+      margin-bottom: 6px;
+      letter-spacing: -0.018em;
+    }
+
+    .decision p {
+      margin: 0;
+      font-size: 0.96rem;
+    }
+
+    .verification {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .verify-item {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface-2);
+      padding: 8px 12px;
+      color: var(--ink-soft);
+      font-size: 0.92rem;
+    }
+
+    .final {
+      border-color: oklch(68% 0.055 145);
+      background:
+        radial-gradient(circle at 88% 18%, oklch(86% 0.065 151 / 0.9), transparent 17rem),
+        var(--surface);
+    }
+
+    .final-list {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .final-item {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: oklch(97.2% 0.009 94 / 0.78);
+      padding: 16px;
+    }
+
+    .final-item span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 760;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .final-item b {
+      display: block;
+      margin-top: 5px;
+      word-break: break-word;
+    }
+
+    .note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    @media (max-width: 920px) {
+      .hero,
+      .layout,
+      .scope-grid,
+      .decision-grid,
+      .final-list {
+        grid-template-columns: 1fr;
+      }
+
+      .nav {
+        position: static;
+      }
+    }
+
+    @media print {
+      body {
+        background: var(--surface);
+      }
+
+      main {
+        width: auto;
+        padding: 0;
+      }
+
+      .hero,
+      .layout,
+      .scope-grid,
+      .decision-grid,
+      .final-list {
+        display: block;
+      }
+
+      .nav {
+        display: none;
+      }
+
+      section,
+      .state-sheet {
+        break-inside: avoid;
+        box-shadow: none;
+      }
+
+      a {
+        text-decoration: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">Legion reviewer walkthrough</p>
+        <h1>Harden report-walkthrough skill</h1>
+        <p class="lede">
+          本交付把 <code>report-walkthrough</code> 从轻量摘要提示升级为证据优先的 reviewer handoff 协议。读者应能快速判断：边界是否清楚，证据是否健康，PR lifecycle 是否真的闭环。
+        </p>
+      </div>
+
+      <aside class="state-sheet" aria-label="交付终态">
+        <p class="state-title">交付终态</p>
+        <div class="state-grid">
+          <div class="state-row"><span>Profile</span><span class="pill">implementation</span></div>
+          <div class="state-row"><span>Design gate</span><span class="pill">PASS</span></div>
+          <div class="state-row"><span>Regression</span><span class="pill">10/10 PASS</span></div>
+          <div class="state-row"><span>PR</span><span class="pill">MERGED #12</span></div>
+        </div>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav class="nav" aria-label="Walkthrough navigation">
+        <p class="nav-label">Sections</p>
+        <a href="#profile">Profile</a>
+        <a href="#summary">Reviewer summary</a>
+        <a href="#scope">Scope</a>
+        <a href="#evidence">Evidence map</a>
+        <a href="#path">Delivery path</a>
+        <a href="#decisions">Decisions</a>
+        <a href="#verification">Verification</a>
+        <a href="#risks">Risks</a>
+        <a href="#final">Final state</a>
+      </nav>
+
+      <div class="stack">
+        <section id="profile" class="plain-section">
+          <h2>Profile</h2>
+          <p>
+            <strong>implementation。</strong>本任务修改的是 skill 文档、PR body 模板和 Legion 任务/wiki 文档。虽然没有改生产业务代码，但它走过实现、验证和 <code>review-change</code>，因此不是 rfc-only。
+          </p>
+        </section>
+
+        <section id="summary">
+          <h2>Reviewer Summary</h2>
+          <ul class="summary-list">
+            <li><span class="mark">1</span><span><b>术语收敛：</b>用 walkthrough profile 替代旧的 <code>implementation mode</code> / <code>rfc-only mode</code>，避免和 Legion execution mode 混淆。</span></li>
+            <li><span class="mark">2</span><span><b>证据优先：</b>profile 选择基于阶段链和证据，不再基于 production code 是否变化。</span></li>
+            <li><span class="mark">3</span><span><b>失败回退：</b>FAIL、blocked、stale evidence 不能被包装成 ready-to-merge 摘要。</span></li>
+            <li><span class="mark">4</span><span><b>模板补齐：</b>新增 implementation PR body 模板，并收敛 RFC-only 模板。</span></li>
+            <li><span class="mark">5</span><span><b>生命周期边界：</b><code>pr-body.md</code> 只是 PR 创建或更新输入，不代表 checks、review、merge、cleanup 或 refresh 完成。</span></li>
+          </ul>
+        </section>
+
+        <section id="scope">
+          <h2>Scope</h2>
+          <div class="scope-grid">
+            <div class="scope-box">
+              <h3>In scope</h3>
+              <ul>
+                <li><code>skills/report-walkthrough/SKILL.md</code></li>
+                <li><code>skills/report-walkthrough/references/TEMPLATE_PR_BODY_RFC_ONLY.md</code></li>
+                <li><code>skills/report-walkthrough/references/TEMPLATE_PR_BODY_IMPLEMENTATION.md</code></li>
+                <li><code>.legion/tasks/harden-report-walkthrough/**</code></li>
+                <li><code>.legion/wiki/**</code></li>
+              </ul>
+            </div>
+            <div class="scope-box caution">
+              <h3>Out of scope</h3>
+              <ul>
+                <li>不修改 <code>legion-workflow</code> execution mode。</li>
+                <li>不新增大型 skill benchmark harness。</li>
+                <li>不修改 verify / review / RFC 阶段职责。</li>
+                <li>不同步修改用户主目录下已安装 skill。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="evidence">
+          <h2>Evidence Map</h2>
+          <p>证据必须属于当前 task、对应当前交付状态，且结论非 FAIL / blocked / stale。</p>
+          <table class="evidence">
+            <thead>
+              <tr>
+                <th>Claim</th>
+                <th>Evidence</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>任务契约稳定，文档要求中文</td>
+                <td><code>plan.md</code>，<code>tasks.md</code>，<code>log.md</code></td>
+                <td><span class="pill">PASS</span></td>
+              </tr>
+              <tr>
+                <td>设计可实现、可验证、可回滚</td>
+                <td><code>docs/rfc.md</code></td>
+                <td><span class="pill">PASS</span></td>
+              </tr>
+              <tr>
+                <td>设计门已通过</td>
+                <td><code>docs/review-rfc.md</code></td>
+                <td><span class="pill">PASS</span></td>
+              </tr>
+              <tr>
+                <td>旧版失败模式与 pressure scenarios 已记录</td>
+                <td><code>docs/skill-tdd-scenarios.md</code></td>
+                <td><span class="pill">PASS</span></td>
+              </tr>
+              <tr>
+                <td>Skill 已加入 profile、health check、回退和 schema</td>
+                <td><code>skills/report-walkthrough/SKILL.md</code></td>
+                <td><span class="pill">PASS</span></td>
+              </tr>
+              <tr>
+                <td>双 PR body 模板已具备 lifecycle disclaimer</td>
+                <td><code>skills/report-walkthrough/references/*.md</code></td>
+                <td><span class="pill">PASS</span></td>
+              </tr>
+              <tr>
+                <td>验证覆盖文本断言、格式检查和 regression</td>
+                <td><code>docs/test-report.md</code></td>
+                <td><span class="pill">PASS</span></td>
+              </tr>
+              <tr>
+                <td>只读交付审查无阻塞</td>
+                <td><code>docs/review-change.md</code></td>
+                <td><span class="pill">PASS</span></td>
+              </tr>
+              <tr>
+                <td>PR lifecycle 已闭环</td>
+                <td><a href="https://github.com/Thrimbda/legion-mind/pull/12">PR #12</a></td>
+                <td><span class="pill">MERGED</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="path">
+          <h2>Delivery Path</h2>
+          <div class="rail" aria-label="交付证据链">
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Contract</h3><p><code>plan.md</code> 和 <code>tasks.md</code> 固定目标、范围、非目标和中文输出约束。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>RFC</h3><p><code>docs/rfc.md</code> 定义 profile、证据矩阵、失败回退、输出 schema 和模板策略。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Review RFC</h3><p><code>docs/review-rfc.md</code> PASS，确认设计可实现、可验证、可回滚。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Implementation</h3><p>更新 skill，新增 implementation 模板，收敛 RFC-only 模板。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Verify</h3><p>文本断言、diff whitespace 和 regression 全部通过。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Review Change</h3><p><code>docs/review-change.md</code> PASS，无 blocking findings。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Wiki and PR</h3><p>完成 wiki writeback，PR #12 已合并，worktree 已删除，主工作区已刷新。</p></div></div>
+          </div>
+        </section>
+
+        <section id="decisions">
+          <h2>What Changed / What Was Decided</h2>
+          <div class="decision-grid">
+            <div class="decision"><strong>阶段边界</strong><p><code>report-walkthrough</code> 只整理当前有效证据，不补设计、验证或 review。</p></div>
+            <div class="decision"><strong>Profile 选择</strong><p>docs/config/test/script-only implementation 只要走过实现、验证和 review-change，就仍使用 implementation profile。</p></div>
+            <div class="decision"><strong>失败证据</strong><p>FAIL、blocked、stale evidence 必须回退对应阶段，不能包装成摘要。</p></div>
+            <div class="decision"><strong>PR body</strong><p><code>pr-body.md</code> 只是 PR 创建或更新输入，不代表 lifecycle 完成。</p></div>
+          </div>
+        </section>
+
+        <section id="verification">
+          <h2>Verification / Review Status</h2>
+          <div class="verification" aria-label="验证结果">
+            <span class="verify-item">文本断言：PASS</span>
+            <span class="verify-item"><code>git diff --check</code>：PASS</span>
+            <span class="verify-item"><code>npm run test:regression</code>：10/10 PASS</span>
+            <span class="verify-item"><code>review-rfc</code>：PASS</span>
+            <span class="verify-item"><code>review-change</code>：PASS</span>
+            <span class="verify-item">安全视角：未触发</span>
+          </div>
+        </section>
+
+        <section id="risks">
+          <h2>Risks and Limits</h2>
+          <ul>
+            <li>新版 skill 会更早拒绝缺证据、失败证据或 stale evidence 的 walkthrough 请求。这是预期行为。</li>
+            <li>本任务没有新增大型 benchmark harness，只使用 pressure scenarios、文本断言和 regression 覆盖关键风险。</li>
+            <li>仓库源文件已合并，用户主目录下已安装 skill 仍需通过安装流程同步。</li>
+          </ul>
+        </section>
+
+        <section id="final" class="final">
+          <h2>Final State</h2>
+          <p>本任务已完成。PR 已合并，worktree 已删除，主工作区已刷新到 <code>origin/master</code>。</p>
+          <div class="final-list">
+            <div class="final-item"><span>PR</span><b><a href="https://github.com/Thrimbda/legion-mind/pull/12">github.com/Thrimbda/legion-mind/pull/12</a></b></div>
+            <div class="final-item"><span>Merge commit</span><b><code>b9b79cd</code></b></div>
+            <div class="final-item"><span>State</span><b>MERGED</b></div>
+          </div>
+          <p class="note">注意：主工作区仍有一个既有未提交改动 <code>.opencode/package-lock.json</code>，本任务未触碰。</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
