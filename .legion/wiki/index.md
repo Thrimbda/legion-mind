@@ -17,6 +17,7 @@
 - CLI 相关的 durable 约定见 `patterns.md`。
 - Legion-managed 多步骤工程工作的入口门禁与执行模式分类见 `patterns.md` 与 `tasks/harden-legion-workflow-gate.md`；schema 真源仍是 `skills/legion-workflow/SKILL.md`。
 - Git worktree + PR lifecycle envelope 见 `patterns.md`、`tasks/add-git-worktree-pr-envelope.md` 与 `tasks/fix-aim-autonomous-pr-flow.md`；执行细节真源是 `skills/git-worktree-pr/SKILL.md`。
+- `report-walkthrough` 当前模式是基于有效证据的 reviewer handoff 协议：使用 walkthrough profile、evidence health check 与 PR body lifecycle disclaimer，见 `patterns.md` 与 `tasks/harden-report-walkthrough.md`；schema 真源仍是 `skills/report-walkthrough/SKILL.md`。
 - `task create` 现在采用 staging + rename 物化模式，见 `patterns.md`。
 - `setup-opencode verify --strict` 现在必须校验安装资产内容与 managed ownership，见 `patterns.md` 与 `tasks/harden-strict-verify-integrity.md`。
 - `setup-opencode` 默认仍管理 OpenCode config/agents，但核心 Legion skills 现在安装到 `~/.agents/skills`，见 `patterns.md` 与 `tasks/setup-opencode-agents-skills.md`。

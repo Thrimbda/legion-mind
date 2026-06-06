@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-06] writeback | harden-report-walkthrough
+
+- Added task summary for `harden-report-walkthrough` under `tasks/`.
+- Promoted the current `report-walkthrough` convention: reviewer handoff must be based on current healthy evidence, use walkthrough profile rather than execution mode, and never treat PR body as PR lifecycle completion.
+- Recorded that docs/config/test/script-only implementation still uses implementation profile when it has implementation, verification, and `review-change` evidence.
+
 ## [2026-05-08] writeback | setup-opencode-agents-skills
 
 - Added task summary for `setup-opencode-agents-skills` under `tasks/`.
