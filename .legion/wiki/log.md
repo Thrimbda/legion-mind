@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-06] writeback | html-first-report-walkthrough
+
+- Added task summary for `html-first-report-walkthrough` under `tasks/`.
+- Promoted `report-walkthrough` from Markdown-first handoff to HTML-first reviewer artifact: `docs/report-walkthrough.html` is now the primary walkthrough output, while Markdown remains compact source / fallback and PR body remains PR input.
+- Recorded the clean-doc / impeccable principles for HTML walkthrough generation: reader-first information selection, evidence path, standalone semantic HTML, OKLCH, responsive, print-friendly, no external resources, and no known design anti-patterns.
+
 ## [2026-06-06] writeback | harden-report-walkthrough
 
 - Added task summary for `harden-report-walkthrough` under `tasks/`.

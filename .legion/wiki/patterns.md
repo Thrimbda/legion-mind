@@ -1,13 +1,14 @@
 # Legion Patterns
 
-## 模式：report-walkthrough 只做基于有效证据的 reviewer handoff
+## 模式：report-walkthrough 生成 HTML-first reviewer handoff
 
-- 来源任务：`harden-report-walkthrough`
+- 来源任务：`harden-report-walkthrough`、`html-first-report-walkthrough`
 - 背景：旧版 `report-walkthrough` 虽然要求“已有证据”，但用 `implementation mode` / `rfc-only mode` 容易和 `legion-workflow` execution mode 混淆，并用 production code 是否变化判断分支，导致 docs/config/test/script-only implementation、失败证据或 stale evidence 可能被错误包装成交付摘要。
 - 做法：`report-walkthrough` 使用 walkthrough profile，而不是 execution mode。Profile 由当前阶段链和前置证据决定：有实现结果、`test-report` 与 `review-change` 时使用 implementation profile；仅有 RFC 与 `review-rfc` 的设计交付使用 rfc-only profile。进入输出前必须执行 evidence health check：证据属于当前 task、对应当前交付状态、非 FAIL / blocked / stale，且每个完成性 claim 都能指向证据。
-- 输出：`docs/report-walkthrough.md` 应包含 profile、reviewer summary、scope、evidence map、changed/decided、verification/review status、risks、reviewer checklist 与 next stage；`docs/pr-body.md` 使用 implementation 或 RFC-only 模板。
+- 输出：`docs/report-walkthrough.html` 是主 reviewer-facing artifact；`docs/report-walkthrough.md` 是 compact source / fallback；`docs/pr-body.md` 使用 implementation 或 RFC-only 模板作为 PR 创建/更新输入。HTML artifact 必须包含 profile、reviewer summary、scope、evidence map、delivery path、changed/decided、verification/review status、risks、reviewer checklist 与 final state / next stage。
+- HTML 质量门：先做 clean-doc 信息选择，明确 reader、decision task、main path、evidence selection 与 certainty levels；再做 impeccable 式 product evidence interface，要求 standalone semantic HTML、OKLCH、响应式、print-friendly、无外部资源、无 gradient text、无 side-stripe accent、无默认 glassmorphism、无 hero-metric cliché、无 em dash。
 - 边界：`report-walkthrough` 不补设计、不补验证、不补 review、不替代 `legion-wiki`，也不替代 `git-worktree-pr` PR lifecycle。`pr-body.md` 只是 PR 创建/更新输入，不代表 checks/review/merge、worktree cleanup 或主工作区 refresh 已完成。
-- 常见陷阱：不要因为没有 production code 变化就自动选 rfc-only；不要把 FAIL / blocked / stale evidence 写成 ready-to-merge；不要把 PR body 当成 PR lifecycle 终态。
+- 常见陷阱：不要因为没有 production code 变化就自动选 rfc-only；不要把 FAIL / blocked / stale evidence 写成 ready-to-merge；不要只生成 Markdown 而跳过 HTML；不要把 PR body 当成 PR lifecycle 终态。
 
 ## 模式：开发任务使用 Git worktree + PR lifecycle envelope
 

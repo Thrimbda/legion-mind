@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HTML-first report-walkthrough output | Walkthrough</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96.2% 0.012 92);
+      --paper-deep: oklch(91.8% 0.017 92);
+      --surface: oklch(98% 0.009 94);
+      --surface-warm: oklch(94.7% 0.013 94);
+      --ink: oklch(23.5% 0.023 142);
+      --ink-soft: oklch(43.5% 0.03 142);
+      --muted: oklch(55% 0.028 132);
+      --line: oklch(80.5% 0.022 105);
+      --line-strong: oklch(64% 0.036 128);
+      --accent: oklch(45% 0.13 153);
+      --accent-ink: oklch(28% 0.09 153);
+      --accent-soft: oklch(88.8% 0.06 151);
+      --caution: oklch(88.8% 0.068 73);
+      --ok: oklch(89% 0.064 144);
+      --shadow: 0 24px 70px oklch(28% 0.022 140 / 0.14);
+      --shadow-small: 0 10px 28px oklch(28% 0.022 140 / 0.09);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --content: min(1180px, calc(100vw - 36px));
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 12% 4%, oklch(88% 0.058 148 / 0.72), transparent 30rem),
+        radial-gradient(circle at 90% 8%, oklch(90% 0.048 78 / 0.62), transparent 24rem),
+        linear-gradient(180deg, var(--paper), var(--paper-deep));
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans CJK SC", "PingFang SC", sans-serif;
+      line-height: 1.64;
+    }
+
+    a { color: inherit; text-decoration-color: oklch(58% 0.09 153 / 0.5); text-decoration-thickness: 1px; text-underline-offset: 0.18em; }
+    code { border: 1px solid var(--line); border-radius: 0.58em; background: oklch(93.2% 0.012 94); padding: 0.08em 0.38em; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.9em; }
+
+    main { width: var(--content); margin: 0 auto; padding: 52px 0 72px; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: 34px; align-items: end; min-height: 40vh; margin-bottom: 30px; }
+    .kicker { margin: 0 0 16px; color: var(--accent-ink); font-size: 0.82rem; font-weight: 780; letter-spacing: 0.11em; text-transform: uppercase; }
+    h1 { max-width: 940px; margin: 0; font-size: clamp(2.6rem, 7vw, 6.4rem); line-height: 0.92; letter-spacing: -0.072em; }
+    .lede { max-width: 70ch; margin: 24px 0 0; color: var(--ink-soft); font-size: clamp(1.04rem, 1.7vw, 1.24rem); }
+
+    .state-sheet { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow); padding: 24px; }
+    .state-sheet::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 100% 0%, oklch(89% 0.06 151 / 0.8), transparent 14rem); pointer-events: none; }
+    .state-sheet > * { position: relative; }
+    .state-title { margin: 0 0 18px; font-size: 1.04rem; font-weight: 760; letter-spacing: -0.025em; }
+    .state-row { display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: center; min-height: 42px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.94rem; }
+    .state-row:first-of-type { border-top: 0; }
+    .pill { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; border: 1px solid oklch(70% 0.052 145); border-radius: 999px; background: var(--ok); color: var(--accent-ink); padding: 0.12rem 0.64rem; font-size: 0.78rem; font-weight: 820; letter-spacing: 0.015em; white-space: nowrap; }
+
+    .layout { display: grid; grid-template-columns: 248px minmax(0, 1fr); gap: 34px; align-items: start; }
+    nav { position: sticky; top: 20px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: oklch(97.2% 0.01 94 / 0.92); box-shadow: var(--shadow-small); padding: 12px; }
+    nav p { margin: 8px 10px 10px; color: var(--muted); font-size: 0.72rem; font-weight: 760; letter-spacing: 0.08em; text-transform: uppercase; }
+    nav a { display: block; border-radius: 12px; color: var(--ink-soft); padding: 8px 10px; text-decoration: none; font-size: 0.93rem; }
+    nav a:hover { background: var(--accent-soft); color: var(--ink); }
+
+    .stack { display: grid; gap: 26px; }
+    section { border: 1px solid var(--line); border-radius: var(--radius-xl); background: var(--surface); box-shadow: var(--shadow-small); padding: clamp(22px, 4vw, 36px); }
+    .plain-section { border-color: transparent; background: transparent; box-shadow: none; padding: 8px 0 4px; }
+    h2 { max-width: 760px; margin: 0 0 14px; font-size: clamp(1.45rem, 2.8vw, 2.5rem); line-height: 1.04; letter-spacing: -0.055em; }
+    h3 { margin: 20px 0 8px; font-size: 1.02rem; letter-spacing: -0.02em; }
+    p { max-width: 72ch; margin: 0 0 12px; color: var(--ink-soft); }
+    ul { margin: 0; padding-left: 1.1rem; }
+    li + li { margin-top: 0.42rem; }
+
+    .summary-list { display: grid; gap: 12px; margin: 22px 0 0; padding: 0; list-style: none; }
+    .summary-list li { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 12px; align-items: start; color: var(--ink-soft); }
+    .summary-list b { color: var(--ink); }
+    .mark { display: inline-grid; place-items: center; width: 28px; height: 28px; border: 1px solid oklch(70% 0.052 145); border-radius: 50%; background: var(--ok); color: var(--accent-ink); font-size: 0.82rem; font-weight: 900; }
+
+    .scope-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 16px; margin-top: 18px; }
+    .scope-box { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-warm); padding: 20px; }
+    .scope-box.caution { border-color: oklch(75% 0.06 72); background: var(--caution); }
+    .scope-box h3 { margin-top: 0; }
+
+    .rail { display: grid; grid-template-columns: 24px minmax(0, 1fr); column-gap: 18px; margin-top: 22px; }
+    .rail-step { display: contents; }
+    .rail-dot { position: relative; display: grid; place-items: start center; min-height: 68px; }
+    .rail-dot::before { content: ""; width: 12px; height: 12px; margin-top: 8px; border: 2px solid var(--accent); border-radius: 50%; background: var(--surface); z-index: 1; }
+    .rail-dot::after { content: ""; position: absolute; top: 24px; bottom: -8px; width: 1px; background: var(--line-strong); }
+    .rail-step:last-child .rail-dot::after { display: none; }
+    .rail-card { padding-bottom: 22px; }
+    .rail-card h3 { margin: 0 0 4px; }
+    .rail-card p { margin: 0; font-size: 0.96rem; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; overflow: hidden; border-radius: var(--radius-lg); font-size: 0.94rem; }
+    th, td { border-bottom: 1px solid var(--line); padding: 13px 14px; text-align: left; vertical-align: top; }
+    th { background: oklch(93.8% 0.014 94); color: var(--muted); font-size: 0.74rem; font-weight: 820; letter-spacing: 0.08em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+
+    .decision-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 18px; }
+    .decision { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-warm); padding: 18px; }
+    .decision strong { display: block; margin-bottom: 6px; letter-spacing: -0.018em; }
+    .decision p { margin: 0; font-size: 0.96rem; }
+    .verification { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+    .verify-item { border: 1px solid var(--line); border-radius: 999px; background: var(--surface-warm); padding: 8px 12px; color: var(--ink-soft); font-size: 0.92rem; }
+
+    .final { border-color: oklch(68% 0.055 145); background: radial-gradient(circle at 88% 18%, oklch(86% 0.065 151 / 0.9), transparent 17rem), var(--surface); }
+    .final-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 20px; }
+    .final-item { border: 1px solid var(--line); border-radius: var(--radius-lg); background: oklch(97.2% 0.009 94 / 0.78); padding: 16px; }
+    .final-item span { display: block; color: var(--muted); font-size: 0.78rem; font-weight: 760; letter-spacing: 0.06em; text-transform: uppercase; }
+    .final-item b { display: block; margin-top: 5px; word-break: break-word; }
+    .note { margin-top: 18px; color: var(--muted); font-size: 0.92rem; }
+
+    @media (max-width: 920px) { .hero, .layout, .scope-grid, .decision-grid, .final-list { grid-template-columns: 1fr; } nav { position: static; } }
+    @media print { body { background: var(--surface); } main { width: auto; padding: 0; } .hero, .layout, .scope-grid, .decision-grid, .final-list { display: block; } nav { display: none; } section, .state-sheet { break-inside: avoid; box-shadow: none; } a { text-decoration: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">Legion HTML-first walkthrough</p>
+        <h1>HTML-first report-walkthrough output</h1>
+        <p class="lede">本交付把 <code>report-walkthrough</code> 的默认 walkthrough 从 Markdown-first 升级为 HTML-first。Reviewer 可以先看终态、证据和交付路径，再决定是否继续 PR lifecycle。</p>
+      </div>
+      <aside class="state-sheet" aria-label="交付状态">
+        <p class="state-title">当前交付状态</p>
+        <div class="state-row"><span>Profile</span><span class="pill">implementation</span></div>
+        <div class="state-row"><span>Design gate</span><span class="pill">PASS</span></div>
+        <div class="state-row"><span>Review</span><span class="pill">PASS</span></div>
+        <div class="state-row"><span>Next</span><span class="pill">wiki + PR</span></div>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="Walkthrough navigation">
+        <p>Sections</p>
+        <a href="#profile">Profile</a>
+        <a href="#summary">Summary</a>
+        <a href="#scope">Scope</a>
+        <a href="#evidence">Evidence</a>
+        <a href="#path">Delivery path</a>
+        <a href="#decisions">Decisions</a>
+        <a href="#verification">Verification</a>
+        <a href="#risks">Risks</a>
+        <a href="#final">Next stage</a>
+      </nav>
+
+      <div class="stack">
+        <section id="profile" class="plain-section">
+          <h2>Profile</h2>
+          <p><strong>implementation。</strong>本任务修改 skill 文档和 HTML template reference，已通过实现、验证和 <code>review-change</code>，因此使用 implementation walkthrough profile。</p>
+        </section>
+
+        <section id="summary">
+          <h2>Reviewer Summary</h2>
+          <ul class="summary-list">
+            <li><span class="mark">1</span><span><b>HTML-first:</b> <code>docs/report-walkthrough.html</code> 成为主 reviewer artifact。</span></li>
+            <li><span class="mark">2</span><span><b>兼容保留:</b> Markdown 是 compact source / fallback，PR body 仍只是 PR 输入。</span></li>
+            <li><span class="mark">3</span><span><b>写作原则:</b> 先定义 reader、decision task、main path、evidence selection 和 certainty levels。</span></li>
+            <li><span class="mark">4</span><span><b>界面原则:</b> standalone HTML、OKLCH、响应式、print-friendly，避免设计禁忌。</span></li>
+            <li><span class="mark">5</span><span><b>可复用:</b> 新增 HTML reference template，future agent 不再依赖聊天记忆。</span></li>
+          </ul>
+        </section>
+
+        <section id="scope">
+          <h2>Scope</h2>
+          <div class="scope-grid">
+            <div class="scope-box">
+              <h3>In scope</h3>
+              <ul>
+                <li><code>skills/report-walkthrough/SKILL.md</code></li>
+                <li><code>skills/report-walkthrough/references/TEMPLATE_REPORT_WALKTHROUGH_HTML.md</code></li>
+                <li><code>.legion/tasks/html-first-report-walkthrough/**</code></li>
+                <li><code>.legion/wiki/**</code></li>
+              </ul>
+            </div>
+            <div class="scope-box caution">
+              <h3>Out of scope</h3>
+              <ul>
+                <li>不新增自动 HTML generator 或 CLI。</li>
+                <li>不修改 <code>impeccable</code>、<code>clean-doc</code> 或 <code>legion-workflow</code>。</li>
+                <li>不取消 Markdown fallback 或 PR body。</li>
+                <li>不同步用户主目录下已安装 skill。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="evidence">
+          <h2>Evidence Map</h2>
+          <p>所有完成性 claim 都回到当前 task 的 raw evidence，避免 HTML 变成漂亮但不可审查的摘要。</p>
+          <table>
+            <thead><tr><th>Claim</th><th>Evidence</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>任务契约稳定</td><td><code>plan.md</code>、<code>tasks.md</code>、<code>log.md</code></td><td><span class="pill">PASS</span></td></tr>
+              <tr><td>HTML-first 设计可实现、可验证、可回滚</td><td><code>docs/rfc.md</code></td><td><span class="pill">PASS</span></td></tr>
+              <tr><td>设计门已通过</td><td><code>docs/review-rfc.md</code></td><td><span class="pill">PASS</span></td></tr>
+              <tr><td>文本断言、格式检查和 regression 通过</td><td><code>docs/test-report.md</code></td><td><span class="pill">PASS</span></td></tr>
+              <tr><td>只读交付审查无阻塞</td><td><code>docs/review-change.md</code></td><td><span class="pill">PASS</span></td></tr>
+              <tr><td>HTML-first 输出协议已写入 skill</td><td><code>skills/report-walkthrough/SKILL.md</code></td><td><span class="pill">PASS</span></td></tr>
+              <tr><td>HTML reference template 已新增</td><td><code>TEMPLATE_REPORT_WALKTHROUGH_HTML.md</code></td><td><span class="pill">PASS</span></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="path">
+          <h2>Delivery Path</h2>
+          <div class="rail" aria-label="交付证据链">
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Contract</h3><p>固定 HTML-first 目标、Markdown fallback、PR body 边界和中文文档约束。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>RFC</h3><p>比较 HTML-only、generator 和 skill protocol 三种方案，选择 HTML-first skill protocol。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Review RFC</h3><p>设计门 PASS，确认 scope、验证和回滚路径足够明确。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Implementation</h3><p>更新 skill，新增 HTML reference template，并补齐 description 触发关键词。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Verify</h3><p>HTML-first assertions、diff check 和 regression 均 PASS。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Review Change</h3><p>只读审查 PASS，无 blocking findings。</p></div></div>
+            <div class="rail-step"><div class="rail-dot"></div><div class="rail-card"><h3>Next</h3><p>完成 wiki writeback，然后进入 PR lifecycle。</p></div></div>
+          </div>
+        </section>
+
+        <section id="decisions">
+          <h2>What Changed / What Was Decided</h2>
+          <div class="decision-grid">
+            <div class="decision"><strong>HTML-first</strong><p><code>docs/report-walkthrough.html</code> 是主 reviewer artifact。</p></div>
+            <div class="decision"><strong>不是 HTML-only</strong><p><code>docs/report-walkthrough.md</code> 保留为 source / fallback。</p></div>
+            <div class="decision"><strong>PR body 边界</strong><p><code>docs/pr-body.md</code> 仍只是 PR 创建或更新输入。</p></div>
+            <div class="decision"><strong>Template 原则</strong><p>reference 固化结构和质量门，不强迫复制同一视觉皮肤。</p></div>
+          </div>
+        </section>
+
+        <section id="verification">
+          <h2>Verification / Review Status</h2>
+          <div class="verification" aria-label="验证结果">
+            <span class="verify-item">HTML-first assertions: PASS</span>
+            <span class="verify-item">description keyword assertion: PASS</span>
+            <span class="verify-item"><code>git diff --check</code>: PASS</span>
+            <span class="verify-item"><code>npm run test:regression</code>: 10/10 PASS</span>
+            <span class="verify-item"><code>review-rfc</code>: PASS</span>
+            <span class="verify-item"><code>review-change</code>: PASS</span>
+          </div>
+        </section>
+
+        <section id="risks">
+          <h2>Risks and Limits</h2>
+          <ul>
+            <li>本任务没有新增自动 generator，future HTML 质量仍依赖 agent 遵守 skill 和 template。</li>
+            <li>HTML-first 会增加 report 阶段输出成本，但提升 reviewer 扫读和证据判断效率。</li>
+            <li>当前没有 `PRODUCT.md` / `DESIGN.md`，因此默认按 product evidence interface 生成；未来若项目加入设计上下文，应优先使用项目上下文。</li>
+          </ul>
+        </section>
+
+        <section id="checklist">
+          <h2>Reviewer Checklist</h2>
+          <ul>
+            <li>`report-walkthrough.html` 是否明确成为主 reviewer artifact？</li>
+            <li>Markdown fallback 和 PR body 边界是否仍然清楚？</li>
+            <li>clean-doc 信息选择是否避免背景噪音？</li>
+            <li>impeccable quality gate 是否避免模板化和外部依赖？</li>
+            <li>HTML 是否能从 claim 回到 evidence？</li>
+          </ul>
+        </section>
+
+        <section id="final" class="final">
+          <h2>Final State / Next Stage</h2>
+          <p>当前阶段已完成 implementation、verification、review-change 和 HTML-first walkthrough artifact。下一步是 wiki writeback 与 PR lifecycle。</p>
+          <div class="final-list">
+            <div class="final-item"><span>Current state</span><b>Ready for wiki</b></div>
+            <div class="final-item"><span>Next owner</span><b>Legion closing stages</b></div>
+            <div class="final-item"><span>PR lifecycle</span><b>Not started yet</b></div>
+          </div>
+          <p class="note">PR body 只是 PR 创建或更新输入，不代表 checks、review、merge、cleanup 或 refresh 完成。</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
