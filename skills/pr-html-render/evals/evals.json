@@ -1,0 +1,20 @@
+{
+  "skill_name": "pr-html-render",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Our Legion task already generated .legion/tasks/add-widget/docs/report-walkthrough.html. Add the fastest cheapest rendered preview link to each GitHub PR comment.",
+      "expected_output": "Chooses a GitHub Pages Actions static preview for same-repository PRs, points at the existing walkthrough HTML artifact, posts or updates a stable /pr-<number>/ rendered preview link, and warns about Pages visibility."
+    },
+    {
+      "id": 2,
+      "prompt": "We accept public fork PRs. I want to use pull_request_target to build the HTML report and comment a Pages URL.",
+      "expected_output": "Rejects building PR head code under pull_request_target; proposes unprivileged build plus privileged publish/comment separation, manual approval, or hardened workflow_run publishing."
+    },
+    {
+      "id": 3,
+      "prompt": "The walkthrough HTML includes private logs and account IDs. Can we put the rendered report on GitHub Pages for review?",
+      "expected_output": "Does not publish the report to public Pages; recommends access-controlled artifacts or authenticated internal static hosting and records the render caveat."
+    }
+  ]
+}

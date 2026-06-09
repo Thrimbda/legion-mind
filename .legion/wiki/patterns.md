@@ -2,13 +2,22 @@
 
 ## 模式：report-walkthrough 生成 HTML-first reviewer handoff
 
-- 来源任务：`harden-report-walkthrough`、`html-first-report-walkthrough`
+- 来源任务：`harden-report-walkthrough`、`html-first-report-walkthrough`、`pr-html-render-skill`
 - 背景：旧版 `report-walkthrough` 虽然要求“已有证据”，但用 `implementation mode` / `rfc-only mode` 容易和 `legion-workflow` execution mode 混淆，并用 production code 是否变化判断分支，导致 docs/config/test/script-only implementation、失败证据或 stale evidence 可能被错误包装成交付摘要。
 - 做法：`report-walkthrough` 使用 walkthrough profile，而不是 execution mode。Profile 由当前阶段链和前置证据决定：有实现结果、`test-report` 与 `review-change` 时使用 implementation profile；仅有 RFC 与 `review-rfc` 的设计交付使用 rfc-only profile。进入输出前必须执行 evidence health check：证据属于当前 task、对应当前交付状态、非 FAIL / blocked / stale，且每个完成性 claim 都能指向证据。
-- 输出：`docs/report-walkthrough.html` 是主 reviewer-facing artifact；`docs/report-walkthrough.md` 是 compact source / fallback；`docs/pr-body.md` 使用 implementation 或 RFC-only 模板作为 PR 创建/更新输入。HTML artifact 必须包含 profile、reviewer summary、scope、evidence map、delivery path、changed/decided、verification/review status、risks、reviewer checklist 与 final state / next stage。
+- 输出：`docs/report-walkthrough.html` 是主 reviewer-facing artifact；`docs/report-walkthrough.md` 是 compact source / fallback；`docs/pr-body.md` 使用 implementation 或 RFC-only 模板作为 PR 创建/更新输入。HTML artifact 必须包含 profile、reviewer summary、scope、evidence map、delivery path、render handoff、changed/decided、verification/review status、risks、reviewer checklist 与 final state / next stage。
 - HTML 质量门：先做 clean-doc 信息选择，明确 reader、decision task、main path、evidence selection 与 certainty levels；再做 impeccable 式 product evidence interface，要求 standalone semantic HTML、OKLCH、响应式、print-friendly、无外部资源、无 gradient text、无 side-stripe accent、无默认 glassmorphism、无 hero-metric cliché、无 em dash。
-- 边界：`report-walkthrough` 不补设计、不补验证、不补 review、不替代 `legion-wiki`，也不替代 `git-worktree-pr` PR lifecycle。`pr-body.md` 只是 PR 创建/更新输入，不代表 checks/review/merge、worktree cleanup 或主工作区 refresh 已完成。
-- 常见陷阱：不要因为没有 production code 变化就自动选 rfc-only；不要把 FAIL / blocked / stale evidence 写成 ready-to-merge；不要只生成 Markdown 而跳过 HTML；不要把 PR body 当成 PR lifecycle 终态。
+- 边界：`report-walkthrough` 不补设计、不补验证、不补 review、不替代 `legion-wiki`，也不替代 `git-worktree-pr` PR lifecycle。它也不发布 preview、不写 CI workflow、不创建 PR comment；PR-backed HTML artifact 的 rendered preview path 交给 `pr-html-render`。`pr-body.md` 只是 PR 创建/更新输入，不代表 checks/review/merge、worktree cleanup 或主工作区 refresh 已完成。
+- 常见陷阱：不要因为没有 production code 变化就自动选 rfc-only；不要把 FAIL / blocked / stale evidence 写成 ready-to-merge；不要只生成 Markdown 而跳过 HTML；不要把 PR body 当成 PR lifecycle 终态；不要让 PR-backed HTML artifact 缺 rendered preview path 且没有 explicit render bypass / blocker。
+
+## 模式：pr-html-render 渲染已有 HTML reviewer artifact
+
+- 来源任务：`pr-html-render-skill`
+- 背景：`report-walkthrough` 已经生成 HTML-first artifact，但 reviewer 在 PR 中需要 rendered preview、artifact-only fallback 或内部静态 host 路径。把发布/渲染逻辑塞进 `report-walkthrough` 会混淆证据摘要、CI 发布、PR comment 与 PR lifecycle。
+- 做法：`pr-html-render` 是 support skill，不是 Legion phase。它只处理已有 HTML artifact，例如 `.legion/tasks/<task-id>/docs/report-walkthrough.html` 或 CI HTML report，帮助选择 local/artifact-only、GitHub Pages PR preview、或 authenticated internal host。缺 walkthrough HTML 时回到 `report-walkthrough`，不在 render skill 中生成报告内容。
+- 安全边界：运行 PR code 的 build job 只能使用 read permissions；publish/comment job 才持有 `contents: write`、`pages: write`、`id-token: write`、`pull-requests: write`，且不能 checkout 或执行 PR head code。不要用 `pull_request_target` 构建 PR head code；public fork PR 需要 hardened `workflow_run`、manual approval 或跳过 Pages publishing。含 secrets、private logs、customer data、internal URLs 或 tokens 的 HTML 不发布到 public Pages。
+- 安装 surface：`setup-opencode` 默认安装 `pr-html-render` 到 agents skill root；OpenClaw 通过 `skills/**/SKILL.md` 动态发现。Regression 将其列为 support skill，不放入 `requiredPhaseSkills`。
+- 常见陷阱：不要把 artifact upload 说成 rendered URL；不要把 preview link 当作 PR lifecycle 完成；不要为了 preview 改写 `report-walkthrough` 的 evidence rules；不要把 simple same-repo Pages template 用到 public fork 自动发布。
 
 ## 模式：开发任务使用 Git worktree + PR lifecycle envelope
 

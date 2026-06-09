@@ -1,0 +1,196 @@
+# GitHub Actions template: rendered HTML preview per PR.
+# Assumptions:
+# - Repository Settings -> Pages -> Source = GitHub Actions.
+# - This template is intended for internal/trusted same-repository PRs by default.
+# - Fork PRs still build the HTML artifact, but do not publish/comment with this simple template.
+#
+# Adapt:
+# - HTML_RENDER_COMMAND
+# - HTML_ARTIFACT_DIR
+# - HTML_ENTRYPOINT
+# - dependency setup steps
+
+name: PR HTML Render Preview
+
+"on":
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Default to no token permissions; grant permissions per job.
+permissions: {}
+
+env:
+  HTML_RENDER_COMMAND: ":"
+  HTML_ARTIFACT_DIR: ".legion/tasks/<task-id>/docs"
+  HTML_ENTRYPOINT: "report-walkthrough.html"
+  PREVIEW_BRANCH: "pr-preview-pages"
+
+jobs:
+  build-render-input:
+    name: Build or collect HTML artifact
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft == false }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+
+      # Add project setup here only when HTML_RENDER_COMMAND needs it, for example:
+      # - uses: actions/setup-node@v4
+      #   with:
+      #     node-version: 22
+      #     cache: npm
+
+      - name: Build or collect HTML
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -lc "${HTML_RENDER_COMMAND}"
+
+      - name: Stage render artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "${HTML_ARTIFACT_DIR}"
+          test -f "${HTML_ARTIFACT_DIR}/${HTML_ENTRYPOINT}"
+          mkdir -p _render
+          cp -a "${HTML_ARTIFACT_DIR}/." _render/
+          if [ "${HTML_ENTRYPOINT}" != "index.html" ]; then
+            cp "${HTML_ARTIFACT_DIR}/${HTML_ENTRYPOINT}" _render/index.html
+          fi
+          echo "Staged HTML render files:"
+          find _render -maxdepth 3 -type f | sort | sed 's#^#  #'
+
+      - name: Upload HTML render artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-render
+          path: _render
+          retention-days: 7
+          if-no-files-found: error
+
+  deploy-preview:
+    name: Deploy rendered PR preview
+    needs: build-render-input
+    runs-on: ubuntu-latest
+    # Do not publish fork PR previews with this simple template. Use a hardened workflow_run/manual approval flow instead.
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+    concurrency:
+      group: pages-pr-html-render
+      cancel-in-progress: false
+    permissions:
+      contents: write        # store accumulated preview dirs in PREVIEW_BRANCH
+      pages: write           # deploy to GitHub Pages
+      id-token: write        # required by deploy-pages
+      pull-requests: write   # create/update sticky PR comment
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}pr-${{ github.event.pull_request.number }}/
+    steps:
+      - name: Download HTML render artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: html-render
+          path: _render
+
+      - name: Checkout preview storage branch
+        id: checkout_preview
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: ${{ env.PREVIEW_BRANCH }}
+          path: _site
+
+      - name: Initialize preview storage branch if missing
+        if: ${{ steps.checkout_preview.outcome == 'failure' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf _site
+          mkdir -p _site
+          git -C _site init
+          git -C _site checkout -b "${PREVIEW_BRANCH}"
+          git -C _site remote add origin "https://github.com/${GITHUB_REPOSITORY}.git"
+
+      - name: Update PR preview directory
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          dest="_site/pr-${PR_NUMBER}"
+          rm -rf "${dest}"
+          mkdir -p "${dest}"
+          cp -a _render/. "${dest}/"
+          touch _site/.nojekyll
+
+          {
+            echo '<!doctype html><meta charset="utf-8"><title>PR HTML renders</title>'
+            echo '<h1>PR HTML renders</h1><ul>'
+            find _site -maxdepth 1 -type d -name 'pr-*' -printf '%f\n' | sort -V | while read -r dir; do
+              printf '<li><a href="%s/">%s</a></li>\n' "${dir}" "${dir}"
+            done
+            echo '</ul>'
+          } > _site/index.html
+
+          cat > "${dest}/render-metadata.txt" <<META
+          PR: ${PR_NUMBER}
+          Title: ${PR_TITLE}
+          Commit: ${HEAD_SHA}
+          Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          META
+
+      - name: Commit preview storage branch
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git -C _site config user.name "github-actions[bot]"
+          git -C _site config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C _site add -A
+          if git -C _site diff --cached --quiet; then
+            echo "No preview changes to commit."
+          else
+            git -C _site commit -m "Update HTML render for PR #${PR_NUMBER} (${HEAD_SHA:0:7})"
+          fi
+          git -C _site push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:"${PREVIEW_BRANCH}"
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+          include-hidden-files: true
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Create or update PR comment
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_URL: ${{ steps.deployment.outputs.page_url }}pr-${{ github.event.pull_request.number }}/
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        with:
+          script: |
+            const marker = '<!-- pr-html-render -->';
+            const shortSha = process.env.HEAD_SHA.slice(0, 7);
+            const body = `${marker}\n✅ Rendered HTML preview: ${process.env.PREVIEW_URL}\n\nCommit: \`${shortSha}\``;
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number, per_page: 100
+            });
+            const existing = comments.find(comment =>
+              comment.user?.type === 'Bot' && comment.body?.includes(marker)
+            );
+            if (existing) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+            } else {
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
+            }

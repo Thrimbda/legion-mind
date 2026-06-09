@@ -1,6 +1,6 @@
 ---
 name: report-walkthrough
-description: Use when a Legion task needs reviewer-facing handoff docs such as `docs/report-walkthrough.html`, `docs/report-walkthrough.md`, or `docs/pr-body.md` after implementation review or RFC review evidence already exists.
+description: Use when a Legion task needs reviewer-facing handoff docs such as `docs/report-walkthrough.html`, `docs/report-walkthrough.md`, or `docs/pr-body.md` after implementation review or RFC review evidence already exists; for PR-backed HTML reports, hand the completed HTML artifact to `pr-html-render` for rendered preview handling.
 ---
 
 # report-walkthrough
@@ -9,7 +9,7 @@ description: Use when a Legion task needs reviewer-facing handoff docs such as `
 
 `report-walkthrough` 是 Legion 收口链里的 reviewer-facing evidence translator。它只把当前 task 已有、有效、通过前置阶段的证据整理成 reviewer 易扫读的交付说明；它不补设计、不补验证、不替代 `review-change` / `review-rfc`，也不替代 `legion-wiki` 或 PR lifecycle。
 
-默认输出是 HTML-first：`docs/report-walkthrough.html` 是主 reviewer artifact，`docs/report-walkthrough.md` 是 compact source / fallback，`docs/pr-body.md` 是 PR 创建或更新输入。
+默认输出是 HTML-first：`docs/report-walkthrough.html` 是主 reviewer artifact，`docs/report-walkthrough.md` 是 compact source / fallback，`docs/pr-body.md` 是 PR 创建或更新输入。PR-backed walkthrough 的 HTML artifact 完成后，默认交给 `pr-html-render` 形成 rendered preview path，或记录显式 render bypass / blocker。
 
 ## Hard Gate
 
@@ -18,6 +18,7 @@ description: Use when a Legion task needs reviewer-facing handoff docs such as `
 - 前置证据必须是当前有效证据：属于当前 task、对应当前交付状态、结论不是 FAIL / blocked / stale。
 - 交付摘要必须引用已有证据，而不是重新发明结论。
 - HTML walkthrough 必须是 self-contained single file，不依赖外部 CDN、字体、脚本或图片。
+- `report-walkthrough` 只生成 HTML artifact，不发布 preview、不写 CI workflow、不创建 PR comment；这些属于 `pr-html-render` 的后续渲染职责。
 - `pr-body.md` 只是 PR 创建/更新的输入材料，不代表 PR 已创建、checks 已过、review 已处理、PR 已 merged 或 lifecycle 已完成。
 
 ## When to Use
@@ -83,6 +84,7 @@ Before writing reviewer-facing output, check every evidence file you rely on:
 - `docs/report-walkthrough.md`
 - `docs/pr-body.md`
 - explicit profile note: `implementation` or `rfc-only`
+- render handoff note for PR-backed tasks: rendered preview URL, artifact/internal-host fallback, or explicit render bypass / blocker for `pr-html-render`
 
 ## Communication Pass
 
@@ -111,6 +113,7 @@ Required qualities:
 - Prominent final state or next stage near the top.
 - Evidence map and delivery path must be visible, not buried.
 - PR lifecycle disclaimer must remain explicit when relevant.
+- For PR-backed tasks, include the render handoff state if known: `pr-html-render` pending, rendered URL, artifact-only/internal-host fallback, or explicit bypass/blocker.
 
 ## Report Walkthrough Structure
 
@@ -146,12 +149,13 @@ Out of scope:
 - [ ] ...
 
 ## Next Stage
-交给 `legion-wiki`；若处于 PR-backed lifecycle，`pr-body.md` 仅作为 PR 创建/更新输入。
+若处于 PR-backed lifecycle，先把 `docs/report-walkthrough.html` 交给 `pr-html-render` 渲染或记录显式 bypass/blocker；之后交给 `legion-wiki`。`pr-body.md` 仅作为 PR 创建/更新输入。
 ```
 
 ## PR Body Templates
 
 - HTML walkthrough template: use `references/TEMPLATE_REPORT_WALKTHROUGH_HTML.md`.
+- rendered PR preview handoff: use `pr-html-render` after the HTML artifact exists.
 - implementation profile: use `references/TEMPLATE_PR_BODY_IMPLEMENTATION.md`.
 - rfc-only profile: use `references/TEMPLATE_PR_BODY_RFC_ONLY.md`.
 
@@ -166,6 +170,7 @@ Both templates are inputs to PR creation or update only. They do not prove that 
 - 不要因为没有 production code 变化就自动选择 rfc-only profile
 - 不要只生成 Markdown 而跳过 HTML walkthrough，除非明确记录 HTML artifact 被用户或环境显式 bypass
 - 不要把 HTML 写成依赖外部资源的网页应用
+- 不要在 walkthrough 阶段补 preview workflow、发布 rendered URL 或创建 PR comment；交给 `pr-html-render`
 - 不要把 `pr-body.md` 写成 PR lifecycle 已完成的证据
 
 ## Return Conditions
@@ -178,6 +183,7 @@ Both templates are inputs to PR creation or update only. They do not prove that 
 - `docs/review-rfc.md` 为 FAIL / blocked：退回 `spec-rfc`
 - evidence stale、非当前 task、或与当前 diff 不一致：退回生成该证据的前置阶段
 - HTML walkthrough 缺少 evidence map、delivery path、final state / next stage、或 PR lifecycle disclaimer：补齐 walkthrough artifact 后再继续
+- PR-backed walkthrough 缺 rendered preview path 且没有 explicit render bypass / blocker：交给 `pr-html-render`，不要在本 skill 中补发布逻辑
 - walkthrough 完成后：交给 `legion-wiki`
 
 ## Common Rationalizations
@@ -191,6 +197,7 @@ Both templates are inputs to PR creation or update only. They do not prove that 
 | "PR body 写好了，所以 PR 交付完成" | PR body 只是 lifecycle 输入；完成仍由 `git-worktree-pr` 的 PR 终态、checks/review、cleanup 和 refresh 决定。 |
 | "Markdown 已经够清楚，不需要 HTML" | 默认是 HTML-first；Markdown 是 source / fallback，不是主 reviewer artifact。 |
 | "HTML 好看就行" | HTML 必须先服务 reviewer 判断，且每个完成性 claim 都要能回到 evidence。 |
+| "HTML 文件已经生成，reviewer 自己下载就行" | PR-backed walkthrough 默认需要 `pr-html-render` 形成 rendered preview path，除非有显式 bypass 或 blocker。 |
 
 ## Red Flags
 
@@ -203,9 +210,11 @@ Both templates are inputs to PR creation or update only. They do not prove that 
 - HTML 依赖外部资源，或违反 OKLCH / no gradient text / no side-stripe / no em dash 等质量门
 - 在 walkthrough 里发明未被验证的结论
 - 把 blocked handoff 写成 ready-to-merge delivery
+- PR-backed HTML artifact 没有 rendered preview path，也没有 explicit render bypass / blocker
 
 ## References
 
 - HTML walkthrough 模板：`references/TEMPLATE_REPORT_WALKTHROUGH_HTML.md`
+- Rendered PR preview：`pr-html-render`
 - Implementation PR 模板：`references/TEMPLATE_PR_BODY_IMPLEMENTATION.md`
 - RFC-only PR 模板：`references/TEMPLATE_PR_BODY_RFC_ONLY.md`

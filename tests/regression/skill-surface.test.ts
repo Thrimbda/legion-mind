@@ -18,6 +18,10 @@ const requiredPhaseSkills = [
   'legion-docs',
 ];
 
+const requiredSupportSkills = [
+  'pr-html-render',
+];
+
 function opencodeInstalledSkills(): string[] {
   const source = readFileSync(join(repoRoot, 'scripts', 'setup-opencode.ts'), 'utf-8');
   const match = source.match(/const INSTALLED_SKILLS = \[([\s\S]*?)\] as const;/);
@@ -33,13 +37,16 @@ function openclawDiscoveredSkills(): string[] {
     .sort();
 }
 
-test('OpenCode installed skill list exists on disk and includes required phase skills', () => {
+test('OpenCode installed skill list exists on disk and includes required skills', () => {
   const opencode = opencodeInstalledSkills();
   for (const skill of opencode) {
     assert.equal(existsSync(join(repoRoot, 'skills', skill, 'SKILL.md')), true, `${skill} should have SKILL.md`);
   }
   for (const skill of requiredPhaseSkills) {
     assert.equal(opencode.includes(skill), true, `OpenCode should install ${skill}`);
+  }
+  for (const skill of requiredSupportSkills) {
+    assert.equal(opencode.includes(skill), true, `OpenCode should install support skill ${skill}`);
   }
 });
 

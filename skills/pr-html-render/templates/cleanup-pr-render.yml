@@ -1,0 +1,86 @@
+# Optional cleanup workflow: remove /pr-<number>/ when a PR is closed.
+# Safe use of pull_request_target: this workflow must not checkout or execute PR head code.
+
+name: Cleanup PR HTML Render Preview
+
+"on":
+  pull_request_target:
+    types: [closed]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  PREVIEW_BRANCH: "pr-preview-pages"
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages-pr-html-render
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout preview storage branch
+        id: checkout_preview
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          ref: ${{ env.PREVIEW_BRANCH }}
+          path: _site
+
+      - name: Stop if preview branch does not exist
+        if: ${{ steps.checkout_preview.outcome == 'failure' }}
+        run: echo "No preview storage branch to clean."
+
+      - name: Remove PR preview directory
+        if: ${{ steps.checkout_preview.outcome == 'success' }}
+        shell: bash
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          rm -rf "_site/pr-${PR_NUMBER}"
+          touch _site/.nojekyll
+          {
+            echo '<!doctype html><meta charset="utf-8"><title>PR HTML renders</title>'
+            echo '<h1>PR HTML renders</h1><ul>'
+            find _site -maxdepth 1 -type d -name 'pr-*' -printf '%f\n' | sort -V | while read -r dir; do
+              printf '<li><a href="%s/">%s</a></li>\n' "${dir}" "${dir}"
+            done
+            echo '</ul>'
+          } > _site/index.html
+
+      - name: Commit cleanup
+        if: ${{ steps.checkout_preview.outcome == 'success' }}
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          git -C _site config user.name "github-actions[bot]"
+          git -C _site config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C _site add -A
+          if git -C _site diff --cached --quiet; then
+            echo "No cleanup changes to commit."
+          else
+            git -C _site commit -m "Remove HTML render for PR #${PR_NUMBER}"
+          fi
+          git -C _site push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:"${PREVIEW_BRANCH}"
+
+      - name: Upload Pages artifact
+        if: ${{ steps.checkout_preview.outcome == 'success' }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+          include-hidden-files: true
+
+      - name: Deploy to GitHub Pages
+        if: ${{ steps.checkout_preview.outcome == 'success' }}
+        id: deployment
+        uses: actions/deploy-pages@v4

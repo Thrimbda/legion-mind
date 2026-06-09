@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-06-09] writeback | pr-html-render-skill
+
+- Added task summary for `pr-html-render-skill` under `tasks/`.
+- Promoted `pr-html-render` as the support skill for rendering existing HTML reviewer artifacts such as `docs/report-walkthrough.html` into PR preview paths, artifact-only fallbacks, or internal-host handoffs.
+- Updated the durable `report-walkthrough` pattern: PR-backed HTML walkthroughs now require a render handoff state, while `report-walkthrough` remains evidence generation only and does not publish previews or replace PR lifecycle.
+- Recorded GitHub Pages PR render safety boundaries: read-only build job for PR code, privileged deploy/comment job without PR code execution, no public Pages for sensitive reports, and no `pull_request_target` build of PR head code.
+
 ## [2026-06-06] writeback | html-first-report-walkthrough
 
 - Added task summary for `html-first-report-walkthrough` under `tasks/`.
