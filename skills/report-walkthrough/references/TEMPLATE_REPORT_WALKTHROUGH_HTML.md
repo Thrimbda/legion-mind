@@ -26,6 +26,7 @@ HTML 页面至少包含这些区域，可以调整标题，但不能丢失语义
 8. Risks and Limits
 9. Reviewer Checklist
 10. Final State / Next Stage
+11. Render Handoff, when the task is PR-backed or the rendered preview state changes reviewer action
 
 ## HTML quality gate
 
@@ -39,6 +40,7 @@ HTML 页面至少包含这些区域，可以调整标题，但不能丢失语义
 - Typography: 正文行长控制在 65 到 75ch 左右；层级通过字号和字重变化表达。
 - Evidence-first: evidence map 和 delivery path 不能藏在底部。
 - Final state: PR state、merge state、blocked state 或 next stage 必须靠前出现。
+- Render handoff: PR-backed walkthroughs should show whether `pr-html-render` is pending, has produced a rendered URL, is artifact-only/internal-host because of sensitivity, or is explicitly bypassed/blocked.
 
 ## Absolute bans
 
@@ -103,6 +105,7 @@ HTML 页面至少包含这些区域，可以调整标题，但不能丢失语义
         <p><span>Profile</span> <span class="pill">{{profile}}</span></p>
         <p><span>Review</span> <span class="pill">{{reviewStatus}}</span></p>
         <p><span>PR</span> <span class="pill">{{prState}}</span></p>
+        <p><span>Render</span> <span class="pill">{{renderState}}</span></p>
       </aside>
     </header>
 
@@ -111,6 +114,7 @@ HTML 页面至少包含这些区域，可以调整标题，但不能丢失语义
         <a href="#summary">摘要</a>
         <a href="#evidence">证据</a>
         <a href="#path">交付路径</a>
+        <a href="#render">渲染</a>
         <a href="#final">终态</a>
       </nav>
 
@@ -119,6 +123,7 @@ HTML 页面至少包含这些区域，可以调整标题，但不能丢失语义
         <section id="scope"><h2>Scope</h2>{{scope}}</section>
         <section id="evidence"><h2>Evidence Map</h2>{{evidenceTable}}</section>
         <section id="path"><h2>Delivery Path</h2>{{deliveryPath}}</section>
+        <section id="render"><h2>Render Handoff</h2>{{renderHandoff}}</section>
         <section id="decisions"><h2>What Changed / What Was Decided</h2>{{decisions}}</section>
         <section id="verification"><h2>Verification / Review Status</h2>{{verification}}</section>
         <section id="risks"><h2>Risks and Limits</h2>{{risks}}</section>
@@ -137,6 +142,7 @@ HTML 页面至少包含这些区域，可以调整标题，但不能丢失语义
 
 - [ ] 包含 `<!doctype html>`、`lang`、viewport。
 - [ ] 包含 Profile、Reviewer Summary、Scope、Evidence Map、Delivery Path、Verification / Review Status、Risks and Limits、Final State / Next Stage。
+- [ ] PR-backed walkthrough 包含 Render Handoff，说明 `pr-html-render` 状态、URL、artifact/internal-host fallback 或 explicit bypass/blocker。
 - [ ] 使用 OKLCH，不含 `#000` 或 `#fff`。
 - [ ] 不含 `background-clip: text`。
 - [ ] 不含 `border-left` / `border-right` 大于 1px 的彩色侧边强调。

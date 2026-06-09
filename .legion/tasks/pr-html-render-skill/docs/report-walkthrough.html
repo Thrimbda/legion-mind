@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>pr-html-render skill 集成 | Walkthrough</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96% 0.014 96);
+      --surface: oklch(98% 0.009 98);
+      --surface-2: oklch(93% 0.018 108);
+      --ink: oklch(23% 0.02 132);
+      --muted: oklch(48% 0.028 132);
+      --line: oklch(82% 0.019 108);
+      --accent: oklch(43% 0.13 154);
+      --accent-soft: oklch(90% 0.06 150);
+      --warn-soft: oklch(91% 0.055 78);
+      --ok-soft: oklch(90% 0.07 142);
+      --shadow: 0 22px 55px oklch(42% 0.04 120 / 0.16);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.66;
+    }
+
+    a { color: var(--accent); text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
+
+    main {
+      width: min(1180px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 54px 0 76px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 390px);
+      gap: 34px;
+      align-items: end;
+      margin-bottom: 34px;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--accent);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.11em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      max-width: 13ch;
+      margin: 0;
+      font-size: clamp(2.5rem, 7vw, 6rem);
+      line-height: 0.96;
+      letter-spacing: -0.07em;
+    }
+
+    .purpose {
+      max-width: 68ch;
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: clamp(1rem, 1.8vw, 1.22rem);
+    }
+
+    .status {
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .status h2 {
+      margin: 0 0 18px;
+      font-size: 0.86rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .status-row span:first-child { color: var(--muted); }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--ok-soft);
+      padding: 0.12rem 0.64rem;
+      font-weight: 780;
+      white-space: nowrap;
+    }
+
+    .pill.pending { background: var(--warn-soft); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 236px minmax(0, 1fr);
+      gap: 30px;
+      align-items: start;
+    }
+
+    nav {
+      position: sticky;
+      top: 20px;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--surface);
+      padding: 16px;
+    }
+
+    nav a {
+      display: block;
+      padding: 10px 12px;
+      border-radius: 14px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    nav a:hover { background: var(--surface-2); }
+
+    section {
+      border: 1px solid var(--line);
+      border-radius: 26px;
+      background: var(--surface);
+      padding: clamp(22px, 4vw, 34px);
+      margin-bottom: 24px;
+    }
+
+    section h2 {
+      margin: 0 0 18px;
+      font-size: clamp(1.25rem, 2.6vw, 2rem);
+      letter-spacing: -0.035em;
+    }
+
+    p, li { max-width: 72ch; }
+
+    .lead { color: var(--muted); font-size: 1.04rem; }
+
+    .callout {
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--surface-2);
+      padding: 18px;
+      margin: 18px 0;
+    }
+
+    .steps {
+      display: grid;
+      gap: 12px;
+      padding: 0;
+      list-style: none;
+      counter-reset: step;
+    }
+
+    .steps li {
+      counter-increment: step;
+      display: grid;
+      grid-template-columns: 2.2rem minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .steps li::before {
+      content: counter(step);
+      display: inline-grid;
+      place-items: center;
+      width: 2.2rem;
+      height: 2.2rem;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: var(--accent-soft);
+      font-weight: 800;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.96rem;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 13px 12px;
+    }
+
+    th { color: var(--muted); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    code {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-2);
+      padding: 0.08rem 0.34rem;
+      font-size: 0.92em;
+    }
+
+    .grid-two {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px;
+      background: var(--surface-2);
+    }
+
+    .box h3 { margin: 0 0 8px; font-size: 1rem; }
+
+    @media (max-width: 900px) {
+      main { width: min(100vw - 24px, 760px); padding-top: 28px; }
+      .hero, .layout, .grid-two { grid-template-columns: 1fr; }
+      h1 { max-width: 100%; }
+      nav { position: static; }
+      table { display: block; overflow-x: auto; }
+    }
+
+    @media print {
+      body { background: var(--surface); }
+      main { width: 100%; padding: 0; }
+      nav { display: none; }
+      section, .status { box-shadow: none; break-inside: avoid; }
+      a { color: var(--ink); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Implementation walkthrough</p>
+        <h1>pr-html-render skill 集成</h1>
+        <p class="purpose">Reviewer 需要判断两个边界是否成立：新增 render skill 是否只负责已有 HTML artifact 的 PR 预览路径，`report-walkthrough` 是否仍只生成证据型 handoff。</p>
+      </div>
+      <aside class="status" aria-label="交付终态">
+        <h2>交付状态</h2>
+        <div class="status-row"><span>Profile</span><span class="pill">implementation</span></div>
+        <div class="status-row"><span>Verification</span><span class="pill">PASS</span></div>
+        <div class="status-row"><span>Review</span><span class="pill">PASS</span></div>
+        <div class="status-row"><span>Render</span><span class="pill pending">artifact-only</span></div>
+        <div class="status-row"><span>Next</span><span class="pill pending">wiki + PR</span></div>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="Walkthrough navigation">
+        <a href="#summary">摘要</a>
+        <a href="#evidence">证据</a>
+        <a href="#path">交付路径</a>
+        <a href="#render">渲染交接</a>
+        <a href="#changes">变更</a>
+        <a href="#verification">验证</a>
+        <a href="#risks">风险</a>
+        <a href="#final">终态</a>
+      </nav>
+
+      <div>
+        <section id="summary">
+          <h2>Reviewer Summary</h2>
+          <p class="lead">本任务把用户提供的 PR HTML preview 能力收编为 `pr-html-render`，并让 `report-walkthrough` 的 HTML-first artifact 明确进入 render handoff，而不是停在文件生成。</p>
+          <ul>
+            <li>新增 `skills/pr-html-render/**`，用于已有 HTML artifact 的 rendered preview、artifact-only 或 internal-host 路径选择。</li>
+            <li>更新 `report-walkthrough`，PR-backed HTML artifact 需要 rendered preview path 或 explicit bypass/blocker。</li>
+            <li>OpenCode install list 与 regression 已覆盖新 support skill，OpenClaw dynamic surface 继续通过。</li>
+          </ul>
+        </section>
+
+        <section id="scope">
+          <h2>Scope</h2>
+          <div class="grid-two">
+            <div class="box">
+              <h3>In scope</h3>
+              <p>`pr-html-render` skill、GitHub render templates、evals、`report-walkthrough` handoff、install surface、regression 和 task evidence。</p>
+            </div>
+            <div class="box">
+              <h3>Out of scope</h3>
+              <p>不启用当前仓库 Pages，不新增 `.github/workflows/**`，不提交原始 zip，不把 render skill 变成 Legion phase。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="evidence">
+          <h2>Evidence Map</h2>
+          <table>
+            <thead><tr><th>Claim</th><th>Evidence</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>设计边界已明确</td><td><code>docs/rfc.md</code></td><td>PASS</td></tr>
+              <tr><td>RFC 可实现、可验证、可回滚</td><td><code>docs/review-rfc.md</code></td><td>PASS</td></tr>
+              <tr><td>实现符合 scope</td><td><code>skills/pr-html-render/**</code>, <code>skills/report-walkthrough/**</code></td><td>PASS</td></tr>
+              <tr><td>验证可信</td><td><code>docs/test-report.md</code></td><td>PASS</td></tr>
+              <tr><td>交付审查通过</td><td><code>docs/review-change.md</code></td><td>PASS</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="path">
+          <h2>Delivery Path</h2>
+          <ol class="steps">
+            <li><span>Contract 物化到 `plan.md` / `tasks.md` / `log.md`。</span></li>
+            <li><span>RFC 选择独立 `pr-html-render` support skill，不扩张 `report-walkthrough`。</span></li>
+            <li><span>RFC review PASS。</span></li>
+            <li><span>Engineer 新增 skill、模板、evals，并改造 walkthrough handoff。</span></li>
+            <li><span>Verification rerun PASS：diff check、regression 10/10、smoke assertions。</span></li>
+            <li><span>Change review PASS，安全视角覆盖 PR trust boundary 与 Pages publishing。</span></li>
+          </ol>
+        </section>
+
+        <section id="render">
+          <h2>Render Handoff</h2>
+          <div class="callout">
+            <p><strong>Current render state:</strong> artifact-only / local fallback.</p>
+            <p>当前 HTML artifact 是 <code>.legion/tasks/pr-html-render-skill/docs/report-walkthrough.html</code>。本任务交付 `pr-html-render` skill 与模板，但不启用当前仓库 GitHub Pages 或 `.github/workflows/**`，这属于明确非范围。</p>
+          </div>
+          <p>未来需要 live PR preview 时，使用 <code>skills/pr-html-render/templates/github-pages-pr-render.yml</code>，并完成 Pages source、environment、visibility 与 fork PR policy 设置。</p>
+        </section>
+
+        <section id="changes">
+          <h2>What Changed</h2>
+          <ul>
+            <li>`pr-html-render` 定义 artifact rendering、Legion handoff、安全规则、GitHub template 使用方式与 output checklist。</li>
+            <li>Templates 使用 `HTML_ARTIFACT_DIR` 与 `HTML_ENTRYPOINT`，适配 `report-walkthrough.html` 这类非 `index.html` artifact。</li>
+            <li>`report-walkthrough` 新增 render handoff note、return condition、red flag 与 reference。</li>
+            <li>Regression 将 `pr-html-render` 归为 support skill，避免误标为 phase skill。</li>
+          </ul>
+        </section>
+
+        <section id="verification">
+          <h2>Verification / Review Status</h2>
+          <table>
+            <thead><tr><th>Check</th><th>Result</th><th>Why it matters</th></tr></thead>
+            <tbody>
+              <tr><td><code>git diff --check</code></td><td>PASS</td><td>Patch hygiene for Markdown, YAML and JSON.</td></tr>
+              <tr><td><code>npm run test:regression</code></td><td>PASS, 10/10</td><td>OpenCode install and OpenClaw discovery surface stay consistent.</td></tr>
+              <tr><td>Smoke assertions</td><td>PASS</td><td>Checks frontmatter, markers, handoff semantics and support skill regression naming.</td></tr>
+              <tr><td>Change review</td><td>PASS</td><td>No scope, maintainability or security blockers found.</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="risks">
+          <h2>Risks and Limits</h2>
+          <ul>
+            <li>当前 PR 不会自动产生 live rendered URL，因为本任务不安装仓库 workflow 或 Pages 设置。</li>
+            <li>Simple Pages template 只适合同仓库可信 PR；public fork 自动发布需要单独 hardened workflow。</li>
+            <li>敏感 HTML 报告必须使用 artifact-only 或 authenticated internal host。</li>
+          </ul>
+        </section>
+
+        <section id="checklist">
+          <h2>Reviewer Checklist</h2>
+          <ul>
+            <li>确认 `pr-html-render` 是 support skill，不是 Legion phase。</li>
+            <li>确认 `report-walkthrough` 不承担 preview workflow、PR comment 或 lifecycle 职责。</li>
+            <li>确认模板安全边界适合作为 same-repo starting point。</li>
+            <li>确认不启用当前仓库 Pages workflow 符合本任务非范围。</li>
+          </ul>
+        </section>
+
+        <section id="final">
+          <h2>Final State / Next Stage</h2>
+          <p>当前 evidence ready。下一步是 `legion-wiki` durable writeback，然后进入 `git-worktree-pr` lifecycle：commit、rebase、push、PR、checks/review、merge、cleanup、主工作区刷新。</p>
+          <p><code>docs/pr-body.md</code> 只是 PR 创建输入，不代表 PR lifecycle 完成。</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

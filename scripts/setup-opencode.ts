@@ -74,6 +74,7 @@ const INSTALLED_SKILLS = [
   'verify-change',
   'review-change',
   'report-walkthrough',
+  'pr-html-render',
 ] as const;
 
 const SENSITIVE_BASENAMES = new Set(['opencode.json', 'antigravity-accounts.json']);
