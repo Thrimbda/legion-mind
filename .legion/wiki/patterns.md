@@ -12,10 +12,11 @@
 
 ## 模式：pr-html-render 渲染已有 HTML reviewer artifact
 
-- 来源任务：`pr-html-render-skill`
+- 来源任务：`pr-html-render-skill`、`localize-pr-html-render-skill`
 - 背景：`report-walkthrough` 已经生成 HTML-first artifact，但 reviewer 在 PR 中需要 rendered preview、artifact-only fallback 或内部静态 host 路径。把发布/渲染逻辑塞进 `report-walkthrough` 会混淆证据摘要、CI 发布、PR comment 与 PR lifecycle。
 - 做法：`pr-html-render` 是 support skill，不是 Legion phase。它只处理已有 HTML artifact，例如 `.legion/tasks/<task-id>/docs/report-walkthrough.html` 或 CI HTML report，帮助选择 local/artifact-only、GitHub Pages PR preview、或 authenticated internal host。缺 walkthrough HTML 时回到 `report-walkthrough`，不在 render skill 中生成报告内容。
 - 安全边界：运行 PR code 的 build job 只能使用 read permissions；publish/comment job 才持有 `contents: write`、`pages: write`、`id-token: write`、`pull-requests: write`，且不能 checkout 或执行 PR head code。不要用 `pull_request_target` 构建 PR head code；public fork PR 需要 hardened `workflow_run`、manual approval 或跳过 Pages publishing。含 secrets、private logs、customer data、internal URLs 或 tokens 的 HTML 不发布到 public Pages。
+- 文风与触发：`skills/pr-html-render/SKILL.md` 当前为中文为主，以匹配 Legion 仓库文档风格；frontmatter description 和正文仍保留 `docs/report-walkthrough.html`、`GitHub Pages`、`pull_request_target`、permissions 名称与模板文件名等英文技术 token，避免中文化降低触发和模板引用能力。
 - 安装 surface：`setup-opencode` 默认安装 `pr-html-render` 到 agents skill root；OpenClaw 通过 `skills/**/SKILL.md` 动态发现。Regression 将其列为 support skill，不放入 `requiredPhaseSkills`。
 - 常见陷阱：不要把 artifact upload 说成 rendered URL；不要把 preview link 当作 PR lifecycle 完成；不要为了 preview 改写 `report-walkthrough` 的 evidence rules；不要把 simple same-repo Pages template 用到 public fork 自动发布。
 

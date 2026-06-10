@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-10] writeback | localize-pr-html-render-skill
+
+- Added task summary for `localize-pr-html-render-skill` under `tasks/`.
+- Recorded that `skills/pr-html-render/SKILL.md` is now Chinese-first while retaining English trigger tokens, artifact paths, GitHub Actions permission names, template filenames, and PR trust-boundary language.
+- Reaffirmed that `pr-html-render` remains a support skill for existing HTML artifacts, not a Legion phase, report generator, or PR lifecycle replacement.
+
 ## [2026-06-09] writeback | pr-html-render-skill
 
 - Added task summary for `pr-html-render-skill` under `tasks/`.

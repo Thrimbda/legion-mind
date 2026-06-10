@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>pr-html-render skill 中文化 | Walkthrough</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96% 0.014 92);
+      --surface: oklch(98% 0.009 98);
+      --surface-strong: oklch(93% 0.021 104);
+      --ink: oklch(24% 0.026 132);
+      --muted: oklch(48% 0.028 128);
+      --line: oklch(82% 0.021 106);
+      --accent: oklch(43% 0.128 154);
+      --accent-soft: oklch(90% 0.066 148);
+      --warn: oklch(91% 0.071 82);
+      --ok: oklch(88% 0.074 145);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.64;
+    }
+
+    a { color: var(--accent); text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
+
+    main {
+      width: min(1180px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 52px 0 72px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
+      gap: 34px;
+      align-items: end;
+      margin-bottom: 34px;
+    }
+
+    .kicker {
+      color: var(--accent);
+      font-weight: 760;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin: 0 0 12px;
+    }
+
+    h1 {
+      font-size: clamp(2.2rem, 5vw, 4.7rem);
+      line-height: 0.96;
+      letter-spacing: -0.055em;
+      margin: 0 0 20px;
+      max-width: 12ch;
+    }
+
+    .purpose {
+      max-width: 70ch;
+      color: var(--muted);
+      font-size: 1.08rem;
+      margin: 0;
+    }
+
+    .status,
+    section,
+    nav {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--surface);
+    }
+
+    .status { padding: 24px; }
+
+    .status-title {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-weight: 720;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--ok);
+      color: var(--ink);
+      padding: 0.14rem 0.66rem;
+      font-weight: 760;
+      white-space: nowrap;
+    }
+
+    .pill.warn { background: var(--warn); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 240px minmax(0, 1fr);
+      gap: 32px;
+      align-items: start;
+    }
+
+    nav {
+      position: sticky;
+      top: 20px;
+      padding: 18px;
+    }
+
+    nav a {
+      display: block;
+      padding: 8px 0;
+      color: var(--ink);
+      text-decoration: none;
+      border-bottom: 1px solid var(--line);
+    }
+
+    section {
+      padding: 28px;
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: clamp(1.35rem, 2vw, 2rem);
+      line-height: 1.12;
+      letter-spacing: -0.025em;
+    }
+
+    p { max-width: 74ch; }
+
+    ul, ol { padding-left: 1.2rem; }
+
+    li + li { margin-top: 0.35rem; }
+
+    code {
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0.08rem 0.32rem;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow-wrap: anywhere;
+    }
+
+    th,
+    td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 12px;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .box {
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .box h3 { margin-top: 0; }
+
+    @media (max-width: 900px) {
+      main { width: min(100vw - 24px, 760px); padding-top: 28px; }
+      .hero, .layout, .two-col { grid-template-columns: 1fr; }
+      nav { position: static; }
+    }
+
+    @media print {
+      body { background: var(--surface); }
+      main { width: 100%; padding: 0; }
+      nav { display: none; }
+      section, .status { break-inside: avoid; box-shadow: none; }
+      a { color: var(--ink); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">Implementation walkthrough</p>
+        <h1>pr-html-render skill 中文化</h1>
+        <p class="purpose">本交付把 `pr-html-render` skill 改为中文为主，同时保留触发关键词、GitHub Pages 安全边界和 Legion 交接语义，便于 reviewer 判断是否可以进入 PR lifecycle。</p>
+      </div>
+      <aside class="status" aria-label="交付状态">
+        <p class="status-title">交付状态</p>
+        <div class="status-row"><span>Profile</span><span class="pill">implementation</span></div>
+        <div class="status-row"><span>Verification</span><span class="pill">PASS</span></div>
+        <div class="status-row"><span>Review</span><span class="pill">PASS</span></div>
+        <div class="status-row"><span>PR</span><span class="pill warn">pending lifecycle</span></div>
+        <div class="status-row"><span>Render</span><span class="pill warn">artifact-only/local</span></div>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="Walkthrough navigation">
+        <a href="#summary">摘要</a>
+        <a href="#scope">范围</a>
+        <a href="#evidence">证据</a>
+        <a href="#path">路径</a>
+        <a href="#render">渲染</a>
+        <a href="#changes">改动</a>
+        <a href="#verification">验证</a>
+        <a href="#risks">风险</a>
+        <a href="#final">终态</a>
+      </nav>
+
+      <div>
+        <section id="summary">
+          <h2>Reviewer Summary</h2>
+          <ul>
+            <li><code>skills/pr-html-render/SKILL.md</code> 已改为中文为主，保留关键英文技术 token。</li>
+            <li><code>skills/pr-html-render/evals/evals.json</code> 已同步为中文场景。</li>
+            <li>验证与变更审查均为 PASS。</li>
+            <li>本 walkthrough 使用 artifact-only/local fallback，不在本任务启用 GitHub Pages preview workflow。</li>
+          </ul>
+        </section>
+
+        <section id="scope">
+          <h2>Scope</h2>
+          <div class="two-col">
+            <div class="box">
+              <h3>In scope</h3>
+              <ul>
+                <li>中文化 <code>pr-html-render</code> skill frontmatter description、主体说明和 section 标题。</li>
+                <li>保留 <code>docs/report-walkthrough.html</code>、<code>GitHub Pages</code>、<code>pull_request_target</code>、permissions 与模板文件名。</li>
+                <li>中文化 eval prompt 与 expected output。</li>
+              </ul>
+            </div>
+            <div class="box">
+              <h3>Out of scope</h3>
+              <ul>
+                <li>不改 GitHub Actions templates 的 YAML 语义。</li>
+                <li>不重新设计安全模型。</li>
+                <li>不修改 <code>report-walkthrough</code> 协议。</li>
+                <li>不启用当前仓库 Pages preview workflow。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="evidence">
+          <h2>Evidence Map</h2>
+          <table>
+            <thead>
+              <tr><th>Claim</th><th>Evidence</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Contract 明确要求中文化 skill</td><td><code>.legion/tasks/localize-pr-html-render-skill/plan.md</code></td><td>PASS</td></tr>
+              <tr><td><code>SKILL.md</code> 中文为主且保留关键 token</td><td><code>skills/pr-html-render/SKILL.md</code></td><td>PASS</td></tr>
+              <tr><td>Eval 场景已中文化</td><td><code>skills/pr-html-render/evals/evals.json</code></td><td>PASS</td></tr>
+              <tr><td>Regression 和 smoke checks 通过</td><td><code>docs/test-report.md</code></td><td>PASS</td></tr>
+              <tr><td>Scope 与安全边界未回退</td><td><code>docs/review-change.md</code></td><td>PASS</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="path">
+          <h2>Delivery Path</h2>
+          <ol>
+            <li><code>legion-workflow</code> 接管，并因无明确恢复任务进入 <code>brainstorm</code>。</li>
+            <li><code>git-worktree-pr</code> 创建隔离 worktree 与 PR 分支。</li>
+            <li><code>engineer</code> 完成中文化实现。</li>
+            <li><code>verify-change</code> 和 <code>review-change</code> 形成 PASS 证据。</li>
+            <li>当前阶段生成 walkthrough，后续进入 wiki writeback 与 PR lifecycle。</li>
+          </ol>
+        </section>
+
+        <section id="render">
+          <h2>Render Handoff</h2>
+          <p><strong>Artifact:</strong> <code>.legion/tasks/localize-pr-html-render-skill/docs/report-walkthrough.html</code></p>
+          <p><strong>State:</strong> artifact-only/local fallback。</p>
+          <p>本任务只中文化 skill 文案，不新增 Pages preview workflow，也不修改 <code>.github/workflows/**</code>。如 reviewer 需要稳定 rendered URL，应在独立任务中使用 <code>pr-html-render</code> 配置 GitHub Pages、internal host 或其他托管路径。</p>
+          <p><strong>Lifecycle disclaimer:</strong> <code>docs/pr-body.md</code> 只是 PR 创建输入，不代表 PR 已创建、checks 已过、review 已处理、PR 已 merged、worktree 已 cleanup 或主工作区已 refresh。</p>
+        </section>
+
+        <section id="changes">
+          <h2>What Changed / What Was Decided</h2>
+          <ul>
+            <li>采用中文为主的 skill 说明，以匹配仓库内 Legion 文档风格。</li>
+            <li>保留英文技术 token，降低自动触发和模板引用回退风险。</li>
+            <li>保留 PR trust boundary、public Pages 和敏感 HTML 数据暴露规则。</li>
+            <li>Eval 场景改为中文用户请求，覆盖 same-repo preview、fork PR 安全和敏感 HTML 三类重点。</li>
+          </ul>
+        </section>
+
+        <section id="verification">
+          <h2>Verification / Review Status</h2>
+          <table>
+            <thead>
+              <tr><th>Check</th><th>Result</th><th>Evidence</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>git diff --check</code></td><td>PASS</td><td><code>docs/test-report.md</code></td></tr>
+              <tr><td><code>npm run test:regression</code></td><td>PASS, 10/10</td><td><code>docs/test-report.md</code></td></tr>
+              <tr><td>Localization smoke assertions</td><td>PASS</td><td><code>docs/test-report.md</code></td></tr>
+              <tr><td>Change review</td><td>PASS</td><td><code>docs/review-change.md</code></td></tr>
+              <tr><td>Security lens</td><td>Applied, PASS</td><td><code>docs/review-change.md</code></td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="risks">
+          <h2>Risks and Limits</h2>
+          <ul>
+            <li>运行时需要重启 opencode 或刷新安装后的 skill，才能使用新文案。</li>
+            <li>本 PR 不提供 rendered URL，walkthrough 使用 artifact-only/local fallback。</li>
+            <li>未运行完整 skill-creator eval viewer，因为本任务是定向语言一致性修正。</li>
+          </ul>
+        </section>
+
+        <section id="checklist">
+          <h2>Reviewer Checklist</h2>
+          <ul>
+            <li>确认 <code>SKILL.md</code> 中文为主且关键 token 未丢失。</li>
+            <li>确认 GitHub Actions / PR trust boundary 安全规则仍清楚。</li>
+            <li>确认 eval 中文场景符合 skill 意图。</li>
+            <li>确认 PR lifecycle disclaimer 未把 PR 状态写成完成。</li>
+          </ul>
+        </section>
+
+        <section id="final">
+          <h2>Final State / Next Stage</h2>
+          <p>Walkthrough artifact 已生成。下一步是 `legion-wiki` writeback，然后按 `git-worktree-pr` 完成 commit、rebase、push、PR、checks/review、merge、cleanup 和主工作区 refresh。</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
