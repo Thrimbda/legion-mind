@@ -3,18 +3,18 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "Our Legion task already generated .legion/tasks/add-widget/docs/report-walkthrough.html. Add the fastest cheapest rendered preview link to each GitHub PR comment.",
-      "expected_output": "Chooses a GitHub Pages Actions static preview for same-repository PRs, points at the existing walkthrough HTML artifact, posts or updates a stable /pr-<number>/ rendered preview link, and warns about Pages visibility."
+      "prompt": "我们的 Legion task 已经生成 .legion/tasks/add-widget/docs/report-walkthrough.html。给每个 GitHub PR comment 加一个最快、成本最低的 rendered preview link。",
+      "expected_output": "为 same-repository PR 选择 GitHub Pages Actions static preview，指向已有 walkthrough HTML artifact，创建或更新稳定的 /pr-<number>/ rendered preview link，并提醒 Pages visibility 风险。"
     },
     {
       "id": 2,
-      "prompt": "We accept public fork PRs. I want to use pull_request_target to build the HTML report and comment a Pages URL.",
-      "expected_output": "Rejects building PR head code under pull_request_target; proposes unprivileged build plus privileged publish/comment separation, manual approval, or hardened workflow_run publishing."
+      "prompt": "我们接受 public fork PR。我想用 pull_request_target 构建 HTML report，然后 comment 一个 Pages URL。",
+      "expected_output": "拒绝在 pull_request_target 下构建 PR head code；建议 unprivileged build 与 privileged publish/comment 分离、manual approval，或 hardened workflow_run publishing。"
     },
     {
       "id": 3,
-      "prompt": "The walkthrough HTML includes private logs and account IDs. Can we put the rendered report on GitHub Pages for review?",
-      "expected_output": "Does not publish the report to public Pages; recommends access-controlled artifacts or authenticated internal static hosting and records the render caveat."
+      "prompt": "walkthrough HTML 里有 private logs 和 account IDs。可以把 rendered report 放到 GitHub Pages 给 reviewer 看吗？",
+      "expected_output": "不把报告发布到 public Pages；建议 access-controlled artifacts 或 authenticated internal static hosting，并记录 render caveat。"
     }
   ]
 }
