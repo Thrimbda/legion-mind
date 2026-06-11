@@ -45,7 +45,7 @@ description: 强制 Legion 修改型开发任务在隔离 Git worktree 中实现
 5. **Rebase before push**：push 前必须在 worktree 内执行 `git fetch origin && git rebase origin/master`（或明确覆盖后的 base ref）。
 6. **Push branch**：默认 push PR 分支，禁止直接 push `master` / `main`。除非用户明确禁止 push 并记录为 explicit bypass/blocker，否则不要因“用户没有要求 push”停止。
 7. **Open / update PR**：默认创建或更新 PR，并链接或摘要 Legion 证据（plan/RFC/test-report/review/walkthrough/wiki）。除非用户明确禁止开 PR 并记录为 explicit bypass/blocker，否则不要因“用户没有要求 PR”停止。
-8. **Enable auto-merge**：PR 创建后必须立即尝试启用 auto-merge；若仓库策略、权限或平台状态不允许，记录阻塞原因并持续跟进，直到启用或确认无法启用。
+8. **Enable auto-merge**：PR 创建后必须立即尝试启用 auto-merge；若仓库策略、权限或平台状态不允许，记录阻塞原因并持续跟进，直到启用或确认无法启用，合并策略必须是 squash。
 9. **Follow PR**：持续跟进 checks 与 review；优先使用 `gh pr checks <pr> --watch --required` 等待 required checks，避免无界手动轮询。范围内失败要修复，权限/保护规则/产品决策阻塞要记录。
 10. **Terminal decision**：PR merged 是成功路径；closed 或 confirmed abandoned 是非成功终态，必须记录原因、影响和下一步；blocked 只是 handoff，不是任务完成。
 11. **Cleanup**：PR 已 merged / closed / confirmed abandoned 且后续 review 处理完成后，必须删除对应 worktree；仍需处理后续动作时不得删除。
@@ -83,6 +83,7 @@ description: 强制 Legion 修改型开发任务在隔离 Git worktree 中实现
 ## Red Flags
 
 - 在 envelope 应打开后仍直接改主工作区。
+- 使用除了 squash 意外的合并策略。
 - 把“PR created”或“branch pushed”说成 done。
 - 因用户没有逐项说出 commit / push / PR / follow-up，就停在本地 diff 或未完成 PR lifecycle。
 - 从可 fetch 但未 fetch 的陈旧 base 创建分支。
@@ -96,17 +97,17 @@ description: 强制 Legion 修改型开发任务在隔离 Git worktree 中实现
 
 ## 常见合理化与现实
 
-| Rationalization | Reality |
-|---|---|
-| “只是文档/一行小改，主工作区更快。” | 只要是修改型开发任务，就进入 worktree；低风险不等于无 envelope。 |
-| “PR 已经开了，所以任务完成。” | PR 创建只是交付载体开始；还要 checks/review/终态/cleanup/refresh。 |
+| Rationalization                                             | Reality                                                                                     |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| “只是文档/一行小改，主工作区更快。”                         | 只要是修改型开发任务，就进入 worktree；低风险不等于无 envelope。                            |
+| “PR 已经开了，所以任务完成。”                               | PR 创建只是交付载体开始；还要 checks/review/终态/cleanup/refresh。                          |
 | “用户没明确要求 commit / push / PR，所以只能停在本地改动。” | 进入 envelope 后这些都是默认 lifecycle action；只有明确禁止或 bypass 才改变流程，并要记录。 |
-| “autopilot 表示不用等 review/checks。” | autopilot 表示继续跟进并少打扰人，不表示跳过保护规则。 |
-| “worktree 以后再清。” | cleanup 是完成条件；保留必须记录原因。 |
-| “先 push，之后再 rebase。” | push 前必须 fetch + rebase 最新 base；过时分支不能出站。 |
-| “blocked 已记录，所以算完成。” | blocked handoff 不是完成；完成必须满足 PR 终态、review/checks、cleanup、refresh。 |
-| “临时日志写到 /tmp 或 home 更方便。” | 所有持久化输出必须留在 repo 内。 |
-| “Git 流程可以作为新模式。” | Git 是 repository lifecycle envelope；执行模式仍只有三种。 |
+| “autopilot 表示不用等 review/checks。”                      | autopilot 表示继续跟进并少打扰人，不表示跳过保护规则。                                      |
+| “worktree 以后再清。”                                       | cleanup 是完成条件；保留必须记录原因。                                                      |
+| “先 push，之后再 rebase。”                                  | push 前必须 fetch + rebase 最新 base；过时分支不能出站。                                    |
+| “blocked 已记录，所以算完成。”                              | blocked handoff 不是完成；完成必须满足 PR 终态、review/checks、cleanup、refresh。           |
+| “临时日志写到 /tmp 或 home 更方便。”                        | 所有持久化输出必须留在 repo 内。                                                            |
+| “Git 流程可以作为新模式。”                                  | Git 是 repository lifecycle envelope；执行模式仍只有三种。                                  |
 
 ## 输出记录
 
