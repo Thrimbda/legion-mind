@@ -9,6 +9,12 @@ description: 强制 Legion 修改型开发任务在隔离 Git worktree 中实现
 
 `git-worktree-pr` 是 Legion 修改型开发任务的 Git / PR 生命周期外壳。它包裹 `legion-workflow` 选定的既有执行模式，但不定义阶段顺序，也不是第四种执行模式。
 
+## 输出语言与文档产物
+
+- 默认用中文回答并记录 lifecycle 交接、blocked handoff、任务日志、PR 状态说明和 reviewer-facing 摘要。
+- 本 envelope 产生或更新的文档产物（例如 task log、handoff、PR body 摘要、checks/review 跟进说明）默认使用中文。
+- Git 命令、分支名、commit hash、PR URL、check name、错误输出和平台字段保持原文，不为中文化而改写机器可读内容。
+
 ## Hard Gate
 
 - 在 Legion-managed 仓库中，任何会修改仓库文件的开发任务，在实现、可写探索、提交或 PR 分支开发前，必须先进入本 envelope。

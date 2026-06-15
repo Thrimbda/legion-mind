@@ -1,5 +1,13 @@
 # Legion Patterns
 
+## 模式：仓库 skill 默认中文回答与中文文档产物
+
+- 来源任务：`localize-skill-outputs`
+- 背景：LegionMind 的任务证据与 workflow 文档以中文为主，但单独安装或独立加载某个 skill 时，若约束只存在于仓库级入口规则，运行时可能丢失“中文回答与中文文档产物”要求。
+- 做法：每个仓库 `skills/*/SKILL.md` 都保留一个高可见的 `## 输出语言与文档产物` 小节，声明默认用中文回答；如果该 skill 产出 `plan.md`、RFC、review、test-report、walkthrough、PR body、wiki 页面、handoff 或其他人类阅读型文档产物，也默认使用中文。
+- 例外边界：代码、命令、路径、配置字段、frontmatter/schema 字段、API/CLI 名称、错误原文、Git/GitHub/Linear 字段、URL、HTML/CSS/Actions 字段、raw evidence 引用和用户明确要求保留的语言不强制翻译；需要时在中文正文中解释。
+- 维护提示：新增或重写 skill 时，不要只依赖全局 AGENTS 规则；应在该 skill 本体中补齐语言约束，并避免修改 frontmatter discovery 字段导致触发漂移。
+
 ## 模式：report-walkthrough 生成 HTML-first reviewer handoff
 
 - 来源任务：`harden-report-walkthrough`、`html-first-report-walkthrough`、`pr-html-render-skill`

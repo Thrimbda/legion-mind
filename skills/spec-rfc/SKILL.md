@@ -9,6 +9,12 @@ description: Use when a stable task contract still leaves real design uncertaint
 
 `spec-rfc` 只负责设计产物。它不改 `.legion` 三文件，不写生产代码，也不替代 `review-rfc`。
 
+## 输出语言与文档产物
+
+- 默认用中文回答设计取舍、边界、验证与回滚说明。
+- `docs/rfc.md`、`docs/research.md`、`docs/implementation-plan.md` 等设计文档产物默认使用中文。
+- Options / Decision / Verification / Rollback 等 RFC 术语、路径、命令、API 名称、错误原文和用户指定原文保持可识别，不因中文化影响实现或审查。
+
 ## Hard Gate
 
 - 进入前必须已有稳定 contract

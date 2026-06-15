@@ -9,6 +9,12 @@ description: Use when creating, updating, or validating `.legion` task documents
 
 `.legion/tasks/**` 是 raw evidence，不是跨任务 wiki。核心约束是：`plan.md` 管契约，`log.md` 管过程，`tasks.md` 管状态，`docs/*.md` 管设计与验证产物；跨任务可复用知识统一进入 `.legion/wiki/**`，不再单列 playbook。
 
+## 输出语言与文档产物
+
+- 默认用中文回答 `.legion` 文档落点、密度和质量判断。
+- 由本 skill 创建、改写或校验的 `.legion/tasks/**` 文档产物默认使用中文，包括 `plan.md`、`log.md`、`tasks.md` 与 `docs/*.md`。
+- 文件名、路径、命令、测试输出、错误原文、schema 字段和外部平台术语保持原文，必要时用中文解释。
+
 ## When to Use
 
 - 需要新建或改写 `.legion/tasks/**` 文档

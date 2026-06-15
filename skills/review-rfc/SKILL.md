@@ -9,6 +9,12 @@ description: Use when a design artifact already exists and it is still unclear w
 
 `review-rfc` 的职责是决定设计现在能不能过门，而不是把 RFC 重写一遍。
 
+## 输出语言与文档产物
+
+- 默认用中文回答设计审查结论、blocking findings、建议和实现准入判断。
+- `docs/review-rfc.md` 等审查文档产物默认使用中文；PASS / FAIL 标记可以保留英文以保持阶段协议清晰。
+- RFC 标题、路径、技术术语、命令、错误原文和外部接口名称保持原文，必要时用中文解释风险。
+
 ## Hard Gate
 
 - 必须先有 RFC 或 design source

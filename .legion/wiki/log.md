@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-15] writeback | localize-skill-outputs
+
+- Added task summary for `localize-skill-outputs` under `tasks/`.
+- Promoted the current repository skill language convention: every `skills/*/SKILL.md` declares default Chinese answers and Chinese human-readable document artifacts, while preserving code, commands, paths, machine-readable fields, errors, platform terms, raw evidence, and user-specified languages.
+- Recorded the maintenance expectation that future skill additions or rewrites should carry the language constraint in the skill body, not only in global entry rules.
+
 ## [2026-06-15] writeback | setup-opencode-npm-cli
 
 - Added task summary for `setup-opencode-npm-cli` under `tasks/`.

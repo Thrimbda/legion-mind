@@ -9,6 +9,12 @@ description: Use when an approved task contract and required design gate already
 
 `engineer` 只负责在已批准范围内完成实现。它要优先把核心路径做对，而不是顺手扩边、重写 contract、或代替后续验证/审查阶段。
 
+## 输出语言与文档产物
+
+- 默认用中文回答、交接实现结果、说明阻塞或范围问题。
+- 若本阶段需要输出 implementation handoff、补充说明或其他人类阅读型文档产物，默认使用中文。
+- 代码、命令、配置字段、日志片段、测试输出、错误原文和技术标识符保持原样，必要时用中文解释。
+
 ## Hard Gate
 
 - 必须已有稳定 `plan.md`

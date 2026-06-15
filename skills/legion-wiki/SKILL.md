@@ -9,6 +9,12 @@ description: Use when building, updating, or querying the Legion wiki layer unde
 
 `legion-wiki` 负责 Legion 的 **wiki / synthesis 层**。它不替代 `.legion/tasks/**` 的 raw task docs，而是把跨任务可查询知识收敛到 `.legion/wiki/**`。原先 playbook 风格的 durable conventions 也由这里统一吸收：按内容写入 `decisions.md`、`patterns.md` 或 `maintenance.md`。在 `legion-workflow` 里，它还是固定 closing stage：任务完成前必须执行 wiki writeback。
 
+## 输出语言与文档产物
+
+- 默认用中文回答 wiki 查询、writeback 判断和收口交接。
+- `.legion/wiki/**` 页面、task summary、decisions、patterns、maintenance 与 wiki log 等文档产物默认使用中文。
+- raw 证据引用、路径、frontmatter/schema 字段、命令、错误原文和外部术语保持原文；需要时在中文正文中解释。
+
 raw / wiki / schema 的分工是：
 
 - raw：`.legion/tasks/**`
