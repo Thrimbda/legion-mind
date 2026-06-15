@@ -9,6 +9,12 @@ description: Use when implementation work already exists and the next step is to
 
 验证阶段的职责不是“随便跑点命令”，而是产出可信的验证证据。这个阶段要优先找到成本最低、证明力最强的验证路径，并把结果整理成 `test-report.md`。
 
+## 输出语言与文档产物
+
+- 默认用中文回答验证选择、结果摘要、失败/跳过项和交接结论。
+- `docs/test-report.md` 等验证文档产物默认使用中文。
+- 命令、exit code、测试名、日志片段、错误输出、路径和机器可读字段保持原文，必要时在中文正文中解释其证明力。
+
 ## Hard Gate
 
 - 只有在实现阶段已经产生可验证改动时才能进入本 skill。

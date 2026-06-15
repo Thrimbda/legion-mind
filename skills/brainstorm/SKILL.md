@@ -18,6 +18,12 @@ description: Use when a Legion task has no stable contract yet, especially for n
 - 不要把 `task create` 误判成“brainstorm 已完成”
 </HARD-GATE>
 
+## 输出语言与文档产物
+
+- 默认用中文回答、提问、展示 task contract 和交接结论。
+- 本 skill 创建或重写的 `plan.md`、`tasks.md` 等文档产物默认使用中文。
+- `taskId`、路径、命令、代码标识符、错误原文和用户明确要求保留的语言不要强行翻译。
+
 ## When to Use
 
 - 当前请求没有明确恢复到既有任务目录

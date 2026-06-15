@@ -12,6 +12,12 @@ description: 当 Agent 需要在受宿主约束的 markdown wiki 中持续沉淀
 - schema / host contract 描述结构、禁区、命名、引用与可写边界；
 - query 默认是：**先回答，再判断是否形成 durable knowledge；若形成且未被 host 阻止，则正常写回 wiki**。
 
+## 输出语言与文档产物
+
+- 默认用中文回答 query、ingest、lint 和 writeback 结论。
+- durable wiki 页面、index、maintenance 更新、issue list 等人类阅读型文档产物默认使用中文。
+- raw ref、引用原文、schema 字段、路径、命令、代码标识符和 host contract 中要求保留的语言保持原样，必要时附中文解释。
+
 ## 第一原则
 
 1. **wiki 优先于聊天**：高价值知识不应只留在对话里。

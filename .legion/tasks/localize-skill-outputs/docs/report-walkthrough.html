@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>全仓库 Skill 中文输出约束 | Walkthrough</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96% 0.012 92);
+      --surface: oklch(98% 0.008 92);
+      --ink: oklch(25% 0.018 132);
+      --muted: oklch(48% 0.025 132);
+      --line: oklch(82% 0.018 105);
+      --accent: oklch(46% 0.12 153);
+      --ok: oklch(89% 0.065 144);
+      --warn: oklch(91% 0.07 88);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.66;
+    }
+    main { width: min(1180px, calc(100vw - 36px)); margin: 0 auto; padding: 52px 0 72px; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: 34px; align-items: end; margin-bottom: 34px; }
+    .kicker { color: var(--accent); font-weight: 780; letter-spacing: 0.03em; text-transform: uppercase; }
+    h1 { font-size: clamp(2.2rem, 5vw, 4.5rem); line-height: 1.02; margin: 0 0 18px; max-width: 10ch; }
+    h2 { margin-top: 0; font-size: 1.25rem; }
+    p { max-width: 72ch; }
+    .lead { font-size: 1.12rem; color: var(--muted); }
+    .status, section { border: 1px solid var(--line); border-radius: 24px; background: var(--surface); }
+    .status { padding: 24px; }
+    .status dl { margin: 0; display: grid; gap: 12px; }
+    .status div { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
+    .status dt { color: var(--muted); }
+    .pill { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; background: var(--ok); padding: 0.12rem 0.64rem; font-weight: 760; white-space: nowrap; }
+    .pill.pending { background: var(--warn); }
+    .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 32px; align-items: start; }
+    nav { position: sticky; top: 20px; display: grid; gap: 10px; }
+    nav a { color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px; background: var(--surface); }
+    section { padding: 28px; margin-bottom: 24px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.96rem; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 12px; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: oklch(93% 0.018 92); border-radius: 7px; padding: 0.1rem 0.28rem; }
+    ul, ol { padding-left: 1.25rem; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+    .card { border: 1px solid var(--line); border-radius: 18px; padding: 18px; background: oklch(97% 0.01 92); }
+    @media (max-width: 900px) { .hero, .layout { grid-template-columns: 1fr; } nav { position: static; } h1 { max-width: 100%; } }
+    @media print { nav { display: none; } main { width: auto; padding: 18px; } section, .status { box-shadow: none; break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">Implementation Walkthrough</p>
+        <h1>全仓库 Skill 中文输出约束</h1>
+        <p class="lead">13 个仓库 skill 已新增默认中文回答与中文文档产物约束，同时保留代码、命令、路径、机器可读字段和外部原文。</p>
+      </div>
+      <aside class="status" aria-label="交付状态">
+        <dl>
+          <div><dt>Profile</dt><dd><span class="pill">implementation</span></dd></div>
+          <div><dt>Design</dt><dd><span class="pill">RFC PASS</span></dd></div>
+          <div><dt>Review</dt><dd><span class="pill">PASS</span></dd></div>
+          <div><dt>PR</dt><dd><span class="pill pending">pending lifecycle</span></dd></div>
+          <div><dt>Render</dt><dd><span class="pill pending">artifact-only fallback</span></dd></div>
+        </dl>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="Walkthrough navigation">
+        <a href="#summary">摘要</a>
+        <a href="#scope">范围</a>
+        <a href="#evidence">证据</a>
+        <a href="#path">路径</a>
+        <a href="#render">渲染</a>
+        <a href="#final">下一步</a>
+      </nav>
+
+      <div>
+        <section id="summary">
+          <h2>Reviewer Summary</h2>
+          <div class="cards">
+            <div class="card"><strong>变更</strong><p>所有 <code>skills/*/SKILL.md</code> 新增 <code>## 输出语言与文档产物</code> 小节。</p></div>
+            <div class="card"><strong>默认行为</strong><p>skill 默认用中文回答，文档产物默认使用中文。</p></div>
+            <div class="card"><strong>保护边界</strong><p>代码、命令、路径、机器可读字段、错误原文和平台术语保持原文。</p></div>
+          </div>
+        </section>
+
+        <section id="scope">
+          <h2>Scope</h2>
+          <p><strong>In scope:</strong> 13 个仓库 <code>SKILL.md</code> 与 <code>.legion/tasks/localize-skill-outputs/**</code> 证据。</p>
+          <p><strong>Out of scope:</strong> 全局安装副本、frontmatter <code>name</code> / <code>description</code>、安装脚本、workflow template、测试 harness、Git lifecycle 语义。</p>
+        </section>
+
+        <section id="evidence">
+          <h2>Evidence Map</h2>
+          <table>
+            <thead><tr><th>Claim</th><th>Evidence</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Contract 稳定，scope 明确</td><td><code>plan.md</code></td><td>PASS</td></tr>
+              <tr><td>中风险设计门已完成</td><td><code>docs/rfc.md</code>、<code>docs/review-rfc.md</code></td><td>PASS</td></tr>
+              <tr><td>13 个 skill 均新增约束</td><td>当前 diff、<code>docs/test-report.md</code></td><td>PASS</td></tr>
+              <tr><td>Regression 未回退</td><td><code>npm run test:regression</code></td><td>13/13 PASS</td></tr>
+              <tr><td>实现符合 scope</td><td><code>docs/review-change.md</code></td><td>PASS</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="path">
+          <h2>Delivery Path</h2>
+          <ol>
+            <li>Brainstorm 物化 contract。</li>
+            <li>Spec RFC 定义统一原则、例外和 per-skill 落点。</li>
+            <li>Review RFC 给出 PASS。</li>
+            <li>Engineer 更新 13 个 <code>SKILL.md</code>。</li>
+            <li>Verify Change 完成 diff、smoke 与 regression 验证。</li>
+            <li>Review Change 给出 PASS。</li>
+            <li>当前 walkthrough 完成后进入 wiki writeback 与 PR lifecycle。</li>
+          </ol>
+        </section>
+
+        <section id="render">
+          <h2>Render Handoff</h2>
+          <p><code>docs/report-walkthrough.html</code> 已生成。本任务不新增 GitHub Pages preview workflow，当前记录为 artifact-only/local fallback。如 reviewer 需要 rendered URL，可后续使用 <code>pr-html-render</code>。</p>
+        </section>
+
+        <section id="decisions">
+          <h2>What Changed / What Was Decided</h2>
+          <ul>
+            <li>统一使用 <code>## 输出语言与文档产物</code> 作为维护锚点。</li>
+            <li>文档型 skill 明确对应产物默认中文。</li>
+            <li>流程型和实现型 skill 明确保留机器可读内容和外部原文。</li>
+            <li>frontmatter discovery 字段不改，降低触发风险。</li>
+          </ul>
+        </section>
+
+        <section id="verification">
+          <h2>Verification / Review Status</h2>
+          <ul>
+            <li><code>git diff --check</code>: PASS。</li>
+            <li>静态 smoke check: <code>skillFiles: 13</code>，<code>failures: []</code>。</li>
+            <li><code>npm run test:regression</code>: 13/13 PASS。</li>
+            <li><code>review-change</code>: PASS，security trigger 未命中。</li>
+          </ul>
+        </section>
+
+        <section id="risks">
+          <h2>Risks and Limits</h2>
+          <ul>
+            <li>已安装副本需要重新安装/同步并重启运行时后才会加载新约束。</li>
+            <li>未新增 per-skill pressure eval，后续如有偏离可单独补充。</li>
+            <li>PR lifecycle 尚未完成，不能把 PR 创建视为 done。</li>
+          </ul>
+        </section>
+
+        <section id="checklist">
+          <h2>Reviewer Checklist</h2>
+          <ul>
+            <li>确认全部 13 个 skill 已覆盖。</li>
+            <li>确认例外规则没有破坏代码、命令、路径和机器可读字段。</li>
+            <li>确认没有改变 frontmatter、阶段链、Git lifecycle 或安装脚本语义。</li>
+            <li>确认验证证据足以支撑交付。</li>
+          </ul>
+        </section>
+
+        <section id="final">
+          <h2>Final State / Next Stage</h2>
+          <p>当前阶段产物已完成。下一步是 <code>legion-wiki</code> writeback，然后执行 <code>git-worktree-pr</code> lifecycle：commit、rebase、push、PR、checks/review/auto-merge、终态、cleanup 和主工作区 refresh。</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

@@ -9,6 +9,12 @@ description: Use when implementation and verification evidence already exist and
 
 这是统一的只读审查阶段。它同时负责 correctness、maintainability、scope compliance，以及在命中安全触发条件时展开 security review；目标是判断“现在能不能过”，而不是替作者继续设计或实现。
 
+## 输出语言与文档产物
+
+- 默认用中文回答审查结论、blocking findings、non-blocking suggestions 和安全视角说明。
+- `docs/review-change.md` 等审查文档产物默认使用中文；PASS / FAIL 标记可以保留英文以保持阶段协议清晰。
+- 代码、diff 片段、命令、错误原文、security/correctness 术语和外部平台字段保持原文，必要时用中文解释影响。
+
 ## Hard Gate
 
 - 必须先有实现结果与验证证据，再进入本阶段。

@@ -11,6 +11,12 @@ description: Use when a Legion task needs reviewer-facing handoff docs such as `
 
 默认输出是 HTML-first：`docs/report-walkthrough.html` 是主 reviewer artifact，`docs/report-walkthrough.md` 是 compact source / fallback，`docs/pr-body.md` 是 PR 创建或更新输入。PR-backed walkthrough 的 HTML artifact 完成后，默认交给 `pr-html-render` 形成 rendered preview path，或记录显式 render bypass / blocker。
 
+## 输出语言与文档产物
+
+- 默认用中文回答 walkthrough 范围、证据健康、profile、render handoff 和 PR body 交接。
+- `docs/report-walkthrough.html`、`docs/report-walkthrough.md`、`docs/pr-body.md` 等文档产物默认使用中文正文。
+- HTML 标签/属性、CSS、路径、命令、证据链接、GitHub/PR 字段、错误原文和模板标识保持原文，不因中文化破坏可渲染性或 PR lifecycle 语义。
+
 ## Hard Gate
 
 - 必须已有当前 task 的实现产物或设计产物。
