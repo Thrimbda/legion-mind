@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>setup-opencode npm CLI | Walkthrough</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --page: oklch(96% 0.01 245);
+      --surface: oklch(99% 0.004 245);
+      --surface-strong: oklch(93% 0.018 245);
+      --ink: oklch(24% 0.026 250);
+      --muted: oklch(46% 0.032 250);
+      --line: oklch(82% 0.02 245);
+      --accent: oklch(46% 0.12 252);
+      --accent-soft: oklch(90% 0.055 252);
+      --ok: oklch(88% 0.065 150);
+      --warn: oklch(91% 0.07 82);
+      --shadow: 0 18px 48px oklch(40% 0.04 250 / 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      background: var(--page);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.65;
+    }
+
+    a { color: var(--accent); text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
+
+    main {
+      width: min(1160px, calc(100vw - 36px));
+      margin: 0 auto;
+      padding: 48px 0 72px;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+      gap: 32px;
+      align-items: end;
+      margin-bottom: 32px;
+    }
+
+    .kicker {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-weight: 720;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 12ch;
+      font-size: clamp(2.4rem, 7vw, 5.6rem);
+      line-height: 0.96;
+      letter-spacing: -0.035em;
+      text-wrap: balance;
+    }
+
+    .lead {
+      max-width: 70ch;
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: 1.08rem;
+      text-wrap: pretty;
+    }
+
+    .status {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--surface);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .status h2 {
+      margin: 0 0 14px;
+      font-size: 1rem;
+    }
+
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 10px 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .status-row span:first-child { color: var(--muted); }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--ok);
+      padding: 0.08rem 0.58rem;
+      font-weight: 760;
+      line-height: 1.45;
+      white-space: nowrap;
+    }
+
+    .pill.pending { background: var(--warn); }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 230px minmax(0, 1fr);
+      gap: 28px;
+      align-items: start;
+    }
+
+    nav {
+      position: sticky;
+      top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--surface);
+      padding: 16px;
+    }
+
+    nav a {
+      display: block;
+      padding: 8px 6px;
+      color: var(--muted);
+      text-decoration: none;
+      border-radius: 10px;
+    }
+
+    nav a:hover { background: var(--surface-strong); color: var(--ink); }
+
+    section {
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--surface);
+      padding: 26px;
+      margin-bottom: 22px;
+      box-shadow: 0 10px 28px oklch(40% 0.04 250 / 0.08);
+    }
+
+    h2 {
+      margin: 0 0 14px;
+      font-size: clamp(1.35rem, 2.4vw, 2rem);
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      text-wrap: balance;
+    }
+
+    p { max-width: 72ch; }
+
+    ul, ol { padding-left: 1.35rem; }
+
+    li + li { margin-top: 0.38rem; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow-wrap: anywhere;
+    }
+
+    th, td {
+      text-align: left;
+      vertical-align: top;
+      border-bottom: 1px solid var(--line);
+      padding: 12px 10px;
+    }
+
+    th { color: var(--muted); font-size: 0.94rem; }
+
+    code {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--surface-strong);
+      padding: 0.08rem 0.32rem;
+      font-size: 0.92em;
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 18px;
+    }
+
+    .note {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--accent-soft);
+      padding: 18px;
+    }
+
+    .checklist { list-style: none; padding-left: 0; }
+    .checklist li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+
+    @media (max-width: 900px) {
+      main { width: min(100% - 24px, 760px); padding-top: 28px; }
+      .hero, .layout { grid-template-columns: 1fr; }
+      nav { position: static; }
+      h1 { max-width: 10ch; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+
+    @media print {
+      body { background: var(--surface); }
+      main { width: 100%; padding: 0; }
+      nav { display: none; }
+      section, .status { box-shadow: none; break-inside: avoid; }
+      a { color: var(--ink); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">Legion walkthrough</p>
+        <h1>setup-opencode npm CLI</h1>
+        <p class="lead">Reviewer needs to decide whether the package layout, CLI wrapper, docs, and verification evidence are ready to enter PR lifecycle for npm release preparation.</p>
+      </div>
+      <aside class="status" aria-label="交付状态">
+        <h2>交付状态</h2>
+        <div class="status-row"><span>Profile</span><span class="pill">implementation</span></div>
+        <div class="status-row"><span>Verification</span><span class="pill">PASS</span></div>
+        <div class="status-row"><span>Review</span><span class="pill">PASS</span></div>
+        <div class="status-row"><span>PR</span><span class="pill pending">pending</span></div>
+        <div class="status-row"><span>Render</span><span class="pill pending">pending PR</span></div>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="Walkthrough navigation">
+        <a href="#summary">摘要</a>
+        <a href="#scope">范围</a>
+        <a href="#evidence">证据</a>
+        <a href="#path">交付路径</a>
+        <a href="#render">渲染</a>
+        <a href="#changes">改动</a>
+        <a href="#verification">验证</a>
+        <a href="#risks">风险</a>
+        <a href="#final">下一步</a>
+      </nav>
+
+      <div>
+        <section id="summary">
+          <h2>Reviewer Summary</h2>
+          <p>本任务把 OpenCode 安装入口整理为可发布到 npm 的 <code>setup-opencode</code> CLI。核心路径是 package metadata、portable JS wrapper、CLI help/version、README npx/global 安装说明，以及能检查 package contents 的 regression。</p>
+          <p>本 PR 不执行 <code>npm publish</code>。它只交付发布前的代码、文档和证据。</p>
+        </section>
+
+        <section id="scope">
+          <h2>Scope</h2>
+          <div class="two-col">
+            <div class="note">
+              <strong>In scope</strong>
+              <ul>
+                <li><code>package.json</code> npm metadata、bin、files、scripts。</li>
+                <li><code>bin/setup-opencode.js</code> portable wrapper。</li>
+                <li><code>scripts/setup-opencode.ts</code> help/version presentation。</li>
+                <li>README usage and regression coverage.</li>
+              </ul>
+            </div>
+            <div class="note">
+              <strong>Out of scope</strong>
+              <ul>
+                <li>No <code>npm publish</code>.</li>
+                <li>No OpenClaw redesign.</li>
+                <li>No change to setup-core lifecycle safety semantics.</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="evidence">
+          <h2>Evidence Map</h2>
+          <table>
+            <thead><tr><th>Claim</th><th>Evidence</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Wrapper design approved</td><td><code>docs/rfc.md</code>, <code>docs/review-rfc.md</code></td><td>PASS</td></tr>
+              <tr><td>Package/bin surface implemented</td><td><code>package.json</code>, <code>bin/setup-opencode.js</code></td><td>PASS</td></tr>
+              <tr><td>CLI presentation implemented</td><td><code>scripts/setup-opencode.ts</code></td><td>PASS</td></tr>
+              <tr><td>Usage docs updated</td><td><code>README.md</code></td><td>PASS</td></tr>
+              <tr><td>Verification covers wrapper and pack contents</td><td><code>docs/test-report.md</code>, regression tests</td><td>PASS</td></tr>
+              <tr><td>Change review has no blockers</td><td><code>docs/review-change.md</code></td><td>PASS</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="path">
+          <h2>Delivery Path</h2>
+          <ol>
+            <li>Contract created and worktree opened from <code>origin/master</code>.</li>
+            <li>RFC selected JS wrapper around existing TypeScript implementation.</li>
+            <li>Implementation updated package, wrapper, CLI help/version, README, and tests.</li>
+            <li>Verification and change review passed.</li>
+            <li>Wiki writeback completed.</li>
+            <li>Remaining lifecycle: commit, rebase, push, PR, render handoff, checks/review, terminal decision, cleanup, main refresh.</li>
+          </ol>
+        </section>
+
+        <section id="render">
+          <h2>Render Handoff</h2>
+          <p>Primary artifact is this file: <code>docs/report-walkthrough.html</code>.</p>
+          <p>Render state is pending PR. No rendered URL exists yet because the PR has not been created. After PR creation, use <code>pr-html-render</code> if a preview path is available; otherwise record artifact-only or an explicit render blocker in lifecycle notes.</p>
+        </section>
+
+        <section id="changes">
+          <h2>What Changed / What Was Decided</h2>
+          <ul>
+            <li>Package and primary bin are prepared as <code>setup-opencode</code>.</li>
+            <li>Npm bin points to a JS wrapper instead of directly exposing TypeScript.</li>
+            <li>Wrapper starts <code>scripts/setup-opencode.ts</code> with <code>--experimental-strip-types</code>.</li>
+            <li>CLI supports <code>--help</code>, <code>--version</code>, <code>help</code>, and <code>version</code>.</li>
+            <li><code>npm pack --dry-run --json</code> is now release-readiness evidence.</li>
+          </ul>
+        </section>
+
+        <section id="verification">
+          <h2>Verification / Review Status</h2>
+          <ul>
+            <li><code>npm run test:regression</code>: PASS, 13/13 tests.</li>
+            <li><code>npm run pack:dry-run</code>: PASS, package id <code>setup-opencode@0.1.0</code>.</li>
+            <li><code>docs/review-change.md</code>: PASS, no blocking findings.</li>
+          </ul>
+        </section>
+
+        <section id="risks">
+          <h2>Risks and Limits</h2>
+          <ul>
+            <li>Actual publish remains a maintainer action.</li>
+            <li>Maintainer should confirm unscoped package name vs organization scope before first publish.</li>
+            <li>Runtime still relies on Node <code>&gt;=22.6.0</code> and strip-types support.</li>
+          </ul>
+        </section>
+
+        <section id="checklist">
+          <h2>Reviewer Checklist</h2>
+          <ul class="checklist">
+            <li>Confirm <code>setup-opencode</code> package/bin naming.</li>
+            <li>Inspect <code>package.json#files</code> against intended npm contents.</li>
+            <li>Check wrapper behavior and executable mode.</li>
+            <li>Confirm README does not imply npm publish has already happened.</li>
+            <li>Review verification evidence in <code>docs/test-report.md</code>.</li>
+          </ul>
+        </section>
+
+        <section id="final">
+          <h2>Final State / Next Stage</h2>
+          <p>Legion evidence chain is ready for PR lifecycle. PR creation, checks/review, rendered preview handling, merge or terminal decision, worktree cleanup, and main workspace refresh are still pending lifecycle steps.</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

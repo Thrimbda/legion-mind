@@ -1,20 +1,49 @@
 {
-  "name": "legion-mind-opencode",
+  "name": "setup-opencode",
   "version": "0.1.0",
+  "description": "Install, verify, rollback, and uninstall LegionMind assets for OpenCode.",
   "private": false,
   "type": "module",
-  "bin": {
-    "legion-mind-opencode": "scripts/setup-opencode.ts"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Thrimbda/legion-mind.git"
   },
+  "bugs": {
+    "url": "https://github.com/Thrimbda/legion-mind/issues"
+  },
+  "homepage": "https://github.com/Thrimbda/legion-mind#readme",
+  "keywords": [
+    "opencode",
+    "legionmind",
+    "agent",
+    "workflow",
+    "cli"
+  ],
+  "bin": {
+    "setup-opencode": "bin/setup-opencode.js"
+  },
+  "files": [
+    "bin/",
+    "scripts/setup-opencode.ts",
+    "scripts/lib/setup-core.ts",
+    ".opencode/agents/",
+    ".opencode/plugins/",
+    "skills/",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
-    "opencode:install": "node scripts/setup-opencode.ts install",
-    "opencode:verify": "node scripts/setup-opencode.ts verify --strict",
-    "opencode:rollback": "node scripts/setup-opencode.ts rollback",
-    "opencode:uninstall": "node scripts/setup-opencode.ts uninstall",
+    "opencode:install": "node bin/setup-opencode.js install",
+    "opencode:verify": "node bin/setup-opencode.js verify --strict",
+    "opencode:rollback": "node bin/setup-opencode.js rollback",
+    "opencode:uninstall": "node bin/setup-opencode.js uninstall",
+    "opencode:help": "node bin/setup-opencode.js --help",
     "openclaw:install": "node --experimental-strip-types scripts/setup-openclaw.ts install",
     "openclaw:verify": "node --experimental-strip-types scripts/setup-openclaw.ts verify --strict",
     "openclaw:rollback": "node --experimental-strip-types scripts/setup-openclaw.ts rollback",
     "openclaw:uninstall": "node --experimental-strip-types scripts/setup-openclaw.ts uninstall",
+    "pack:dry-run": "npm pack --dry-run --json",
     "test:regression": "node --test --experimental-strip-types tests/regression/*.test.ts"
   },
   "engines": {

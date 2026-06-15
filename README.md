@@ -106,12 +106,24 @@ node --version
 
 ### 安装到 OpenCode
 
-OpenCode 安装会同步 `.opencode/agents`、`.opencode/plugins`（如果存在）和固定核心 skill set，并记录 managed manifest / backup index；这是当前带完整 `install / verify / rollback / uninstall` 的路径。
+OpenCode 安装入口现在是准备发布到 npm 的 `setup-opencode` CLI。它会同步 `.opencode/agents`、`.opencode/plugins`（如果存在）和固定核心 skill set，并记录 managed manifest / backup index；这是当前带完整 `install / verify / rollback / uninstall` 的路径。
+
+和 Context7 CLI 一样，推荐优先使用一次性的 `npx <package>@latest` 形态：
 
 ```bash
-npm run opencode:install
-npm run opencode:verify
+npx setup-opencode@latest install
+npx setup-opencode@latest verify --strict
 ```
+
+也可以全局安装后复用：
+
+```bash
+npm install -g setup-opencode
+setup-opencode install
+setup-opencode verify --strict
+```
+
+> 当前仓库变更只准备 npm package layout、CLI 入口与验证信号；实际 `npm publish` 不在本仓库任务中执行。
 
 默认目标：
 
@@ -122,20 +134,30 @@ npm run opencode:verify
 如果要先在仓库内隔离目录里试跑：
 
 ```bash
-node scripts/setup-opencode.ts install --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
-node scripts/setup-opencode.ts verify --strict --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
+node bin/setup-opencode.js install --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
+node bin/setup-opencode.js verify --strict --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
 ```
 
 回滚最近一次由安装脚本创建的备份：
 
 ```bash
-npm run opencode:rollback
+npx setup-opencode@latest rollback
 ```
 
 卸载由 manifest 管理且未漂移的文件：
 
 ```bash
+npx setup-opencode@latest uninstall
+```
+
+本地开发时仍可使用仓库脚本，它们会走同一个 npm bin wrapper：
+
+```bash
+npm run opencode:install
+npm run opencode:verify
+npm run opencode:rollback
 npm run opencode:uninstall
+npm run opencode:help
 ```
 
 ### 安装到 OpenClaw
@@ -200,9 +222,10 @@ npm run openclaw:rollback
 npm run openclaw:uninstall
 
 npm run test:regression
+npm run pack:dry-run
 ```
 
-当前 npm package 暴露的 bin 是 `legion-mind-opencode`，对应 OpenCode 安装脚本；正式发布入口仍以发行包文档为准。
+当前 npm package 准备暴露的 bin 是 `setup-opencode`，对应 OpenCode 安装脚本；可用 `npm run pack:dry-run` 检查待发布文件集，正式发布仍需维护者执行 `npm publish`。
 
 ### 本地管理命令
 

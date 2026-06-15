@@ -82,6 +82,15 @@
 - 兼容边界：`--opencode-home` 仍作为显式 override 保留；传入后会继续使用 `<override>/skills/<skill>`，用于测试隔离或历史安装路径。
 - 验证提示：除 lifecycle regression 外，使用 repo-local isolated `HOME` 运行 `install --dry-run --json`，确认输出 target 包含 `.agents/skills/<skill>`，避免写真实 home。
 
+## 模式：`setup-opencode` npm CLI 发布面
+
+- 来源任务：`setup-opencode-npm-cli`
+- 背景：仓库内 `scripts/setup-opencode.ts` 已具备 OpenCode install / verify / rollback / uninstall lifecycle，但直接暴露 TypeScript implementation 和 repo-local README 命令不足以支撑 npm 发布与 `npx` 使用。
+- 做法：npm package 与 primary bin 使用 `setup-opencode`；`package.json#bin.setup-opencode` 指向 portable JS wrapper `bin/setup-opencode.js`，由 wrapper 用 `--experimental-strip-types` 启动 `scripts/setup-opencode.ts`，避免用户手动传 Node flags。CLI 自身提供 `--help` / `--version`，默认命令仍是 `install`。
+- Package surface：`package.json#files` 必须显式包含 `bin/`、`.opencode/agents/`、`scripts/setup-opencode.ts`、`scripts/lib/setup-core.ts`、`skills/`、`README.md`、`LICENSE`；不要把 `.legion/`、`.worktrees/`、`tests/`、`.cache/` 打进 npm 包。
+- 验证提示：除 `npm run test:regression` 外，使用 `npm pack --dry-run --json` 或等价 dry-run 检查 package id、bin executable mode 和 required install assets。npm cache/logs 应设置到 repo-local `.cache/npm`，避免持久化输出落在用户 home。
+- 发布边界：任务/PR 可以证明 package layout ready，但不等于已发布；首次真实发布前仍需维护者确认 unscoped 包名或组织 scope。
+
 ## 模式：Setup regression suite 锁定安装与 CLI 不变量
 
 - 来源任务：`harden-v1-kernel-harness`

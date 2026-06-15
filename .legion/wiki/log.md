@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-15] writeback | setup-opencode-npm-cli
+
+- Added task summary for `setup-opencode-npm-cli` under `tasks/`.
+- Promoted `setup-opencode` npm CLI release surface as a durable pattern: package/bin name, JS wrapper, explicit files allowlist, `npx setup-opencode@latest` README shape, and npm dry-run verification.
+- Recorded a non-blocking release follow-up to confirm unscoped package name vs organization scope before the first real `npm publish`.
+
 ## [2026-06-10] writeback | localize-pr-html-render-skill
 
 - Added task summary for `localize-pr-html-render-skill` under `tasks/`.
