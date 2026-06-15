@@ -47,6 +47,8 @@ interface CliOptions {
 type InstallState = InstallStateBase;
 
 const MANAGED_FILE_ACTIONS = new Set(['install', 'update', 'rollback', 'uninstall']);
+const COMMANDS = ['install', 'verify', 'rollback', 'uninstall'] as const;
+const VALUE_OPTIONS = new Set(['--strategy', '--to', '--config-dir', '--opencode-home']);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -79,10 +81,74 @@ const INSTALLED_SKILLS = [
 
 const SENSITIVE_BASENAMES = new Set(['opencode.json', 'antigravity-accounts.json']);
 
+function findCommandArg(argv: string[]): string | null {
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (!arg || arg.startsWith('--')) {
+      continue;
+    }
+    if (index > 0 && VALUE_OPTIONS.has(argv[index - 1])) {
+      continue;
+    }
+    return arg;
+  }
+  return null;
+}
+
+function packageVersion(): string {
+  try {
+    const parsed = JSON.parse(readFileSync(join(PROJECT_ROOT, 'package.json'), 'utf-8')) as { version?: unknown };
+    return typeof parsed.version === 'string' ? parsed.version : '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+}
+
+function printVersion() {
+  console.log(packageVersion());
+}
+
+function printHelp() {
+  console.log(`setup-opencode ${packageVersion()}
+
+Install, verify, rollback, and uninstall LegionMind assets for OpenCode.
+
+Usage:
+  setup-opencode [command] [options]
+  npx setup-opencode@latest [command] [options]
+
+Commands:
+  install      Install or update managed OpenCode assets (default)
+  verify       Check installed assets; use --strict for checksum ownership checks
+  rollback     Restore the latest backup batch, or --to <backup-id>
+  uninstall    Remove managed, non-drifted assets
+  help         Show this help
+  version      Print the CLI version
+
+Options:
+  --config-dir <path>      OpenCode config directory (default: ~/.config/opencode)
+  --opencode-home <path>   OpenCode agents home (default: ~/.agents)
+  --strategy <copy|symlink> Install strategy (default: copy)
+  --to <backup-id>         Backup id for rollback
+  --strict                 Enforce strict verify checks
+  --dry-run                Show intended writes without changing files
+  --force                  Back up and overwrite/remove drifted managed targets
+  --json                   Emit machine-readable events and result
+  --help, -h               Show this help
+  --version, -v            Print the CLI version
+
+Examples:
+  npx setup-opencode@latest install
+  npx setup-opencode@latest verify --strict
+  npm install -g setup-opencode && setup-opencode install
+  setup-opencode install --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
+`);
+}
+
 function parseArgs(argv: string[]): CliOptions {
-  const commandArg = argv.find((arg) => !arg.startsWith('--'));
+  const commandArg = findCommandArg(argv);
   const command = (commandArg as Command | undefined) ?? 'install';
-  if (!['install', 'verify', 'rollback', 'uninstall'].includes(command)) {
+  if (!COMMANDS.includes(command)) {
     throw new Error(`Unsupported command: ${command}`);
   }
 
@@ -458,31 +524,54 @@ function runUninstall(opts: CliOptions, runId: string, reporter: Reporter): Inst
 }
 
 function run() {
-  const opts = parseArgs(process.argv.slice(2));
-  const runId = randomUUID();
-  const reporter = new Reporter(runId, opts.json);
-
-  const stateDir = join(opts.configDir, MANAGED_DIR_NAME);
-  const installStatePath = join(stateDir, INSTALL_STATE_FILE);
-
-  let result: InstallState;
-  if (opts.command === 'install') {
-    result = runInstall(opts, runId, reporter);
-  } else if (opts.command === 'verify') {
-    result = runVerify(opts, runId, reporter);
-  } else if (opts.command === 'rollback') {
-    result = runRollback(opts, runId, reporter);
-  } else {
-    result = runUninstall(opts, runId, reporter);
+  const argv = process.argv.slice(2);
+  const commandArg = findCommandArg(argv);
+  if (argv.includes('--help') || argv.includes('-h') || commandArg === 'help') {
+    printHelp();
+    return;
+  }
+  if (argv.includes('--version') || argv.includes('-v') || commandArg === 'version') {
+    printVersion();
+    return;
   }
 
-  writeJsonAtomic(installStatePath, result, opts.dryRun);
+  let opts: CliOptions | null = null;
+  try {
+    opts = parseArgs(argv);
+    const runId = randomUUID();
+    const reporter = new Reporter(runId, opts.json);
 
-  if (opts.json) {
-    console.log(JSON.stringify(result));
-  }
+    const stateDir = join(opts.configDir, MANAGED_DIR_NAME);
+    const installStatePath = join(stateDir, INSTALL_STATE_FILE);
 
-  if (result.code === 'E_VERIFY_STRICT' || result.code.startsWith('E_')) {
+    let result: InstallState;
+    if (opts.command === 'install') {
+      result = runInstall(opts, runId, reporter);
+    } else if (opts.command === 'verify') {
+      result = runVerify(opts, runId, reporter);
+    } else if (opts.command === 'rollback') {
+      result = runRollback(opts, runId, reporter);
+    } else {
+      result = runUninstall(opts, runId, reporter);
+    }
+
+    writeJsonAtomic(installStatePath, result, opts.dryRun);
+
+    if (opts.json) {
+      console.log(JSON.stringify(result));
+    }
+
+    if (result.code === 'E_VERIFY_STRICT' || result.code.startsWith('E_')) {
+      process.exit(1);
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (opts?.json || argv.includes('--json')) {
+      console.log(JSON.stringify({ ok: false, command: opts?.command ?? commandArg ?? 'install', message }));
+    } else {
+      console.error(message);
+      console.error('Run setup-opencode --help for usage.');
+    }
     process.exit(1);
   }
 }

@@ -20,6 +20,30 @@ function nodeScript(script: string, args: string[]) {
   });
 }
 
+function setupOpencodeBin(args: string[]) {
+  return execFileSync(process.execPath, ['bin/setup-opencode.js', ...args], {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
+
+function npmPackDryRun() {
+  const npmCache = join(repoRoot, '.cache', 'npm');
+  mkdirSync(npmCache, { recursive: true });
+  return JSON.parse(execFileSync('npm', ['pack', '--dry-run', '--json'], {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+    env: {
+      ...process.env,
+      npm_config_cache: npmCache,
+      npm_config_loglevel: 'silent',
+      npm_config_update_notifier: 'false',
+    },
+  }));
+}
+
 function readJson(path: string) {
   return JSON.parse(readFileSync(path, 'utf-8'));
 }
@@ -53,6 +77,54 @@ test('OpenCode setup lifecycle works in isolated directories', () => {
     assert.equal(existsSync(join(homeDir, 'skills', 'legion-workflow', 'SKILL.md')), false);
   } finally {
     rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('setup-opencode npm bin exposes help and version', () => {
+  const pkg = readJson(join(repoRoot, 'package.json'));
+
+  assert.match(setupOpencodeBin(['--help']), /Usage:\n  setup-opencode \[command\] \[options\]/);
+  assert.match(setupOpencodeBin(['help']), /npx setup-opencode@latest install/);
+  assert.equal(setupOpencodeBin(['--version']).trim(), pkg.version);
+  assert.equal(setupOpencodeBin(['version']).trim(), pkg.version);
+});
+
+test('setup-opencode npm bin runs lifecycle in isolated directories', () => {
+  const root = tmpRoot('opencode-bin');
+  try {
+    const configDir = join(root, 'config');
+    const homeDir = join(root, 'home');
+    const common = ['--config-dir', configDir, '--opencode-home', homeDir];
+
+    setupOpencodeBin(['install', ...common]);
+    assert.match(setupOpencodeBin(['verify', '--strict', ...common]), /READY/);
+    setupOpencodeBin(['uninstall', ...common]);
+    assert.equal(existsSync(join(homeDir, 'skills', 'legion-workflow', 'SKILL.md')), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('npm dry-run package includes CLI and install assets only', () => {
+  const [pack] = npmPackDryRun();
+  assert.equal(pack.name, 'setup-opencode');
+
+  const files = new Set(pack.files.map((file: { path: string }) => file.path));
+  for (const expected of [
+    'bin/setup-opencode.js',
+    'scripts/setup-opencode.ts',
+    'scripts/lib/setup-core.ts',
+    '.opencode/agents/legion.md',
+    'skills/legion-workflow/SKILL.md',
+    'README.md',
+    'LICENSE',
+    'package.json',
+  ]) {
+    assert.equal(files.has(expected), true, `${expected} should be included in npm package`);
+  }
+
+  for (const excludedPrefix of ['.legion/', '.worktrees/', 'tests/', '.cache/']) {
+    assert.equal([...files].some((path) => path.startsWith(excludedPrefix)), false, `${excludedPrefix} should not be packaged`);
   }
 });
 
