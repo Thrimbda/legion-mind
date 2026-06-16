@@ -68,6 +68,11 @@ export interface InstallStateBase {
   summary: InstallStateSummary;
 }
 
+export interface ReporterOptions {
+  json: boolean;
+  verbose?: boolean;
+}
+
 export interface SyncItem {
   sourcePath: string;
   targetPath: string;
@@ -101,10 +106,17 @@ export class Reporter {
   failures = 0;
   private readonly runId: string;
   private readonly json: boolean;
+  private readonly verbose: boolean;
 
-  constructor(runId: string, json: boolean) {
+  constructor(runId: string, options: boolean | ReporterOptions) {
     this.runId = runId;
-    this.json = json;
+    if (typeof options === 'boolean') {
+      this.json = options;
+      this.verbose = false;
+    } else {
+      this.json = options.json;
+      this.verbose = options.verbose ?? false;
+    }
   }
 
   emit(code: string, phase: string, checkId: string, target: string, hint: string) {
@@ -130,8 +142,15 @@ export class Reporter {
       return;
     }
 
-    console.log(`${payload.code} [${payload.phase}/${payload.checkId}] ${payload.target} :: ${payload.hint}`);
+    if (this.verbose || code.startsWith('W_') || code.startsWith('E_')) {
+      console.log(`${payload.code} [${payload.phase}/${payload.checkId}] ${payload.target} :: ${payload.hint}`);
+    }
   }
+}
+
+export function formatInstallStateSummary(state: InstallStateBase, runtime: string): string {
+  const { copied, linked, skipped, warnings, failures } = state.summary;
+  return `${state.code} ${runtime} copied=${copied} linked=${linked} skipped=${skipped} warnings=${warnings} failures=${failures}`;
 }
 
 export function sha256(path: string): string {

@@ -1,7 +1,7 @@
 {
   "name": "lgmind",
   "version": "0.1.0",
-  "description": "Install, verify, rollback, and uninstall LegionMind assets for OpenCode.",
+  "description": "Install, verify, rollback, and uninstall LegionMind assets for supported agent runtimes.",
   "private": false,
   "type": "module",
   "license": "MIT",
@@ -26,12 +26,14 @@
     "registry": "https://registry.npmjs.org"
   },
   "bin": {
-    "lgmind": "bin/setup-opencode.js",
+    "lgmind": "bin/lgmind.js",
     "setup-opencode": "bin/setup-opencode.js"
   },
   "files": [
     "bin/",
+    "scripts/lgmind.ts",
     "scripts/setup-opencode.ts",
+    "scripts/setup-openclaw.ts",
     "scripts/lib/setup-core.ts",
     ".opencode/agents/",
     ".opencode/plugins/",

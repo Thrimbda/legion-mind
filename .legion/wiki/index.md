@@ -22,7 +22,7 @@
 - `task create` 现在采用 staging + rename 物化模式，见 `patterns.md`。
 - `setup-opencode verify --strict` 现在必须校验安装资产内容与 managed ownership，见 `patterns.md` 与 `tasks/harden-strict-verify-integrity.md`。
 - `setup-opencode` 默认仍管理 OpenCode config/agents，但核心 Legion skills 现在安装到 `~/.agents/skills`，见 `patterns.md` 与 `tasks/setup-opencode-agents-skills.md`。
-- OpenCode installer 的 npm CLI 已发布为 package `lgmind@0.1.0`：primary bin `lgmind`，alias bin `setup-opencode`，入口是 portable JS wrapper，README 使用 `npx lgmind@latest` 叙事；后续 release automation follow-up 是 GitHub CI trusted publishing。见 `patterns.md`、`tasks/setup-opencode-npm-cli.md` 与 `tasks/publish-lgmind-npm.md`。
+- OpenCode/OpenClaw installer 的 npm CLI 当前形态是 package `lgmind@0.1.0`：primary bin `lgmind` 是 product-level setup aggregator，支持 `npx lgmind@latest setup --agent opencode|openclaw`，alias bin `setup-opencode` 仍是 OpenCode-only 直达入口；默认 text logs quiet，`--verbose` / `--json` 提供详细输出。后续 release automation follow-up 是 GitHub CI trusted publishing。见 `patterns.md`、`tasks/setup-opencode-npm-cli.md`、`tasks/publish-lgmind-npm.md` 与 `tasks/improve-cli-setup-ux.md`。
 - `setup-openclaw` 现在采用 OpenClaw local skills root + managed manifest + strict verify 的安装路径，并已与 OpenCode 对齐 rollback / uninstall / shared lifecycle core，见 `patterns.md`、`tasks/fix-openclaw-setup-install.md` 与 `tasks/harden-v1-kernel-harness.md`。
 - 当前用户入口文档只承认 OpenCode 与 OpenClaw；根 `docs/` 历史材料已退出 current truth，现行入口为 `README.md`、`.legion/wiki/**`、`skills/**` 与 `vibe-harness-bench/README.md`，见 `tasks/harden-v1-kernel-harness.md`。
 - README 的 `当前现实` / `通往 v1` 叙事已同步到当前仓库真实状态：可运行内核、OpenCode/OpenClaw-only、CLI 薄工具、local-first benchmark 与未毕业 CI/release/onboarding 边界，见 `tasks/refresh-readme-current-reality.md`。

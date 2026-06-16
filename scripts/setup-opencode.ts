@@ -22,6 +22,7 @@ import {
   createManagedRootSet,
   emptyBackupIndex,
   emptyManagedState,
+  formatInstallStateSummary,
   loadJsonOrDefault,
   rollbackCore,
   syncOneFileCore,
@@ -38,6 +39,7 @@ interface CliOptions {
   dryRun: boolean;
   force: boolean;
   json: boolean;
+  verbose: boolean;
   strategy: Strategy;
   toBackupId: string | null;
   configDir: string;
@@ -109,14 +111,14 @@ function printVersion() {
 }
 
 function printHelp() {
-  console.log(`lgmind ${packageVersion()}
+  console.log(`setup-opencode ${packageVersion()}
 
 Install, verify, rollback, and uninstall LegionMind assets for OpenCode.
+Use lgmind setup --agent opencode for the product-level setup flow.
 
 Usage:
-  lgmind [command] [options]
-  npx lgmind@latest [command] [options]
-  setup-opencode [command] [options]  # alias
+  setup-opencode [command] [options]
+  lgmind <setup|install|verify|rollback|uninstall> --agent opencode [options]
 
 Commands:
   install      Install or update managed OpenCode assets (default)
@@ -134,14 +136,15 @@ Options:
   --strict                 Enforce strict verify checks
   --dry-run                Show intended writes without changing files
   --force                  Back up and overwrite/remove drifted managed targets
+  --verbose                Show detailed lifecycle events in text mode
   --json                   Emit machine-readable events and result
   --help, -h               Show this help
   --version, -v            Print the CLI version
 
 Examples:
-  npx lgmind@latest install
-  npx lgmind@latest verify --strict
-  npm install -g lgmind && lgmind install
+  npx lgmind@latest setup --agent opencode
+  npx lgmind@latest verify --agent opencode --strict
+  npm install -g lgmind && lgmind setup --agent opencode
   setup-opencode install --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
 `);
 }
@@ -179,6 +182,7 @@ function parseArgs(argv: string[]): CliOptions {
     dryRun: argv.includes('--dry-run'),
     force: argv.includes('--force'),
     json: argv.includes('--json'),
+    verbose: argv.includes('--verbose'),
     strategy: strategyValue,
     toBackupId: getValue('--to'),
     configDir,
@@ -451,8 +455,6 @@ function runVerify(opts: CliOptions, runId: string, reporter: Reporter): Install
   const code = strictFailed ? 'E_VERIFY_STRICT' : 'READY';
   if (opts.json) {
     reporter.emit(code, 'verify', 'result', opts.configDir, strictFailed ? 'run install to repair assets' : 'all strict checks passed');
-  } else {
-    console.log(code);
   }
 
   return {
@@ -540,7 +542,7 @@ function run() {
   try {
     opts = parseArgs(argv);
     const runId = randomUUID();
-    const reporter = new Reporter(runId, opts.json);
+    const reporter = new Reporter(runId, { json: opts.json, verbose: opts.verbose });
 
     const stateDir = join(opts.configDir, MANAGED_DIR_NAME);
     const installStatePath = join(stateDir, INSTALL_STATE_FILE);
@@ -560,6 +562,8 @@ function run() {
 
     if (opts.json) {
       console.log(JSON.stringify(result));
+    } else {
+      console.log(formatInstallStateSummary(result, 'opencode'));
     }
 
     if (result.code === 'E_VERIFY_STRICT' || result.code.startsWith('E_')) {

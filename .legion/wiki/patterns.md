@@ -90,20 +90,21 @@
 - 兼容边界：`--opencode-home` 仍作为显式 override 保留；传入后会继续使用 `<override>/skills/<skill>`，用于测试隔离或历史安装路径。
 - 验证提示：除 lifecycle regression 外，使用 repo-local isolated `HOME` 运行 `install --dry-run --json`，确认输出 target 包含 `.agents/skills/<skill>`，避免写真实 home。
 
-## 模式：`lgmind` npm CLI 发布面
+## 模式：`lgmind` npm CLI 发布面与 setup UX
 
-- 来源任务：`setup-opencode-npm-cli`、`publish-lgmind-npm`
-- 背景：仓库内 `scripts/setup-opencode.ts` 已具备 OpenCode install / verify / rollback / uninstall lifecycle；PR #17 先把它包装为可发布 CLI，后续 release task 将公开 npm package name 收敛为短名 `lgmind`。
-- 做法：npm package name 使用 `lgmind`；primary bin `lgmind` 与 alias bin `setup-opencode` 都指向 portable JS wrapper `bin/setup-opencode.js`，由 wrapper 用 `--experimental-strip-types` 启动 `scripts/setup-opencode.ts`，避免用户手动传 Node flags。CLI 自身提供 `--help` / `--version`，默认命令仍是 `install`。
-- Package surface：`package.json#files` 必须显式包含 `bin/`、`.opencode/agents/`、`scripts/setup-opencode.ts`、`scripts/lib/setup-core.ts`、`skills/`、`README.md`、`LICENSE`；不要把 `.legion/`、`.worktrees/`、`tests/`、`.cache/` 打进 npm 包。
-- 验证提示：除 `npm run test:regression` 外，使用 `npm pack --dry-run --json` 或等价 dry-run 检查 package id、bin executable mode 和 required install assets；首次 publish 前还要检查 `npm view lgmind`、`npm whoami` 与 package dry-run。npm cache/logs 应设置到 repo-local `.cache/npm`，避免持久化输出落在用户 home。
-- 发布边界：release config 必须先通过 PR merge；真实 `npm publish --access public` 只能从刷新后的 `origin/master` 执行，并在发布后用 registry `npm view` 记录最终状态。
+- 来源任务：`setup-opencode-npm-cli`、`publish-lgmind-npm`、`improve-cli-setup-ux`
+- 背景：仓库内 OpenCode/OpenClaw setup scripts 已具备 install / verify / rollback / uninstall lifecycle；`lgmind` 首发后，CLI 需要像 Context7-style `setup` 一样给 first-run 用户一个明确入口，而不是只暴露 OpenCode 直达安装脚本。
+- 做法：npm package name 使用 `lgmind`；primary bin `lgmind` 指向 product-level wrapper `bin/lgmind.js` -> `scripts/lgmind.ts`，负责 `setup` 与 `--agent opencode|openclaw` runtime selection；alias bin `setup-opencode` 继续指向 `bin/setup-opencode.js`，作为 OpenCode-only 直达入口。`setup` 无显式 selector 时只在 TTY 中提示，非 TTY 默认 OpenCode，避免 CI hang。
+- Output surface：默认 text output 只显示 final summary 与 warnings/errors；成功 `OK_*` lifecycle events 默认隐藏。`--verbose` 恢复详细 text events，`--json` 保持详细 structured event stream。
+- Package surface：`package.json#files` 必须显式包含 `bin/`、`.opencode/agents/`、`scripts/lgmind.ts`、`scripts/setup-opencode.ts`、`scripts/setup-openclaw.ts`、`scripts/lib/setup-core.ts`、`skills/`、`README.md`、`LICENSE`；不要把 `.legion/`、`.worktrees/`、`tests/`、`.cache/` 打进 npm 包。
+- 验证提示：除 `npm run test:regression` 外，使用 `npm pack --dry-run --json` 或等价 dry-run 检查 package id、bin executable mode 和 required install assets；release 前还要检查 `npm view lgmind`、`npm whoami` 与 package dry-run。npm cache/logs 应设置到 repo-local `.cache/npm`，避免持久化输出落在用户 home。
+- 发布边界：CLI/package layout 变更必须先通过 PR merge；真实 npm publish 应由独立 release 任务从刷新后的 `origin/master` 执行并记录 registry state。
 
 ## 模式：Setup regression suite 锁定安装与 CLI 不变量
 
 - 来源任务：`harden-v1-kernel-harness`
 - 背景：LegionMind 已有 setup automation 与 CLI 薄工具，但缺少可重复回归入口来防止安装 lifecycle、skill surface 与 CLI 文件系统不变量漂移。
-- 做法：使用 Node built-in `node:test` 维护 `tests/regression/**`，并通过 `npm run test:regression` 运行。当前覆盖 OpenCode/OpenClaw isolated setup lifecycle、OpenCode 固定核心 skill list 与 OpenClaw dynamic skill surface 的包含关系、以及 `legion.ts init -> task create -> status -> task list` 文件系统不变量。
+- 做法：使用 Node built-in `node:test` 维护 `tests/regression/**`，并通过 `npm run test:regression` 运行。当前覆盖 OpenCode/OpenClaw isolated setup lifecycle、`lgmind` runtime selection 与 output mode、OpenCode 固定核心 skill list 与 OpenClaw dynamic skill surface 的包含关系、以及 `legion.ts init -> task create -> status -> task list` 文件系统不变量。
 - 安全边界：测试必须在 repo-local `.cache/regression` 下创建临时根，避免把 Legion 任务产物、日志或临时缓存写到 repo 外；真实 home 目录不得参与 regression。
 - 常见陷阱：不要把 regression 扩成端到端 agent runtime harness；不要让 README 声称支持 OpenCode/OpenClaw 之外的运行时；不要把 CLI 测试写成 workflow phase decision 测试，CLI 仍只是薄文件工具。
 

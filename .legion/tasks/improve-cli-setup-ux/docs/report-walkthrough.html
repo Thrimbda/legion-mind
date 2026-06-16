@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>lgmind CLI setup UX | Walkthrough</title>
+  <style>
+    :root { color-scheme: light; --bg: oklch(96% 0.012 250); --surface: oklch(99% 0.004 250); --panel: oklch(92% 0.025 250); --ink: oklch(23% 0.028 255); --muted: oklch(45% 0.035 255); --line: oklch(82% 0.022 250); --accent: oklch(46% 0.13 252); --ok: oklch(88% 0.06 150); --shadow: 0 16px 42px oklch(40% 0.04 250 / 0.12); }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.65; }
+    main { width: min(1160px, calc(100vw - 36px)); margin: 0 auto; padding: 46px 0 70px; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: 30px; align-items: end; margin-bottom: 30px; }
+    .kicker { margin: 0 0 12px; color: var(--muted); font-weight: 720; }
+    h1 { margin: 0; max-width: 12ch; font-size: clamp(2.4rem, 7vw, 5.2rem); line-height: 0.98; letter-spacing: -0.035em; text-wrap: balance; }
+    .lead { max-width: 70ch; margin: 20px 0 0; color: var(--muted); font-size: 1.08rem; text-wrap: pretty; }
+    .status, section, nav { border: 1px solid var(--line); background: var(--surface); border-radius: 24px; }
+    .status { padding: 24px; box-shadow: var(--shadow); }
+    .status h2 { margin: 0 0 12px; font-size: 1rem; }
+    .status-row { display: flex; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--line); }
+    .status-row span:first-child { color: var(--muted); }
+    .pill { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--ok); padding: 0.08rem 0.58rem; font-weight: 760; line-height: 1.45; white-space: nowrap; }
+    .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 28px; align-items: start; }
+    nav { position: sticky; top: 18px; padding: 16px; }
+    nav a { display: block; padding: 8px 6px; color: var(--muted); text-decoration: none; border-radius: 10px; }
+    nav a:hover { background: var(--panel); color: var(--ink); }
+    section { padding: 26px; margin-bottom: 22px; box-shadow: 0 10px 28px oklch(40% 0.04 250 / 0.08); }
+    h2 { margin: 0 0 14px; font-size: clamp(1.35rem, 2.4vw, 2rem); line-height: 1.15; letter-spacing: -0.02em; text-wrap: balance; }
+    ul, ol { padding-left: 1.35rem; }
+    li + li { margin-top: 0.38rem; }
+    table { width: 100%; border-collapse: collapse; overflow-wrap: anywhere; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 12px 10px; }
+    th { color: var(--muted); font-size: 0.94rem; }
+    code { border: 1px solid var(--line); border-radius: 8px; background: var(--panel); padding: 0.08rem 0.32rem; font-size: 0.92em; }
+    .note { border: 1px solid var(--line); border-radius: 18px; background: var(--panel); padding: 18px; }
+    .two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+    @media (max-width: 900px) { main { width: min(100% - 24px, 760px); padding-top: 28px; } .hero, .layout { grid-template-columns: 1fr; } nav { position: static; } }
+    @media print { body { background: var(--surface); } nav { display: none; } section, .status { box-shadow: none; break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">Legion implementation walkthrough</p>
+        <h1>lgmind CLI setup UX</h1>
+        <p class="lead">A Context7-style setup command now lets users choose OpenCode or OpenClaw while default logs stay quiet and actionable.</p>
+      </div>
+      <aside class="status" aria-label="交付状态">
+        <h2>交付状态</h2>
+        <div class="status-row"><span>Profile</span><span class="pill">implementation</span></div>
+        <div class="status-row"><span>Design</span><span class="pill">PASS</span></div>
+        <div class="status-row"><span>Verification</span><span class="pill">PASS</span></div>
+        <div class="status-row"><span>Review</span><span class="pill">PASS</span></div>
+      </aside>
+    </header>
+    <div class="layout">
+      <nav aria-label="Walkthrough navigation">
+        <a href="#summary">摘要</a>
+        <a href="#scope">范围</a>
+        <a href="#evidence">证据</a>
+        <a href="#changes">改动</a>
+        <a href="#verification">验证</a>
+        <a href="#risks">风险</a>
+        <a href="#final">下一步</a>
+      </nav>
+      <div>
+        <section id="summary"><h2>Reviewer Summary</h2><p><code>lgmind</code> now has a product-level setup flow with <code>--agent opencode|openclaw</code>, while <code>setup-opencode</code> remains the direct OpenCode alias. Text output is quiet by default; <code>--verbose</code> and <code>--json</code> retain detailed output.</p></section>
+        <section id="scope"><h2>Scope</h2><div class="two-col"><div class="note"><strong>In scope</strong><ul><li>Aggregator entrypoint and runtime selection.</li><li>Quiet default reporter behavior.</li><li>OpenClaw package surface and docs/tests.</li></ul></div><div class="note"><strong>Out of scope</strong><ul><li>No per-agent subset selection.</li><li>No new runtimes.</li><li>No npm publish.</li></ul></div></div></section>
+        <section id="evidence"><h2>Evidence Map</h2><table><thead><tr><th>Claim</th><th>Evidence</th><th>Status</th></tr></thead><tbody><tr><td>Design approved</td><td><code>docs/rfc.md</code>, <code>docs/review-rfc.md</code></td><td>PASS</td></tr><tr><td>Runtime selection implemented</td><td><code>bin/lgmind.js</code>, <code>scripts/lgmind.ts</code></td><td>PASS</td></tr><tr><td>Quiet logs implemented</td><td><code>scripts/lib/setup-core.ts</code></td><td>PASS</td></tr><tr><td>Verification passed</td><td><code>docs/test-report.md</code></td><td>PASS</td></tr><tr><td>Review passed</td><td><code>docs/review-change.md</code></td><td>PASS</td></tr></tbody></table></section>
+        <section id="changes"><h2>What Changed / What Was Decided</h2><ul><li><code>lgmind</code> routes setup/lifecycle commands to OpenCode or OpenClaw.</li><li><code>setup</code> maps to runtime install and can prompt only in TTY.</li><li><code>--agent</code> is the documented runtime selector; <code>--runtime</code> is an alias.</li><li>Default text mode hides OK event noise, but keeps warnings/errors and final summaries.</li></ul></section>
+        <section id="verification"><h2>Verification / Review Status</h2><ul><li>Targeted smoke: PASS.</li><li><code>npm run test:regression</code>: PASS, 15/15.</li><li><code>npm run pack:dry-run</code>: PASS.</li><li><code>docs/review-change.md</code>: PASS.</li></ul></section>
+        <section id="risks"><h2>Risks and Limits</h2><ul><li>Prompt behavior is intentionally narrow to avoid CI hangs.</li><li>Release/publish remains a separate task.</li><li>Per-agent subset selection is not included.</li></ul></section>
+        <section id="final"><h2>Final State / Next Stage</h2><p>Ready for PR lifecycle after wiki writeback.</p></section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
