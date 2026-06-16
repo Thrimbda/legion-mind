@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-16] closeout | lgmind-0.2.0-publish
+
+- Recorded successful GitHub Actions trusted-publishing run `27597051575` for `lgmind@0.2.0`.
+- Updated release and workflow task summaries from pending publish state to published state.
+- Updated current npm latest in the wiki index to `lgmind@0.2.0`.
+
 ## [2026-06-16] writeback | add-npm-publish-action
 
 - Added task summary for `add-npm-publish-action` under `tasks/`.

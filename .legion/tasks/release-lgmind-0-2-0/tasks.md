@@ -2,7 +2,7 @@
 
 ## Status
 
-- Current phase: contract materialized; release implementation next.
+- Current phase: completed; `lgmind@0.2.0` published and verified.
 - Branch: `legion/release-lgmind-0-2-0`
 - Worktree: `.worktrees/release-lgmind-0-2-0/`
 - Base: `origin/master`
@@ -17,10 +17,10 @@
 - [x] Record verification evidence in `docs/test-report.md`.
 - [x] Record change review and walkthrough evidence.
 - [x] Update wiki release knowledge.
-- [ ] Commit scoped release changes.
-- [ ] Rebase on latest `origin/master` before push.
-- [ ] Push release branch and open PR.
-- [ ] Enable/follow auto-merge, checks, and review.
-- [ ] Cleanup worktree and refresh main workspace.
-- [ ] Publish `lgmind@0.2.0` to npm.
-- [ ] Verify npm `latest` resolves to `0.2.0`.
+- [x] Commit scoped release changes.
+- [x] Rebase on latest `origin/master` before push.
+- [x] Push release branch and open PR.
+- [x] Enable/follow auto-merge, checks, and review.
+- [x] Cleanup worktree and refresh main workspace.
+- [x] Publish `lgmind@0.2.0` to npm.
+- [x] Verify npm `latest` resolves to `0.2.0`.

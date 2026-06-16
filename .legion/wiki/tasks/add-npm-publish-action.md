@@ -5,6 +5,7 @@
 - Added manual GitHub Actions workflow `.github/workflows/publish-npm.yml` to publish `lgmind` through npm trusted publishing / OIDC.
 - The workflow verifies the release with regression tests and package dry run before `npm publish --access public`.
 - The workflow uses tokenless OIDC permissions instead of committing or requiring a long-lived npm token.
+- After npm trusted publisher configuration, workflow run `27597051575` published `lgmind@0.2.0` successfully.
 
 ## Evidence
 
@@ -13,12 +14,13 @@
 - Verification: `.legion/tasks/add-npm-publish-action/docs/test-report.md`
 - Review: `.legion/tasks/add-npm-publish-action/docs/review-change.md`
 - Walkthrough: `.legion/tasks/add-npm-publish-action/docs/report-walkthrough.md`
+- Publish result: `.legion/tasks/add-npm-publish-action/docs/publish-result.md`
 
 ## Current state
 
 - The workflow is manual `workflow_dispatch` only.
-- Required npm trusted publisher identity is repository `Thrimbda/legion-mind` with workflow file `publish-npm.yml` and publish permission.
-- After workflow merge, dispatching it from `master` should publish the already-merged package version `0.2.0` if npm trusted publishing is configured correctly.
+- npm trusted publisher identity is repository `Thrimbda/legion-mind` with workflow file `publish-npm.yml` and publish permission.
+- Latest successful run: `27597051575` on `master`.
 
 ## Durable conclusions
 
