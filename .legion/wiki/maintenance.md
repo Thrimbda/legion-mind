@@ -2,7 +2,7 @@
 
 ## Open follow-ups
 
-- `publish-lgmind-npm` 已将首次 npm release 的包名决策收敛为 unscoped `lgmind`；剩余 release follow-up 是 PR merge 后从刷新后的 `origin/master` 执行最终检查与 `npm publish --access public`，或记录 npm auth/2FA/permission/registry/name-race blocker。
+- `publish-lgmind-npm` 已完成首次手动 npm publish：`lgmind@0.1.0`，`latest` -> `0.1.0`。后续应新增独立任务，为未来 npm releases 配置 GitHub CI trusted publishing，减少手动 OTP 发布路径。
 - `harden-strict-verify-integrity` 留下一个非阻塞审计增强点：未来若需要更强 manifest 自一致性，可要求 `managed-files.v1.json` 中 `record.targetPath === manifest key`；当前实现不让该字段驱动路径访问，因此不影响本次安全边界。
 - `build-vibeharnessbench-mvp` 的“升级 contract verifier”事项已由 `complete-vibeharnessbench-v01` 在 local-first semantic scope 内完成；剩余高保真边界见下一条。
 - `complete-vibeharnessbench-v01` 仍未覆盖 Docker-faithful full stack、binary GIF pHash/SSIM、real RPC process harness、browser/ffmpeg/Playwright full-stack checks；这些是 RFC 非阻塞边界，若需要应拆独立任务。

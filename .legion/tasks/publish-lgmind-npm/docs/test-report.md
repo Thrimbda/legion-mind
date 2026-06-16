@@ -85,4 +85,20 @@ After walkthrough/wiki updates, the release preflight was rerun with repo-local 
 
 - Initial npm auth check failed with `ENEEDAUTH`; user logged in and the follow-up auth check passed.
 - No current blockers in repository verification.
-- Actual `npm publish --access public` is intentionally deferred until after PR merge and final verification from refreshed `origin/master`.
+- After PR #19 merged and the main workspace was refreshed to `origin/master`, final pre-publish checks passed: `npm view lgmind` returned expected `E404`, `npm whoami` passed as `thrimbda`, and `npm run pack:dry-run` produced `lgmind@0.1.0`.
+- The first publish attempt reached npm but was blocked by `EOTP`; the user completed the one-time-password publish step.
+
+## Published state
+
+```bash
+npm_config_cache=.cache/npm npm_config_loglevel=silent npm_config_update_notifier=false npm view lgmind version dist-tags.latest --registry=https://registry.npmjs.org
+```
+
+Result: PASS.
+
+```text
+version = '0.1.0'
+dist-tags.latest = '0.1.0'
+```
+
+Final state: `lgmind@0.1.0` is published on npm with the `latest` dist-tag.

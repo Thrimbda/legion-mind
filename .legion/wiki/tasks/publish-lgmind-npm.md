@@ -12,7 +12,8 @@
 - primary bin 是 `lgmind`；`setup-opencode` 保留为指向同一 wrapper 的 alias，用于保留描述性命令入口。
 - README 与 CLI help 以 `npx lgmind@latest` 为主叙事；`setup-opencode` 只作为 alias 出现。
 - `publishConfig` 明确 public npm registry 与 public access intent；真实发布命令仍使用 `npm publish --access public`。
-- 发布分两门：先通过 PR merge release config，再从刷新后的 `origin/master` 重跑最终检查并执行 publish。
+- 发布分两门已完成：PR #19 merged 后，从刷新后的 `origin/master` 重跑最终检查并完成 npm publish。
+- npm registry 当前状态：`lgmind` version `0.1.0`，`latest` dist-tag `0.1.0`。
 - npm 命令使用 repo-local `.cache/npm`，避免 npm cache/log 持久化到用户 home。
 - 可选参考仓库 `/home/c1/Work/opencode-feishu-notifier` 虽已由用户 clone，但当前工具权限仍阻止读取；本任务未从该仓库引入 release-shape 变更。
 
@@ -29,7 +30,5 @@
 
 ## 后续注意
 
-- PR merge 前不得执行 `npm publish`。
-- PR merge 后必须从刷新后的 `origin/master` 重跑 package-name、auth、pack dry-run 等最终检查，再执行 `npm publish --access public`。
-- 如果 npm auth、2FA、permission、registry 或 name race 阻塞发布，记录 blocker、owner、恢复条件与已执行命令；不要把 blocked handoff 当作完成。
-- 发布完成后需要补记 npm registry state，并更新本页 / wiki maintenance 中的 pending publish 状态。
+- 首次发布已手动完成；后续 release 应优先补 GitHub CI trusted publishing，减少手动 OTP 发布路径。
+- 如果未来已发布版本需要修复，应发布新版本；不要依赖 unpublish 作为常规 rollback。

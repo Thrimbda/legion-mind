@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-16] publish closeout | publish-lgmind-npm
+
+- Recorded final npm registry state for `lgmind@0.1.0`: `version = 0.1.0`, `latest = 0.1.0`.
+- Updated the task summary and index from pre-publish readiness to published state.
+- Replaced the pending publish follow-up with a future-release automation follow-up for GitHub CI trusted publishing.
+
 ## [2026-06-16] writeback | publish-lgmind-npm
 
 - Added task summary for `publish-lgmind-npm` under `tasks/`.
