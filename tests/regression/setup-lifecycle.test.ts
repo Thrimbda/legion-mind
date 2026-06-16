@@ -28,6 +28,14 @@ function setupOpencodeBin(args: string[]) {
   });
 }
 
+function lgmindBin(args: string[]) {
+  return execFileSync(process.execPath, ['bin/lgmind.js', ...args], {
+    cwd: repoRoot,
+    encoding: 'utf-8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+}
+
 function npmPackDryRun() {
   const npmCache = join(repoRoot, '.cache', 'npm');
   mkdirSync(npmCache, { recursive: true });
@@ -83,9 +91,11 @@ test('OpenCode setup lifecycle works in isolated directories', () => {
 test('lgmind npm bin exposes help and version', () => {
   const pkg = readJson(join(repoRoot, 'package.json'));
 
-  assert.match(setupOpencodeBin(['--help']), /Usage:\n  lgmind \[command\] \[options\]/);
-  assert.match(setupOpencodeBin(['help']), /npx lgmind@latest install/);
+  assert.match(lgmindBin(['--help']), /Usage:\n  lgmind setup \[--agent opencode\|openclaw\]/);
+  assert.match(lgmindBin(['help']), /npx lgmind@latest setup --agent openclaw/);
+  assert.match(setupOpencodeBin(['--help']), /Use lgmind setup --agent opencode/);
   assert.equal(setupOpencodeBin(['--version']).trim(), pkg.version);
+  assert.equal(lgmindBin(['--version']).trim(), pkg.version);
   assert.equal(setupOpencodeBin(['version']).trim(), pkg.version);
 });
 
@@ -96,10 +106,48 @@ test('lgmind npm bin runs lifecycle in isolated directories', () => {
     const homeDir = join(root, 'home');
     const common = ['--config-dir', configDir, '--opencode-home', homeDir];
 
-    setupOpencodeBin(['install', ...common]);
-    assert.match(setupOpencodeBin(['verify', '--strict', ...common]), /READY/);
-    setupOpencodeBin(['uninstall', ...common]);
+    lgmindBin(['setup', '--agent', 'opencode', ...common]);
+    assert.match(lgmindBin(['verify', '--agent', 'opencode', '--strict', ...common]), /READY opencode/);
+    lgmindBin(['uninstall', '--agent', 'opencode', ...common]);
     assert.equal(existsSync(join(homeDir, 'skills', 'legion-workflow', 'SKILL.md')), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('lgmind selects OpenClaw runtime non-interactively', () => {
+  const root = tmpRoot('lgmind-openclaw');
+  try {
+    const configDir = join(root, 'openclaw');
+    const common = ['--agent', 'openclaw', '--config-dir', configDir, '--openclaw-home', configDir, '--no-extra-dir'];
+
+    assert.match(lgmindBin(['setup', ...common]), /OK_INSTALL openclaw/);
+    assert.match(lgmindBin(['verify', '--strict', ...common]), /READY openclaw/);
+    lgmindBin(['uninstall', ...common]);
+    assert.equal(existsSync(join(configDir, 'skills', 'legion-workflow', 'SKILL.md')), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('default text output is quiet and verbose/json keep details', () => {
+  const root = tmpRoot('lgmind-quiet');
+  try {
+    const configDir = join(root, 'config');
+    const homeDir = join(root, 'home');
+    const common = ['--agent', 'opencode', '--config-dir', configDir, '--opencode-home', homeDir];
+
+    const installOutput = lgmindBin(['setup', ...common]);
+    assert.match(installOutput, /OK_INSTALL opencode/);
+    assert.doesNotMatch(installOutput, /OK_SYNC/);
+
+    const verboseOutput = lgmindBin(['verify', '--verbose', ...common]);
+    assert.match(verboseOutput, /OK_VERIFY/);
+    assert.match(verboseOutput, /READY opencode/);
+
+    const jsonLines = lgmindBin(['verify', '--json', ...common]).trim().split('\n').map((line) => JSON.parse(line));
+    assert.equal(jsonLines.some((line) => line.code === 'OK_VERIFY'), true);
+    assert.equal(jsonLines.at(-1).code, 'READY');
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -109,14 +157,17 @@ test('npm dry-run package includes CLI and install assets only', () => {
   const [pack] = npmPackDryRun();
   const pkg = readJson(join(repoRoot, 'package.json'));
   assert.equal(pack.name, 'lgmind');
-  assert.equal(pkg.bin.lgmind, 'bin/setup-opencode.js');
+  assert.equal(pkg.bin.lgmind, 'bin/lgmind.js');
   assert.equal(pkg.bin['setup-opencode'], 'bin/setup-opencode.js');
   assert.equal(pkg.publishConfig.access, 'public');
 
   const files = new Set(pack.files.map((file: { path: string }) => file.path));
   for (const expected of [
+    'bin/lgmind.js',
     'bin/setup-opencode.js',
+    'scripts/lgmind.ts',
     'scripts/setup-opencode.ts',
+    'scripts/setup-openclaw.ts',
     'scripts/lib/setup-core.ts',
     '.opencode/agents/legion.md',
     'skills/legion-workflow/SKILL.md',

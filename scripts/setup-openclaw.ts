@@ -25,6 +25,7 @@ import {
   createManagedRootSet,
   emptyBackupIndex,
   emptyManagedState,
+  formatInstallStateSummary,
   loadJsonOrDefault,
   rollbackCore,
   syncOneFileCore,
@@ -41,6 +42,7 @@ interface CliOptions {
   dryRun: boolean;
   force: boolean;
   json: boolean;
+  verbose: boolean;
   strategy: Strategy;
   toBackupId: string | null;
   configureExtraDir: boolean;
@@ -116,6 +118,7 @@ function parseArgs(argv: string[]): CliOptions {
     dryRun: argv.includes('--dry-run'),
     force: argv.includes('--force'),
     json: argv.includes('--json'),
+    verbose: argv.includes('--verbose'),
     strategy: strategyValue,
     toBackupId: getValue('--to'),
     configureExtraDir: !argv.includes('--no-extra-dir'),
@@ -462,8 +465,6 @@ function runVerify(opts: CliOptions, runId: string, reporter: Reporter): Install
   const code = strictFailed ? 'E_VERIFY_STRICT' : 'READY';
   if (opts.json) {
     reporter.emit(code, 'verify', 'result', opts.openclawHome, strictFailed ? 'run install to repair assets' : 'all checks passed');
-  } else {
-    console.log(code);
   }
 
   return {
@@ -544,7 +545,7 @@ function run() {
   try {
     opts = parseArgs(process.argv.slice(2));
     const runId = randomUUID();
-    const reporter = new Reporter(runId, opts.json);
+    const reporter = new Reporter(runId, { json: opts.json, verbose: opts.verbose });
     const installStatePath = join(opts.openclawHome, MANAGED_DIR_NAME, INSTALL_STATE_FILE);
 
     let result: InstallState;
@@ -562,6 +563,8 @@ function run() {
 
     if (opts.json) {
       console.log(JSON.stringify(result));
+    } else {
+      console.log(formatInstallStateSummary(result, 'openclaw'));
     }
 
     if (result.code === 'E_VERIFY_STRICT' || result.code.startsWith('E_')) {

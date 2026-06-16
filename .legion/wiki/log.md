@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-16] writeback | improve-cli-setup-ux
+
+- Added task summary for `improve-cli-setup-ux` under `tasks/`.
+- Promoted current `lgmind` CLI shape: product-level setup aggregator, `--agent opencode|openclaw` runtime selection, OpenCode-only `setup-opencode` alias, quiet default text output, and verbose/json escape hatches.
+- Updated the regression pattern to include `lgmind` runtime selection and output-mode coverage.
+
 ## [2026-06-16] publish closeout | publish-lgmind-npm
 
 - Recorded final npm registry state for `lgmind@0.1.0`: `version = 0.1.0`, `latest = 0.1.0`.

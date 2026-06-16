@@ -102,7 +102,15 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 node --version
 ```
 
-如果你同时使用 OpenCode 和 OpenClaw，可以两条都安装；否则只跑对应小节即可。
+如果你同时使用 OpenCode 和 OpenClaw，可以两条都安装；否则只跑对应小节即可。`lgmind` 现在提供 Context7-style 的 setup 入口：先选择目标运行时，再执行对应安装。
+
+```bash
+npx lgmind@latest setup
+npx lgmind@latest setup --agent opencode
+npx lgmind@latest setup --agent openclaw
+```
+
+在 TTY 中，`setup` 会提示选择 OpenCode / OpenClaw；在脚本或 CI 中请显式传 `--agent`，避免依赖交互。默认文字输出只显示结果摘要与 warnings/errors；需要逐条生命周期事件时加 `--verbose`，自动化解析仍用 `--json`。
 
 ### 安装到 OpenCode
 
@@ -111,19 +119,17 @@ OpenCode 安装入口现在是 npm package `lgmind` 提供的 CLI。它会同步
 和 Context7 CLI 一样，推荐优先使用一次性的 `npx <package>@latest` 形态：
 
 ```bash
-npx lgmind@latest install
-npx lgmind@latest verify --strict
+npx lgmind@latest setup --agent opencode
+npx lgmind@latest verify --agent opencode --strict
 ```
 
 也可以全局安装后复用：
 
 ```bash
 npm install -g lgmind
-lgmind install
-lgmind verify --strict
+lgmind setup --agent opencode
+lgmind verify --agent opencode --strict
 ```
-
-> 当前发布任务会先通过 PR 合并 release 配置，再从刷新后的 `origin/master` 执行 `npm publish --access public`。
 
 默认目标：
 
@@ -141,13 +147,13 @@ node bin/setup-opencode.js verify --strict --config-dir .cache/opencode-config -
 回滚最近一次由安装脚本创建的备份：
 
 ```bash
-npx lgmind@latest rollback
+npx lgmind@latest rollback --agent opencode
 ```
 
 卸载由 manifest 管理且未漂移的文件：
 
 ```bash
-npx lgmind@latest uninstall
+npx lgmind@latest uninstall --agent opencode
 ```
 
 本地开发时仍可使用仓库脚本，它们会走同一个 npm bin wrapper：
@@ -172,10 +178,10 @@ OpenClaw 文档支持从 `~/.openclaw/skills`、workspace `skills/` 和 `skills.
 - `openclaw.json` 不作为 managed file 管理，安装只追加缺失的 `skills.load.extraDirs`，回滚/卸载不会删除用户配置；extraDirs 兼容项在 verify 中保持 warning-only，可用 `--no-extra-dir` 跳过
 
 ```bash
-npm run openclaw:install
-npm run openclaw:verify
-npm run openclaw:rollback
-npm run openclaw:uninstall
+npx lgmind@latest setup --agent openclaw
+npx lgmind@latest verify --agent openclaw --strict
+npx lgmind@latest rollback --agent openclaw
+npx lgmind@latest uninstall --agent openclaw
 
 npm run test:regression
 ```
@@ -187,25 +193,26 @@ npm run test:regression
 ```bash
 node --experimental-strip-types scripts/setup-openclaw.ts install --config-dir .cache/openclaw-home
 node --experimental-strip-types scripts/setup-openclaw.ts verify --strict --config-dir .cache/openclaw-home
+node bin/lgmind.js setup --agent openclaw --config-dir .cache/openclaw-home --openclaw-home .cache/openclaw-home --no-extra-dir
 ```
 
 回滚或卸载 managed skills 文件：
 
 ```bash
-npm run openclaw:rollback
-npm run openclaw:uninstall
+npx lgmind@latest rollback --agent openclaw
+npx lgmind@latest uninstall --agent openclaw
 ```
 
 遇到已有本地文件冲突时，安装默认会 safe-skip；确认要备份并覆盖后再使用：
 
 ```bash
-npm run openclaw:install -- --force
+npx lgmind@latest setup --agent openclaw --force
 ```
 
 如果只想把 skills 安装到 OpenClaw local root，而不改 `openclaw.json`：
 
 ```bash
-npm run openclaw:install -- --no-extra-dir
+npx lgmind@latest setup --agent openclaw --no-extra-dir
 ```
 
 ### 常用脚本
@@ -225,7 +232,7 @@ npm run test:regression
 npm run pack:dry-run
 ```
 
-当前 npm package 名称是 `lgmind`，primary bin 是 `lgmind`，并保留 `setup-opencode` alias；可用 `npm run pack:dry-run` 检查待发布文件集。
+当前 npm package 名称是 `lgmind`，primary bin 是 `lgmind`，并保留 `setup-opencode` alias；`lgmind` 负责 OpenCode / OpenClaw runtime selection，`setup-opencode` 只作为 OpenCode 直达 alias。可用 `npm run pack:dry-run` 检查待发布文件集。
 
 ### 本地管理命令
 
