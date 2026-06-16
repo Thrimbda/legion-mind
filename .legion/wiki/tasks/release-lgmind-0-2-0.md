@@ -5,6 +5,7 @@
 - Prepared `lgmind` release `0.2.0` for the setup UX that landed in PR #21.
 - Bumped `package.json` from `0.1.0` to `0.2.0`.
 - Added release notes and verification evidence under `.legion/tasks/release-lgmind-0-2-0/`.
+- Published `lgmind@0.2.0`; npm `latest` now resolves to `0.2.0`.
 
 ## Evidence
 
@@ -13,12 +14,13 @@
 - Verification: `.legion/tasks/release-lgmind-0-2-0/docs/test-report.md`
 - Review: `.legion/tasks/release-lgmind-0-2-0/docs/review-change.md`
 - Walkthrough: `.legion/tasks/release-lgmind-0-2-0/docs/report-walkthrough.md`
+- Publish result: `.legion/tasks/release-lgmind-0-2-0/docs/publish-result.md`
 
 ## Current state
 
-- Release PR is expected to merge before npm publication.
-- Pre-publish npm registry state remains `0.1.0` / `latest = 0.1.0`.
-- Publish target is `lgmind@0.2.0` with npm `latest` updated to `0.2.0` after merge.
+- Release PR #22 merged.
+- Trusted-publishing workflow PR #23 merged.
+- npm registry state is `version = 0.2.0`, `latest = 0.2.0`, versions `[0.1.0, 0.2.0]`.
 
 ## Durable conclusions
 

@@ -12,3 +12,7 @@
 - Change review passed with lightweight npm supply-chain lens applied.
 - Reviewer walkthrough and PR body were written under `docs/`.
 - Wiki writeback added `tasks/release-lgmind-0-2-0.md` and updated the `lgmind` release target/publishing pattern.
+- Release PR #22 merged as `432ce5e chore: prepare lgmind 0.2.0 release (#22)`; worktree was cleaned and main workspace refreshed.
+- Local `npm publish --access public` was blocked by npm `EOTP`, so publication moved to the GitHub Actions trusted-publishing workflow added by PR #23.
+- GitHub Actions run `27597051575` published `lgmind@0.2.0` successfully after npm trusted publisher configuration.
+- Registry verification now reports `version = 0.2.0`, `dist-tags.latest = 0.2.0`, and versions `[0.1.0, 0.2.0]`.
