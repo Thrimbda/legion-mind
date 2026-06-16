@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-16] writeback | release-lgmind-0-2-0
+
+- Added release task summary for `release-lgmind-0-2-0` under `tasks/`.
+- Updated the current `lgmind` release target to `0.2.0` for the setup UX shipped by PR #21.
+- Promoted the release pattern that npm publication happens only after release PR merge and main workspace refresh, with dry-run pack as pre-publish evidence.
+
 ## [2026-06-16] writeback | improve-cli-setup-ux
 
 - Added task summary for `improve-cli-setup-ux` under `tasks/`.
