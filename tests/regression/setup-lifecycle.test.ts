@@ -80,16 +80,16 @@ test('OpenCode setup lifecycle works in isolated directories', () => {
   }
 });
 
-test('setup-opencode npm bin exposes help and version', () => {
+test('lgmind npm bin exposes help and version', () => {
   const pkg = readJson(join(repoRoot, 'package.json'));
 
-  assert.match(setupOpencodeBin(['--help']), /Usage:\n  setup-opencode \[command\] \[options\]/);
-  assert.match(setupOpencodeBin(['help']), /npx setup-opencode@latest install/);
+  assert.match(setupOpencodeBin(['--help']), /Usage:\n  lgmind \[command\] \[options\]/);
+  assert.match(setupOpencodeBin(['help']), /npx lgmind@latest install/);
   assert.equal(setupOpencodeBin(['--version']).trim(), pkg.version);
   assert.equal(setupOpencodeBin(['version']).trim(), pkg.version);
 });
 
-test('setup-opencode npm bin runs lifecycle in isolated directories', () => {
+test('lgmind npm bin runs lifecycle in isolated directories', () => {
   const root = tmpRoot('opencode-bin');
   try {
     const configDir = join(root, 'config');
@@ -107,7 +107,11 @@ test('setup-opencode npm bin runs lifecycle in isolated directories', () => {
 
 test('npm dry-run package includes CLI and install assets only', () => {
   const [pack] = npmPackDryRun();
-  assert.equal(pack.name, 'setup-opencode');
+  const pkg = readJson(join(repoRoot, 'package.json'));
+  assert.equal(pack.name, 'lgmind');
+  assert.equal(pkg.bin.lgmind, 'bin/setup-opencode.js');
+  assert.equal(pkg.bin['setup-opencode'], 'bin/setup-opencode.js');
+  assert.equal(pkg.publishConfig.access, 'public');
 
   const files = new Set(pack.files.map((file: { path: string }) => file.path));
   for (const expected of [

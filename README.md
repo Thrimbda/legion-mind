@@ -106,24 +106,24 @@ node --version
 
 ### 安装到 OpenCode
 
-OpenCode 安装入口现在是准备发布到 npm 的 `setup-opencode` CLI。它会同步 `.opencode/agents`、`.opencode/plugins`（如果存在）和固定核心 skill set，并记录 managed manifest / backup index；这是当前带完整 `install / verify / rollback / uninstall` 的路径。
+OpenCode 安装入口现在是 npm package `lgmind` 提供的 CLI。它会同步 `.opencode/agents`、`.opencode/plugins`（如果存在）和固定核心 skill set，并记录 managed manifest / backup index；这是当前带完整 `install / verify / rollback / uninstall` 的路径。`setup-opencode` 仍作为描述性 alias 保留。
 
 和 Context7 CLI 一样，推荐优先使用一次性的 `npx <package>@latest` 形态：
 
 ```bash
-npx setup-opencode@latest install
-npx setup-opencode@latest verify --strict
+npx lgmind@latest install
+npx lgmind@latest verify --strict
 ```
 
 也可以全局安装后复用：
 
 ```bash
-npm install -g setup-opencode
-setup-opencode install
-setup-opencode verify --strict
+npm install -g lgmind
+lgmind install
+lgmind verify --strict
 ```
 
-> 当前仓库变更只准备 npm package layout、CLI 入口与验证信号；实际 `npm publish` 不在本仓库任务中执行。
+> 当前发布任务会先通过 PR 合并 release 配置，再从刷新后的 `origin/master` 执行 `npm publish --access public`。
 
 默认目标：
 
@@ -141,13 +141,13 @@ node bin/setup-opencode.js verify --strict --config-dir .cache/opencode-config -
 回滚最近一次由安装脚本创建的备份：
 
 ```bash
-npx setup-opencode@latest rollback
+npx lgmind@latest rollback
 ```
 
 卸载由 manifest 管理且未漂移的文件：
 
 ```bash
-npx setup-opencode@latest uninstall
+npx lgmind@latest uninstall
 ```
 
 本地开发时仍可使用仓库脚本，它们会走同一个 npm bin wrapper：
@@ -225,7 +225,7 @@ npm run test:regression
 npm run pack:dry-run
 ```
 
-当前 npm package 准备暴露的 bin 是 `setup-opencode`，对应 OpenCode 安装脚本；可用 `npm run pack:dry-run` 检查待发布文件集，正式发布仍需维护者执行 `npm publish`。
+当前 npm package 名称是 `lgmind`，primary bin 是 `lgmind`，并保留 `setup-opencode` alias；可用 `npm run pack:dry-run` 检查待发布文件集。
 
 ### 本地管理命令
 

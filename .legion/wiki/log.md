@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-16] writeback | publish-lgmind-npm
+
+- Added task summary for `publish-lgmind-npm` under `tasks/`.
+- Promoted `lgmind` as the current npm package name for the OpenCode installer CLI, with `lgmind` as primary bin and `setup-opencode` as alias.
+- Replaced the prior pre-publish naming follow-up with the remaining after-merge publish action / blocker tracking requirement.
+
 ## [2026-06-15] writeback | localize-skill-outputs
 
 - Added task summary for `localize-skill-outputs` under `tasks/`.
