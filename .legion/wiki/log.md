@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-16] writeback | add-npm-publish-action
+
+- Added task summary for `add-npm-publish-action` under `tasks/`.
+- Promoted npm trusted publishing / OIDC as the preferred tokenless publication path for this repository.
+- Updated the `lgmind` release pattern with the manual `publish-npm.yml` workflow, minimal permissions, Node 24.x, and pre-publish regression/pack checks.
+
 ## [2026-06-16] writeback | release-lgmind-0-2-0
 
 - Added release task summary for `release-lgmind-0-2-0` under `tasks/`.
