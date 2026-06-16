@@ -1,5 +1,5 @@
 {
-  "name": "setup-opencode",
+  "name": "lgmind",
   "version": "0.1.0",
   "description": "Install, verify, rollback, and uninstall LegionMind assets for OpenCode.",
   "private": false,
@@ -14,13 +14,19 @@
   },
   "homepage": "https://github.com/Thrimbda/legion-mind#readme",
   "keywords": [
+    "lgmind",
     "opencode",
     "legionmind",
     "agent",
     "workflow",
     "cli"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "bin": {
+    "lgmind": "bin/setup-opencode.js",
     "setup-opencode": "bin/setup-opencode.js"
   },
   "files": [

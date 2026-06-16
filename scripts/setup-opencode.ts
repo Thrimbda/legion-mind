@@ -109,13 +109,14 @@ function printVersion() {
 }
 
 function printHelp() {
-  console.log(`setup-opencode ${packageVersion()}
+  console.log(`lgmind ${packageVersion()}
 
 Install, verify, rollback, and uninstall LegionMind assets for OpenCode.
 
 Usage:
-  setup-opencode [command] [options]
-  npx setup-opencode@latest [command] [options]
+  lgmind [command] [options]
+  npx lgmind@latest [command] [options]
+  setup-opencode [command] [options]  # alias
 
 Commands:
   install      Install or update managed OpenCode assets (default)
@@ -138,9 +139,9 @@ Options:
   --version, -v            Print the CLI version
 
 Examples:
-  npx setup-opencode@latest install
-  npx setup-opencode@latest verify --strict
-  npm install -g setup-opencode && setup-opencode install
+  npx lgmind@latest install
+  npx lgmind@latest verify --strict
+  npm install -g lgmind && lgmind install
   setup-opencode install --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
 `);
 }
@@ -416,7 +417,7 @@ function runVerify(opts: CliOptions, runId: string, reporter: Reporter): Install
     const syncItems = collectExpectedSyncItems(opts);
     for (const item of syncItems) {
       if (verifyManifest.kind === 'ok') {
-        hardFailures += verifyStrictItemCore(item, verifyManifest.state, reporter, PROJECT_ROOT, 'setup-opencode');
+        hardFailures += verifyStrictItemCore(item, verifyManifest.state, reporter, PROJECT_ROOT, 'lgmind');
         continue;
       }
 
@@ -424,7 +425,7 @@ function runVerify(opts: CliOptions, runId: string, reporter: Reporter): Install
         reporter.emit('E_VERIFY_SOURCE_MISSING', 'verify', `asset.${relative(PROJECT_ROOT, item.sourcePath)}`, item.sourcePath, 'repository install source is incomplete; reinstall package or run from complete checkout');
         hardFailures += 1;
       } else if (!existsSync(item.targetPath)) {
-        reporter.emit('E_VERIFY_MISSING', 'verify', `asset.${relative(PROJECT_ROOT, item.sourcePath)}`, item.targetPath, 'run setup-opencode install to restore missing asset');
+        reporter.emit('E_VERIFY_MISSING', 'verify', `asset.${relative(PROJECT_ROOT, item.sourcePath)}`, item.targetPath, 'run lgmind install to restore missing asset');
         hardFailures += 1;
       }
     }
@@ -570,7 +571,7 @@ function run() {
       console.log(JSON.stringify({ ok: false, command: opts?.command ?? commandArg ?? 'install', message }));
     } else {
       console.error(message);
-      console.error('Run setup-opencode --help for usage.');
+      console.error('Run lgmind --help for usage.');
     }
     process.exit(1);
   }
