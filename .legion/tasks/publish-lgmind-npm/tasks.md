@@ -2,7 +2,7 @@
 
 ## Current status
 
-- Stage: PR lifecycle
+- Stage: published / closeout
 - Branch: `legion/publish-lgmind-npm`
 - Worktree: `.worktrees/publish-lgmind-npm/`
 - Base ref: `origin/master`
@@ -19,9 +19,9 @@
 - [x] Produce `docs/test-report.md`.
 - [x] Produce `docs/review-change.md`.
 - [x] Produce walkthrough/PR body and wiki writeback.
-- [ ] Commit, rebase, push, open PR, enable auto-merge, follow checks/review, merge, cleanup worktree, refresh main workspace. *(pre-commit verification rerun passed)*
-- [ ] Publish `lgmind@0.1.0` to npm or record publish blocker.
-- [ ] Record final publish state in task docs/wiki.
+- [x] Commit, rebase, push, open PR, enable auto-merge, follow checks/review, merge, cleanup worktree, refresh main workspace. *(release config PR #19 merged at `f58bd1d`)*
+- [x] Publish `lgmind@0.1.0` to npm or record publish blocker.
+- [x] Record final publish state in task docs/wiki.
 
 ## Acceptance tracking
 
@@ -29,5 +29,5 @@
 - [x] Primary CLI bin is `lgmind`; `setup-opencode` alias decision is documented.
 - [x] README/help examples use `npx lgmind@latest`.
 - [x] Regression and pack dry-run pass.
-- [ ] PR lifecycle reaches terminal merged state.
-- [ ] npm publish succeeds or blocker is explicit.
+- [x] PR lifecycle reaches terminal merged state.
+- [x] npm publish succeeds or blocker is explicit.
