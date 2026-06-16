@@ -92,13 +92,13 @@
 
 ## 模式：`lgmind` npm CLI 发布面与 setup UX
 
-- 来源任务：`setup-opencode-npm-cli`、`publish-lgmind-npm`、`improve-cli-setup-ux`
+- 来源任务：`setup-opencode-npm-cli`、`publish-lgmind-npm`、`improve-cli-setup-ux`、`release-lgmind-0-2-0`
 - 背景：仓库内 OpenCode/OpenClaw setup scripts 已具备 install / verify / rollback / uninstall lifecycle；`lgmind` 首发后，CLI 需要像 Context7-style `setup` 一样给 first-run 用户一个明确入口，而不是只暴露 OpenCode 直达安装脚本。
 - 做法：npm package name 使用 `lgmind`；primary bin `lgmind` 指向 product-level wrapper `bin/lgmind.js` -> `scripts/lgmind.ts`，负责 `setup` 与 `--agent opencode|openclaw` runtime selection；alias bin `setup-opencode` 继续指向 `bin/setup-opencode.js`，作为 OpenCode-only 直达入口。`setup` 无显式 selector 时只在 TTY 中提示，非 TTY 默认 OpenCode，避免 CI hang。
 - Output surface：默认 text output 只显示 final summary 与 warnings/errors；成功 `OK_*` lifecycle events 默认隐藏。`--verbose` 恢复详细 text events，`--json` 保持详细 structured event stream。
 - Package surface：`package.json#files` 必须显式包含 `bin/`、`.opencode/agents/`、`scripts/lgmind.ts`、`scripts/setup-opencode.ts`、`scripts/setup-openclaw.ts`、`scripts/lib/setup-core.ts`、`skills/`、`README.md`、`LICENSE`；不要把 `.legion/`、`.worktrees/`、`tests/`、`.cache/` 打进 npm 包。
 - 验证提示：除 `npm run test:regression` 外，使用 `npm pack --dry-run --json` 或等价 dry-run 检查 package id、bin executable mode 和 required install assets；release 前还要检查 `npm view lgmind`、`npm whoami` 与 package dry-run。npm cache/logs 应设置到 repo-local `.cache/npm`，避免持久化输出落在用户 home。
-- 发布边界：CLI/package layout 变更必须先通过 PR merge；真实 npm publish 应由独立 release 任务从刷新后的 `origin/master` 执行并记录 registry state。
+- 发布边界：CLI/package layout 变更必须先通过 PR merge；真实 npm publish 应由独立 release 任务从刷新后的 `origin/master` 执行并记录 registry state。用户可见 CLI 能力变更在 `0.x` 期间使用 minor release，例如 `0.1.0` -> `0.2.0`。
 
 ## 模式：Setup regression suite 锁定安装与 CLI 不变量
 
