@@ -1,0 +1,41 @@
+name: Publish npm package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish lgmind to npm
+    runs-on: ubuntu-latest
+    env:
+      npm_config_cache: .cache/npm
+      npm_config_update_notifier: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Show npm identity surface
+        run: |
+          node --version
+          npm --version
+          npm view lgmind version dist-tags.latest
+
+      - name: Run regression suite
+        run: npm run test:regression
+
+      - name: Verify packed package
+        run: npm run pack:dry-run
+
+      - name: Publish to npm
+        run: npm publish --access public
