@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-18] closeout | lgmind-0.2.1-publish
+
+- Recorded successful GitHub Actions trusted-publishing run `27746769602` for `lgmind@0.2.1`.
+- Updated `fix-npm-bin-node-modules-ts` task summary from hotfix target to published state.
+- Updated current npm latest in the wiki index to `lgmind@0.2.1` and recorded successful real `npx` smoke.
+
 ## [2026-06-18] writeback | fix-npm-bin-node-modules-ts
 
 - Added task summary for `fix-npm-bin-node-modules-ts` under `tasks/`.
