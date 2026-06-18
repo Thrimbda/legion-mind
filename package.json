@@ -1,6 +1,6 @@
 {
   "name": "lgmind",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Install, verify, rollback, and uninstall LegionMind assets for supported agent runtimes.",
   "private": false,
   "type": "module",
@@ -31,10 +31,11 @@
   },
   "files": [
     "bin/",
-    "scripts/lgmind.ts",
-    "scripts/setup-opencode.ts",
-    "scripts/setup-openclaw.ts",
-    "scripts/lib/setup-core.ts",
+    "scripts/build-runtime-js.mjs",
+    "scripts/lgmind.js",
+    "scripts/setup-opencode.js",
+    "scripts/setup-openclaw.js",
+    "scripts/lib/setup-core.js",
     ".opencode/agents/",
     ".opencode/plugins/",
     "skills/",
@@ -42,6 +43,8 @@
     "LICENSE"
   ],
   "scripts": {
+    "build:runtime-js": "node --no-warnings scripts/build-runtime-js.mjs",
+    "prepack": "npm run build:runtime-js",
     "opencode:install": "node bin/setup-opencode.js install",
     "opencode:verify": "node bin/setup-opencode.js verify --strict",
     "opencode:rollback": "node bin/setup-opencode.js rollback",

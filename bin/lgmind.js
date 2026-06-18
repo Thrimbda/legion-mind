@@ -6,11 +6,11 @@ import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-const scriptPath = resolve(__dirname, '..', 'scripts', 'lgmind.ts');
+const scriptPath = resolve(__dirname, '..', 'scripts', 'lgmind.js');
 
 const result = spawnSync(
   process.execPath,
-  ['--experimental-strip-types', scriptPath, ...process.argv.slice(2)],
+  [scriptPath, ...process.argv.slice(2)],
   { stdio: 'inherit' },
 );
 

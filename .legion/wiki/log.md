@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-18] writeback | fix-npm-bin-node-modules-ts
+
+- Added task summary for `fix-npm-bin-node-modules-ts` under `tasks/`.
+- Promoted npm runtime rule: published bins must execute JS runtime files, not `.ts` files under `node_modules`.
+- Updated setup regression pattern to require installed/package-like bin execution coverage in addition to package metadata inspection.
+
 ## [2026-06-16] closeout | lgmind-0.2.0-publish
 
 - Recorded successful GitHub Actions trusted-publishing run `27597051575` for `lgmind@0.2.0`.
