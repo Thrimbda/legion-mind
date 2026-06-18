@@ -15,3 +15,7 @@
 - Change review passed with npm runtime supply-chain lens applied.
 - Reviewer walkthrough and PR body were written under `docs/`.
 - Wiki writeback added `tasks/fix-npm-bin-node-modules-ts.md` and promoted installed-package bin execution as required release coverage.
+- PR #25 merged as `4e58ae1 fix: ship runnable lgmind npm bins (#25)`; hotfix worktree was cleaned and main workspace refreshed.
+- GitHub Actions trusted-publishing run `27746769602` published `lgmind@0.2.1` successfully.
+- Registry verification now reports `version = 0.2.1`, `dist-tags.latest = 0.2.1`, and versions `[0.1.0, 0.2.0, 0.2.1]`.
+- Real `npx --yes lgmind@latest install --dry-run ...` smoke succeeded with `0.2.1` and `OK_INSTALL opencode`.
