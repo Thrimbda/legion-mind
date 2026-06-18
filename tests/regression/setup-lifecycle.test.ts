@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
@@ -50,6 +50,24 @@ function npmPackDryRun() {
       npm_config_update_notifier: 'false',
     },
   }));
+}
+
+function copyDryRunPackage(packageRoot: string) {
+  const [pack] = npmPackDryRun();
+  for (const file of pack.files as Array<{ path: string }>) {
+    const source = join(repoRoot, file.path);
+    const target = join(packageRoot, file.path);
+    mkdirSync(resolve(target, '..'), { recursive: true });
+    cpSync(source, target, { recursive: true });
+  }
+}
+
+function installedPackageBin(packageRoot: string, binName: 'lgmind' | 'setup-opencode', args: string[]) {
+  return execFileSync(process.execPath, [join(packageRoot, 'bin', `${binName}.js`), ...args], {
+    cwd: packageRoot,
+    encoding: 'utf-8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
 }
 
 function readJson(path: string) {
@@ -165,10 +183,11 @@ test('npm dry-run package includes CLI and install assets only', () => {
   for (const expected of [
     'bin/lgmind.js',
     'bin/setup-opencode.js',
-    'scripts/lgmind.ts',
-    'scripts/setup-opencode.ts',
-    'scripts/setup-openclaw.ts',
-    'scripts/lib/setup-core.ts',
+    'scripts/build-runtime-js.mjs',
+    'scripts/lgmind.js',
+    'scripts/setup-opencode.js',
+    'scripts/setup-openclaw.js',
+    'scripts/lib/setup-core.js',
     '.opencode/agents/legion.md',
     'skills/legion-workflow/SKILL.md',
     'README.md',
@@ -178,8 +197,66 @@ test('npm dry-run package includes CLI and install assets only', () => {
     assert.equal(files.has(expected), true, `${expected} should be included in npm package`);
   }
 
+  for (const excludedRuntimeTs of [
+    'scripts/lgmind.ts',
+    'scripts/setup-opencode.ts',
+    'scripts/setup-openclaw.ts',
+    'scripts/lib/setup-core.ts',
+  ]) {
+    assert.equal(files.has(excludedRuntimeTs), false, `${excludedRuntimeTs} should not be used as npm runtime`);
+  }
+
   for (const excludedPrefix of ['.legion/', '.worktrees/', 'tests/', '.cache/']) {
     assert.equal([...files].some((path) => path.startsWith(excludedPrefix)), false, `${excludedPrefix} should not be packaged`);
+  }
+});
+
+test('packed npm package bins run from node_modules without TypeScript stripping', () => {
+  const root = tmpRoot('packed-node-modules');
+  try {
+    const packageRoot = join(root, 'node_modules', 'lgmind');
+    mkdirSync(packageRoot, { recursive: true });
+    copyDryRunPackage(packageRoot);
+
+    const pkg = readJson(join(packageRoot, 'package.json'));
+    assert.equal(installedPackageBin(packageRoot, 'lgmind', ['--version']).trim(), pkg.version);
+    assert.match(installedPackageBin(packageRoot, 'setup-opencode', ['--help']), /Use lgmind setup --agent opencode/);
+
+    const opencodeRoot = join(root, 'opencode');
+    assert.match(installedPackageBin(packageRoot, 'lgmind', [
+      'install',
+      '--dry-run',
+      '--config-dir',
+      join(opencodeRoot, 'config-default'),
+      '--opencode-home',
+      join(opencodeRoot, 'home-default'),
+    ]), /OK_INSTALL opencode/);
+
+    assert.match(installedPackageBin(packageRoot, 'lgmind', [
+      'setup',
+      '--agent',
+      'opencode',
+      '--dry-run',
+      '--config-dir',
+      join(opencodeRoot, 'config'),
+      '--opencode-home',
+      join(opencodeRoot, 'home'),
+    ]), /OK_INSTALL opencode/);
+
+    const openclawRoot = join(root, 'openclaw');
+    assert.match(installedPackageBin(packageRoot, 'lgmind', [
+      'setup',
+      '--agent',
+      'openclaw',
+      '--dry-run',
+      '--config-dir',
+      openclawRoot,
+      '--openclaw-home',
+      openclawRoot,
+      '--no-extra-dir',
+    ]), /OK_INSTALL openclaw/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
 
