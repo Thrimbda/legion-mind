@@ -3,7 +3,7 @@
 ## Outcome
 
 - Prepared `lgmind@0.3.0` with interactive install/setup scope selection.
-- `lgmind install` / `lgmind setup` now prompt in interactive mode for runtime and project/global scope.
+- `lgmind install` / `lgmind setup` added interactive runtime and project/global scope prompts in `0.3.0`; the runtime prompt is superseded by `remove-runtime-install-choice`.
 - Added `--scope project|global`, `--interactive`, and `--no-interactive` to the product-level CLI.
 - Project scope installs under current-project `.legionmind/` paths instead of runtime-global defaults.
 - Published `lgmind@0.3.0`; npm `latest` now resolves to `0.3.0`.
@@ -21,12 +21,13 @@
 - PR #27 is merged.
 - npm registry state is `version = 0.3.0`, `latest = 0.3.0`, versions `[0.1.0, 0.2.0, 0.2.1, 0.3.0]`.
 - Real `npx --yes lgmind@latest install --interactive --dry-run --verbose` smoke succeeds and shows runtime + scope prompts.
+- This `0.3.0` behavior is historical once `remove-runtime-install-choice` ships: current target behavior is scope-only prompt.
 - Regression suite now has 18 tests, including interactive install and project-scope mapping.
 
 ## Durable conclusions
 
-- Product-level `lgmind install` / `setup` should be interactive in TTY contexts and choose runtime plus project/global scope.
-- Non-TTY/scripted usage must stay deterministic and non-interactive; explicit flags are `--agent` / `--runtime` plus `--scope project|global`.
+- Product-level `lgmind install` / `setup` should be interactive in TTY contexts and choose project/global scope. The runtime prompt conclusion is superseded by `remove-runtime-install-choice`.
+- Non-TTY/scripted usage must stay deterministic and non-interactive; explicit flags are `--scope project|global`, with `--agent` / `--runtime` retained only as compatibility routing.
 - Project scope defaults:
   - OpenCode: `<project>/.legionmind/opencode/config` and `<project>/.legionmind/opencode/home`
   - OpenClaw: `<project>/.legionmind/openclaw`

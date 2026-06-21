@@ -117,7 +117,7 @@ test('lgmind npm bin exposes help and version', () => {
 
   assert.match(lgmindBin(['--help']), /Install scope:\n  --scope <project\|global>/);
   assert.match(lgmindBin(['help']), /npx lgmind@latest install --scope project/);
-  assert.match(setupOpencodeBin(['--help']), /Use lgmind install --agent opencode --scope project\|global/);
+  assert.match(setupOpencodeBin(['--help']), /Use lgmind install --scope project\|global/);
   assert.equal(setupOpencodeBin(['--version']).trim(), pkg.version);
   assert.equal(lgmindBin(['--version']).trim(), pkg.version);
   assert.equal(setupOpencodeBin(['version']).trim(), pkg.version);
@@ -139,15 +139,17 @@ test('lgmind npm bin runs lifecycle in isolated directories', () => {
   }
 });
 
-test('lgmind interactive install prompts for runtime and project scope', () => {
+test('lgmind interactive install prompts for project scope only', () => {
   const root = tmpRoot('interactive-project');
   try {
     const output = lgmindBin(['install', '--interactive', '--dry-run', '--verbose'], {
       cwd: root,
-      input: '1\n1\n',
+      input: '1\n',
     });
 
-    assert.match(output, /Choose an agent runtime to configure:/);
+    assert.doesNotMatch(output, /Choose an agent runtime to configure:/);
+    assert.doesNotMatch(output, /OpenCode/);
+    assert.doesNotMatch(output, /OpenClaw/);
     assert.match(output, /Choose an install scope:/);
     assert.match(output, /Install scope \[1\/project\]:/);
     assert.match(output, /OK_INSTALL opencode/);
@@ -260,7 +262,7 @@ test('packed npm package bins run from node_modules without TypeScript stripping
 
     const pkg = readJson(join(packageRoot, 'package.json'));
     assert.equal(installedPackageBin(packageRoot, 'lgmind', ['--version']).trim(), pkg.version);
-    assert.match(installedPackageBin(packageRoot, 'setup-opencode', ['--help']), /Use lgmind install --agent opencode --scope project\|global/);
+    assert.match(installedPackageBin(packageRoot, 'setup-opencode', ['--help']), /Use lgmind install --scope project\|global/);
 
     const opencodeRoot = join(root, 'opencode');
     assert.match(installedPackageBin(packageRoot, 'lgmind', [
