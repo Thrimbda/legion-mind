@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-21] closeout | lgmind-0.3.1-publish
+
+- Recorded successful GitHub Actions trusted-publishing run `27898145420` for `lgmind@0.3.1`.
+- Updated `remove-runtime-install-choice` task summary from release target to published state.
+- Updated current npm latest in the wiki index to `lgmind@0.3.1` and recorded successful real `npx` scope-only interactive smoke.
+
 ## [2026-06-21] writeback | remove-runtime-install-choice
 
 - Added task summary for `remove-runtime-install-choice` under `tasks/`.
