@@ -1,6 +1,6 @@
 {
   "name": "lgmind",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Install, verify, rollback, and uninstall LegionMind assets for supported agent runtimes.",
   "private": false,
   "type": "module",

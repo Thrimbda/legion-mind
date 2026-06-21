@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-21] writeback | interactive-install-scope
+
+- Added task summary for `interactive-install-scope` under `tasks/`.
+- Promoted `lgmind install` / `setup` interactive first-run behavior: runtime prompt plus project/global install scope prompt in TTY contexts.
+- Updated npm CLI pattern and regression pattern with `--scope project|global` and installed project-local path coverage.
+
 ## [2026-06-18] closeout | lgmind-0.2.1-publish
 
 - Recorded successful GitHub Actions trusted-publishing run `27746769602` for `lgmind@0.2.1`.

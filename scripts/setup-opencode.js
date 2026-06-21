@@ -114,7 +114,7 @@ function printHelp() {
   console.log(`setup-opencode ${packageVersion()}
 
 Install, verify, rollback, and uninstall LegionMind assets for OpenCode.
-Use lgmind setup --agent opencode for the product-level setup flow.
+Use lgmind install --agent opencode --scope project|global for the product-level setup flow.
 
 Usage:
   setup-opencode [command] [options]
@@ -142,9 +142,9 @@ Options:
   --version, -v            Print the CLI version
 
 Examples:
-  npx lgmind@latest setup --agent opencode
+  npx lgmind@latest install --agent opencode --scope project
   npx lgmind@latest verify --agent opencode --strict
-  npm install -g lgmind && lgmind setup --agent opencode
+  npm install -g lgmind && lgmind install --agent opencode --scope global
   setup-opencode install --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
 `);
 }
