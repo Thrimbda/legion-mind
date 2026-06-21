@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-21] closeout | lgmind-0.3.0-publish
+
+- Recorded successful GitHub Actions trusted-publishing run `27896703695` for `lgmind@0.3.0`.
+- Updated `interactive-install-scope` task summary from release target to published state.
+- Updated current npm latest in the wiki index to `lgmind@0.3.0` and recorded successful real `npx` interactive install smoke.
+
 ## [2026-06-21] writeback | interactive-install-scope
 
 - Added task summary for `interactive-install-scope` under `tasks/`.
