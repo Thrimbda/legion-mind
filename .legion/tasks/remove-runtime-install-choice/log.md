@@ -13,3 +13,7 @@
 - Change review PASS: default interactive flow now asks only scope; explicit `--agent` / `--runtime` compatibility remains; no security trigger or blocking finding.
 - Reviewer walkthrough and PR body written under `docs/`.
 - Wiki writeback complete: added `tasks/remove-runtime-install-choice.md`, updated CLI npm pattern, and marked the `0.3.0` runtime prompt conclusion as superseded by the `0.3.1` release target.
+- PR #29 merged as `2a2e5e5 feat: simplify lgmind install prompt (#29)`; worktree `.worktrees/remove-runtime-install-choice/` was cleaned and main workspace refreshed.
+- GitHub Actions trusted-publishing run `27898145420` published `lgmind@0.3.1` successfully.
+- Registry verification now reports `version = 0.3.1`, `dist-tags.latest = 0.3.1`, and versions `[0.1.0, 0.2.0, 0.2.1, 0.3.0, 0.3.1]`.
+- Real `npx --yes lgmind@latest install --interactive --dry-run --verbose` smoke showed only `Choose an install scope` and succeeded with `OK_INSTALL opencode`.

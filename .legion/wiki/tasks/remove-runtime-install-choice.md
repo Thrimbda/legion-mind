@@ -14,11 +14,13 @@
 - Review: `.legion/tasks/remove-runtime-install-choice/docs/review-change.md`
 - Walkthrough: `.legion/tasks/remove-runtime-install-choice/docs/report-walkthrough.md`
 - PR body: `.legion/tasks/remove-runtime-install-choice/docs/pr-body.md`
+- Publish result: `.legion/tasks/remove-runtime-install-choice/docs/publish-result.md`
 
 ## Current state
 
-- Release target is `lgmind@0.3.1`.
-- npm `latest` remains `0.3.0` until the PR merges and `publish-npm.yml` is dispatched from `master`.
+- PR #29 is merged.
+- npm registry state is `version = 0.3.1`, `latest = 0.3.1`, versions `[0.1.0, 0.2.0, 0.2.1, 0.3.0, 0.3.1]`.
+- Real `npx --yes lgmind@latest install --interactive --dry-run --verbose` smoke succeeds and shows only the project/global scope prompt.
 - Verification passed locally:
   - scope-only smoke: no `Choose an agent runtime to configure:` output
   - regression suite: 18/18 PASS
