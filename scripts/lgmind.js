@@ -9,9 +9,13 @@ import { fileURLToPath } from 'url';
 
 
 
+
+
+
 const VALUE_OPTIONS = new Set([
   '--agent',
   '--runtime',
+  '--scope',
   '--strategy',
   '--to',
   '--config-dir',
@@ -56,6 +60,7 @@ Set up LegionMind assets for supported coding agent runtimes.
 Usage:
   lgmind setup [--agent opencode|openclaw] [options]
   lgmind <install|verify|rollback|uninstall> [--agent opencode|openclaw] [options]
+  lgmind install --scope project
   npx lgmind@latest setup
 
 Commands:
@@ -68,8 +73,14 @@ Commands:
   version     Print the CLI version
 
 Runtime selection:
-  --agent <opencode|openclaw>   Target runtime (default: opencode; setup prompts in TTY)
+  --agent <opencode|openclaw>   Target runtime (default: opencode; install/setup prompt in TTY)
   --runtime <opencode|openclaw> Alias for --agent
+
+Install scope:
+  --scope <project|global>      Install to this project or runtime-global defaults
+                               TTY install/setup prompts when omitted; non-TTY defaults to global
+  --interactive                 Prompt even when stdio is not a TTY
+  --no-interactive              Disable prompts even in a TTY
 
 Common options:
   --config-dir <path>       Runtime config directory
@@ -89,10 +100,12 @@ Runtime-specific options:
 
 Examples:
   npx lgmind@latest setup
+  npx lgmind@latest install
+  npx lgmind@latest install --scope project
   npx lgmind@latest setup --agent opencode
-  npx lgmind@latest setup --agent openclaw
+  npx lgmind@latest setup --agent openclaw --scope global
   npx lgmind@latest verify --agent opencode --strict
-  npx lgmind@latest install --agent openclaw --no-extra-dir
+  npx lgmind@latest install --agent openclaw --scope project --no-extra-dir
 
 Use setup-opencode for the direct OpenCode-only alias.
 `);
@@ -116,7 +129,7 @@ function findCommandArg(argv          )                    {
   return null;
 }
 
-function getValue(argv          , name                         )                {
+function getValue(argv          , name                                     )                {
   const exact = argv.find((arg) => arg.startsWith(`${name}=`));
   if (exact) {
     const value = exact.slice(name.length + 1);
@@ -146,25 +159,57 @@ function normalizeRuntime(value        )          {
   throw new Error(`Unsupported agent runtime: ${value}. Expected opencode or openclaw.`);
 }
 
-function isInteractiveSetup(argv          , rawCommand               )          {
-  return rawCommand === 'setup'
-    && getValue(argv, '--agent') === null
-    && getValue(argv, '--runtime') === null
-    && process.stdin.isTTY
-    && process.stdout.isTTY;
+function normalizeScope(value        )               {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'project' || normalized === 'local' || normalized === 'p' || normalized === '1') {
+    return 'project';
+  }
+  if (normalized === 'global' || normalized === 'g' || normalized === '2') {
+    return 'global';
+  }
+  throw new Error(`Unsupported install scope: ${value}. Expected project or global.`);
 }
 
-async function promptRuntime()                   {
+function isInstallLike(rawCommand               )          {
+  return rawCommand === 'setup' || rawCommand === 'install';
+}
+
+function shouldPrompt(argv          , rawCommand               )          {
+  if (!isInstallLike(rawCommand) || argv.includes('--no-interactive') || argv.includes('--json')) {
+    return false;
+  }
+  if (argv.includes('--interactive')) {
+    return true;
+  }
+  return Boolean(process.stdin.isTTY && process.stdout.isTTY);
+}
+
+async function ask(rl                        , scriptedAnswers                 , prompt        )                  {
+  if (scriptedAnswers) {
+    process.stdout.write(prompt);
+    return scriptedAnswers.shift() ?? '';
+  }
+  if (!rl) {
+    return '';
+  }
+  return rl.question(prompt);
+}
+
+async function promptRuntime(rl                        , scriptedAnswers                 )                   {
   console.log('Choose an agent runtime to configure:');
   console.log('  1) OpenCode  - install LegionMind agents and core skills');
   console.log('  2) OpenClaw  - install LegionMind skills into OpenClaw local skills root');
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  try {
-    const answer = await rl.question('Agent runtime [1/opencode]: ');
-    return normalizeRuntime(answer.trim() || 'opencode');
-  } finally {
-    rl.close();
-  }
+  const answer = await ask(rl, scriptedAnswers, 'Agent runtime [1/opencode]: ');
+  return normalizeRuntime(answer.trim() || 'opencode');
+}
+
+async function promptScope(rl                        , scriptedAnswers                 )                        {
+  const projectRoot = resolve(process.cwd(), '.legionmind');
+  console.log('Choose an install scope:');
+  console.log(`  1) Project - install under ${projectRoot}`);
+  console.log('  2) Global  - install to runtime default locations');
+  const answer = await ask(rl, scriptedAnswers, 'Install scope [1/project]: ');
+  return normalizeScope(answer.trim() || 'project');
 }
 
 function stripLgmindArgs(argv          , commandArg                   )           {
@@ -174,11 +219,14 @@ function stripLgmindArgs(argv          , commandArg                   )         
     if (commandArg && index === commandArg.index) {
       continue;
     }
-    if (arg === '--agent' || arg === '--runtime') {
+    if (arg === '--agent' || arg === '--runtime' || arg === '--scope') {
       index += 1;
       continue;
     }
-    if (arg.startsWith('--agent=') || arg.startsWith('--runtime=')) {
+    if (arg.startsWith('--agent=') || arg.startsWith('--runtime=') || arg.startsWith('--scope=')) {
+      continue;
+    }
+    if (arg === '--interactive' || arg === '--no-interactive') {
       continue;
     }
     next.push(arg);
@@ -186,7 +234,7 @@ function stripLgmindArgs(argv          , commandArg                   )         
   return next;
 }
 
-async function selectRuntime(argv          , rawCommand               )                   {
+async function selectRuntime(argv          , shouldPromptForMissing         , rl                        , scriptedAnswers                 )                   {
   const agentValue = getValue(argv, '--agent');
   const runtimeValue = getValue(argv, '--runtime');
   if (agentValue && runtimeValue) {
@@ -201,10 +249,50 @@ async function selectRuntime(argv          , rawCommand               )         
   if (runtime) {
     return normalizeRuntime(runtime);
   }
-  if (isInteractiveSetup(argv, rawCommand)) {
-    return promptRuntime();
+  if (shouldPromptForMissing) {
+    return promptRuntime(rl, scriptedAnswers);
   }
   return 'opencode';
+}
+
+async function selectScope(argv          , rawCommand               , shouldPromptForMissing         , rl                        , scriptedAnswers                 )                        {
+  const scopeValue = getValue(argv, '--scope');
+  if (scopeValue) {
+    return normalizeScope(scopeValue);
+  }
+  if (shouldPromptForMissing) {
+    return promptScope(rl, scriptedAnswers);
+  }
+  return 'global';
+}
+
+function hasValueOption(argv          , name        )          {
+  return argv.some((arg) => arg === name || arg.startsWith(`${name}=`));
+}
+
+function withDefaultValueOption(argv          , name        , value        )           {
+  if (hasValueOption(argv, name)) {
+    return argv;
+  }
+  return [...argv, name, value];
+}
+
+function applyInstallScope(runtime         , scope              , args          )           {
+  if (scope !== 'project') {
+    return args;
+  }
+
+  const projectRoot = resolve(process.cwd(), '.legionmind');
+  if (runtime === 'opencode') {
+    let next = withDefaultValueOption(args, '--config-dir', join(projectRoot, 'opencode', 'config'));
+    next = withDefaultValueOption(next, '--opencode-home', join(projectRoot, 'opencode', 'home'));
+    return next;
+  }
+
+  const openclawRoot = join(projectRoot, 'openclaw');
+  let next = withDefaultValueOption(args, '--config-dir', openclawRoot);
+  next = withDefaultValueOption(next, '--openclaw-home', openclawRoot);
+  return next;
 }
 
 function dispatch(runtime         , command                                 , args          )         {
@@ -242,9 +330,19 @@ async function run() {
     throw new Error(`Unsupported command: ${rawCommand}`);
   }
 
-  const runtime = await selectRuntime(argv, rawCommand);
+  const interactive = shouldPrompt(argv, rawCommand);
+  const scriptedAnswers = interactive && !process.stdin.isTTY ? readFileSync(0, 'utf-8').split(/\r?\n/) : null;
+  const promptInterface = interactive && scriptedAnswers === null ? createInterface({ input: process.stdin, output: process.stdout }) : null;
+  let runtime         ;
+  let scope              ;
+  try {
+    runtime = await selectRuntime(argv, interactive && getValue(argv, '--agent') === null && getValue(argv, '--runtime') === null, promptInterface, scriptedAnswers);
+    scope = await selectScope(argv, rawCommand, interactive && getValue(argv, '--scope') === null, promptInterface, scriptedAnswers);
+  } finally {
+    promptInterface?.close();
+  }
   const command = rawCommand === 'setup' ? 'install' : rawCommand;
-  const args = stripLgmindArgs(argv, commandArg);
+  const args = applyInstallScope(runtime, scope, stripLgmindArgs(argv, commandArg));
   const exitCode = dispatch(runtime, command, args);
   if (exitCode !== 0) {
     process.exit(exitCode);

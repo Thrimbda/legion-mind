@@ -102,15 +102,17 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 node --version
 ```
 
-如果你同时使用 OpenCode 和 OpenClaw，可以两条都安装；否则只跑对应小节即可。`lgmind` 现在提供 Context7-style 的 setup 入口：先选择目标运行时，再执行对应安装。
+如果你同时使用 OpenCode 和 OpenClaw，可以两条都安装；否则只跑对应小节即可。`lgmind` 现在提供 Context7-style 的交互安装入口：TTY 中默认先选择目标运行时，再选择 project / global 安装范围。
 
 ```bash
+npx lgmind@latest install
 npx lgmind@latest setup
-npx lgmind@latest setup --agent opencode
-npx lgmind@latest setup --agent openclaw
+npx lgmind@latest install --scope project
+npx lgmind@latest install --agent opencode --scope global
+npx lgmind@latest install --agent openclaw --scope project
 ```
 
-在 TTY 中，`setup` 会提示选择 OpenCode / OpenClaw；在脚本或 CI 中请显式传 `--agent`，避免依赖交互。默认文字输出只显示结果摘要与 warnings/errors；需要逐条生命周期事件时加 `--verbose`，自动化解析仍用 `--json`。
+在 TTY 中，`install` / `setup` 会提示选择 OpenCode / OpenClaw，并继续提示安装到当前 project 还是 runtime-global 默认位置。Project 安装默认写到当前目录下 `.legionmind/`；global 安装沿用运行时默认位置。脚本或 CI 中不会等待交互，默认保持 `opencode + global`；请显式传 `--agent` 与 `--scope project|global`。默认文字输出只显示结果摘要与 warnings/errors；需要逐条生命周期事件时加 `--verbose`，自动化解析仍用 `--json`。
 
 ### 安装到 OpenCode
 
@@ -119,7 +121,8 @@ OpenCode 安装入口现在是 npm package `lgmind` 提供的 CLI。它会同步
 和 Context7 CLI 一样，推荐优先使用一次性的 `npx <package>@latest` 形态：
 
 ```bash
-npx lgmind@latest setup --agent opencode
+npx lgmind@latest install --agent opencode --scope project
+npx lgmind@latest install --agent opencode --scope global
 npx lgmind@latest verify --agent opencode --strict
 ```
 
@@ -127,15 +130,21 @@ npx lgmind@latest verify --agent opencode --strict
 
 ```bash
 npm install -g lgmind
-lgmind setup --agent opencode
+lgmind install --agent opencode --scope global
 lgmind verify --agent opencode --strict
 ```
 
-默认目标：
+Global 默认目标：
 
 - config: `~/.config/opencode`
 - skills: `~/.agents/skills`
 - managed state: `~/.config/opencode/.legionmind`
+
+Project 默认目标：
+
+- config: `<project>/.legionmind/opencode/config`
+- skills: `<project>/.legionmind/opencode/home/skills`
+- managed state: `<project>/.legionmind/opencode/config/.legionmind`
 
 如果要先在仓库内隔离目录里试跑：
 
@@ -178,7 +187,8 @@ OpenClaw 文档支持从 `~/.openclaw/skills`、workspace `skills/` 和 `skills.
 - `openclaw.json` 不作为 managed file 管理，安装只追加缺失的 `skills.load.extraDirs`，回滚/卸载不会删除用户配置；extraDirs 兼容项在 verify 中保持 warning-only，可用 `--no-extra-dir` 跳过
 
 ```bash
-npx lgmind@latest setup --agent openclaw
+npx lgmind@latest install --agent openclaw --scope project
+npx lgmind@latest install --agent openclaw --scope global
 npx lgmind@latest verify --agent openclaw --strict
 npx lgmind@latest rollback --agent openclaw
 npx lgmind@latest uninstall --agent openclaw
@@ -186,7 +196,13 @@ npx lgmind@latest uninstall --agent openclaw
 npm run test:regression
 ```
 
-如果只是想在当前 repo workspace 中试用 OpenClaw，OpenClaw 本身也会扫描 `<workspace>/skills`；全局安装的价值是让这些 skills 在其他 workspace 也可用。
+如果只是想在当前 repo workspace 中试用 OpenClaw，优先使用 `--scope project`；全局安装的价值是让这些 skills 在其他 workspace 也可用。
+
+Project 默认目标：
+
+- config / home: `<project>/.legionmind/openclaw`
+- skills: `<project>/.legionmind/openclaw/skills`
+- managed state: `<project>/.legionmind/openclaw/.legionmind`
 
 仓库内隔离目录试跑：
 

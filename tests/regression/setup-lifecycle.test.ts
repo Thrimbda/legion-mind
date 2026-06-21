@@ -28,11 +28,12 @@ function setupOpencodeBin(args: string[]) {
   });
 }
 
-function lgmindBin(args: string[]) {
-  return execFileSync(process.execPath, ['bin/lgmind.js', ...args], {
-    cwd: repoRoot,
+function lgmindBin(args: string[], options: { cwd?: string; input?: string } = {}) {
+  return execFileSync(process.execPath, [join(repoRoot, 'bin', 'lgmind.js'), ...args], {
+    cwd: options.cwd ?? repoRoot,
     encoding: 'utf-8',
-    stdio: ['ignore', 'pipe', 'pipe'],
+    input: options.input,
+    stdio: [options.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
   });
 }
 
@@ -62,16 +63,21 @@ function copyDryRunPackage(packageRoot: string) {
   }
 }
 
-function installedPackageBin(packageRoot: string, binName: 'lgmind' | 'setup-opencode', args: string[]) {
+function installedPackageBin(packageRoot: string, binName: 'lgmind' | 'setup-opencode', args: string[], options: { cwd?: string; input?: string } = {}) {
   return execFileSync(process.execPath, [join(packageRoot, 'bin', `${binName}.js`), ...args], {
-    cwd: packageRoot,
+    cwd: options.cwd ?? packageRoot,
     encoding: 'utf-8',
-    stdio: ['ignore', 'pipe', 'pipe'],
+    input: options.input,
+    stdio: [options.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
   });
 }
 
 function readJson(path: string) {
   return JSON.parse(readFileSync(path, 'utf-8'));
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function writeJson(path: string, value: unknown) {
@@ -109,9 +115,9 @@ test('OpenCode setup lifecycle works in isolated directories', () => {
 test('lgmind npm bin exposes help and version', () => {
   const pkg = readJson(join(repoRoot, 'package.json'));
 
-  assert.match(lgmindBin(['--help']), /Usage:\n  lgmind setup \[--agent opencode\|openclaw\]/);
-  assert.match(lgmindBin(['help']), /npx lgmind@latest setup --agent openclaw/);
-  assert.match(setupOpencodeBin(['--help']), /Use lgmind setup --agent opencode/);
+  assert.match(lgmindBin(['--help']), /Install scope:\n  --scope <project\|global>/);
+  assert.match(lgmindBin(['help']), /npx lgmind@latest install --scope project/);
+  assert.match(setupOpencodeBin(['--help']), /Use lgmind install --agent opencode --scope project\|global/);
   assert.equal(setupOpencodeBin(['--version']).trim(), pkg.version);
   assert.equal(lgmindBin(['--version']).trim(), pkg.version);
   assert.equal(setupOpencodeBin(['version']).trim(), pkg.version);
@@ -128,6 +134,40 @@ test('lgmind npm bin runs lifecycle in isolated directories', () => {
     assert.match(lgmindBin(['verify', '--agent', 'opencode', '--strict', ...common]), /READY opencode/);
     lgmindBin(['uninstall', '--agent', 'opencode', ...common]);
     assert.equal(existsSync(join(homeDir, 'skills', 'legion-workflow', 'SKILL.md')), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('lgmind interactive install prompts for runtime and project scope', () => {
+  const root = tmpRoot('interactive-project');
+  try {
+    const output = lgmindBin(['install', '--interactive', '--dry-run', '--verbose'], {
+      cwd: root,
+      input: '1\n1\n',
+    });
+
+    assert.match(output, /Choose an agent runtime to configure:/);
+    assert.match(output, /Choose an install scope:/);
+    assert.match(output, /Install scope \[1\/project\]:/);
+    assert.match(output, /OK_INSTALL opencode/);
+    assert.match(output, new RegExp(escapeRegExp(join(root, '.legionmind', 'opencode', 'config', 'agents', 'legion.md'))));
+    assert.match(output, new RegExp(escapeRegExp(join(root, '.legionmind', 'opencode', 'home', 'skills', 'legion-workflow', 'SKILL.md'))));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('lgmind project scope maps runtime installs to project-local roots', () => {
+  const root = tmpRoot('scope-project');
+  try {
+    const opencodeOutput = lgmindBin(['install', '--agent', 'opencode', '--scope', 'project', '--dry-run', '--verbose'], { cwd: root });
+    assert.match(opencodeOutput, /OK_INSTALL opencode/);
+    assert.match(opencodeOutput, new RegExp(escapeRegExp(join(root, '.legionmind', 'opencode', 'config', 'agents', 'legion.md'))));
+
+    const openclawOutput = lgmindBin(['install', '--agent', 'openclaw', '--scope', 'project', '--dry-run', '--verbose', '--no-extra-dir'], { cwd: root });
+    assert.match(openclawOutput, /OK_INSTALL openclaw/);
+    assert.match(openclawOutput, new RegExp(escapeRegExp(join(root, '.legionmind', 'openclaw', 'skills', 'legion-workflow', 'SKILL.md'))));
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -220,7 +260,7 @@ test('packed npm package bins run from node_modules without TypeScript stripping
 
     const pkg = readJson(join(packageRoot, 'package.json'));
     assert.equal(installedPackageBin(packageRoot, 'lgmind', ['--version']).trim(), pkg.version);
-    assert.match(installedPackageBin(packageRoot, 'setup-opencode', ['--help']), /Use lgmind setup --agent opencode/);
+    assert.match(installedPackageBin(packageRoot, 'setup-opencode', ['--help']), /Use lgmind install --agent opencode --scope project\|global/);
 
     const opencodeRoot = join(root, 'opencode');
     assert.match(installedPackageBin(packageRoot, 'lgmind', [
@@ -231,6 +271,18 @@ test('packed npm package bins run from node_modules without TypeScript stripping
       '--opencode-home',
       join(opencodeRoot, 'home-default'),
     ]), /OK_INSTALL opencode/);
+
+    const projectOutput = installedPackageBin(packageRoot, 'lgmind', [
+      'install',
+      '--agent',
+      'opencode',
+      '--scope',
+      'project',
+      '--dry-run',
+      '--verbose',
+    ], { cwd: root });
+    assert.match(projectOutput, /OK_INSTALL opencode/);
+    assert.match(projectOutput, new RegExp(escapeRegExp(join(root, '.legionmind', 'opencode', 'config', 'agents', 'legion.md'))));
 
     assert.match(installedPackageBin(packageRoot, 'lgmind', [
       'setup',
