@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-21] writeback | remove-runtime-install-choice
+
+- Added task summary for `remove-runtime-install-choice` under `tasks/`.
+- Updated current `lgmind` CLI pattern from runtime+scope prompt to scope-only first-run prompt.
+- Marked the `interactive-install-scope` runtime prompt conclusion as superseded by the `0.3.1` release target.
+
 ## [2026-06-21] closeout | lgmind-0.3.0-publish
 
 - Recorded successful GitHub Actions trusted-publishing run `27896703695` for `lgmind@0.3.0`.

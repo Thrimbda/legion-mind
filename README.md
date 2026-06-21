@@ -94,7 +94,7 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 
 ## 快速开始
 
-从仓库根目录选择你正在使用的运行时安装一次，然后用 strict verify 证明安装结果可复核。本仓库当前只维护 OpenCode 与 OpenClaw 两条入口；其他运行时不在当前支持面，也没有通用 runtime orchestrator 承诺。OpenCode 安装固定核心 skill set，OpenClaw 动态安装带 `SKILL.md` 的 skills；二者都会记录 managed manifest。
+从仓库根目录选择 project 或 global 范围安装一次，然后用 strict verify 证明安装结果可复核。本仓库当前只维护 OpenCode 与 OpenClaw 两条底层入口；其他运行时不在当前支持面，也没有通用 runtime orchestrator 承诺。默认 `lgmind install` 不再要求选择 OpenCode / OpenClaw，因为 first-run 用户真正需要决策的是安装到当前 project 还是全局。
 
 前置要求：Node.js `>=22.6.0`。
 
@@ -102,17 +102,16 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 node --version
 ```
 
-如果你同时使用 OpenCode 和 OpenClaw，可以两条都安装；否则只跑对应小节即可。`lgmind` 现在提供 Context7-style 的交互安装入口：TTY 中默认先选择目标运行时，再选择 project / global 安装范围。
+`lgmind` 提供 Context7-style 的交互安装入口：TTY 中默认只选择 project / global 安装范围。
 
 ```bash
 npx lgmind@latest install
 npx lgmind@latest setup
 npx lgmind@latest install --scope project
-npx lgmind@latest install --agent opencode --scope global
-npx lgmind@latest install --agent openclaw --scope project
+npx lgmind@latest install --scope global
 ```
 
-在 TTY 中，`install` / `setup` 会提示选择 OpenCode / OpenClaw，并继续提示安装到当前 project 还是 runtime-global 默认位置。Project 安装默认写到当前目录下 `.legionmind/`；global 安装沿用运行时默认位置。脚本或 CI 中不会等待交互，默认保持 `opencode + global`；请显式传 `--agent` 与 `--scope project|global`。默认文字输出只显示结果摘要与 warnings/errors；需要逐条生命周期事件时加 `--verbose`，自动化解析仍用 `--json`。
+在 TTY 中，`install` / `setup` 只会提示安装到当前 project 还是 global 默认位置。Project 安装默认写到当前目录下 `.legionmind/`；global 安装沿用默认全局位置。脚本或 CI 中不会等待交互，默认保持 `global`；请显式传 `--scope project|global`。默认文字输出只显示结果摘要与 warnings/errors；需要逐条生命周期事件时加 `--verbose`，自动化解析仍用 `--json`。
 
 ### 安装到 OpenCode
 
@@ -121,17 +120,17 @@ OpenCode 安装入口现在是 npm package `lgmind` 提供的 CLI。它会同步
 和 Context7 CLI 一样，推荐优先使用一次性的 `npx <package>@latest` 形态：
 
 ```bash
-npx lgmind@latest install --agent opencode --scope project
-npx lgmind@latest install --agent opencode --scope global
-npx lgmind@latest verify --agent opencode --strict
+npx lgmind@latest install --scope project
+npx lgmind@latest install --scope global
+npx lgmind@latest verify --strict
 ```
 
 也可以全局安装后复用：
 
 ```bash
 npm install -g lgmind
-lgmind install --agent opencode --scope global
-lgmind verify --agent opencode --strict
+lgmind install --scope global
+lgmind verify --strict
 ```
 
 Global 默认目标：
@@ -156,13 +155,13 @@ node bin/setup-opencode.js verify --strict --config-dir .cache/opencode-config -
 回滚最近一次由安装脚本创建的备份：
 
 ```bash
-npx lgmind@latest rollback --agent opencode
+npx lgmind@latest rollback
 ```
 
 卸载由 manifest 管理且未漂移的文件：
 
 ```bash
-npx lgmind@latest uninstall --agent opencode
+npx lgmind@latest uninstall
 ```
 
 本地开发时仍可使用仓库脚本，它们会走同一个 npm bin wrapper：
@@ -177,7 +176,7 @@ npm run opencode:help
 
 ### 安装到 OpenClaw
 
-OpenClaw 文档支持从 `~/.openclaw/skills`、workspace `skills/` 和 `skills.load.extraDirs` 发现 skills。本仓库的 OpenClaw 安装脚本现在把 local skills root 作为主路径，并保留 `extraDirs` 兼容；文件资产的 `install / verify / rollback / uninstall` 语义与 OpenCode 对齐：
+OpenClaw 文档支持从 `~/.openclaw/skills`、workspace `skills/` 和 `skills.load.extraDirs` 发现 skills。本仓库仍保留底层 OpenClaw 安装脚本和 `--agent openclaw` 兼容入口，但它不再出现在默认 `lgmind install` 交互中。OpenClaw 安装脚本把 local skills root 作为主路径，并保留 `extraDirs` 兼容；文件资产的 `install / verify / rollback / uninstall` 语义与 OpenCode 对齐：
 
 - 默认把 `skills/<name>/` 安装到 `~/.openclaw/skills/<name>/`
 - 同时把当前 checkout 的 `skills/` 加入 `~/.openclaw/openclaw.json` 的 `skills.load.extraDirs`（可用 `--no-extra-dir` 跳过）
@@ -248,7 +247,7 @@ npm run test:regression
 npm run pack:dry-run
 ```
 
-当前 npm package 名称是 `lgmind`，primary bin 是 `lgmind`，并保留 `setup-opencode` alias；`lgmind` 负责 OpenCode / OpenClaw runtime selection，`setup-opencode` 只作为 OpenCode 直达 alias。可用 `npm run pack:dry-run` 检查待发布文件集。
+当前 npm package 名称是 `lgmind`，primary bin 是 `lgmind`，并保留 `setup-opencode` alias；`lgmind` 默认只负责 project / global scope selection，`--agent` / `--runtime` 仅作为兼容的高级路由选项保留。可用 `npm run pack:dry-run` 检查待发布文件集。
 
 ### 本地管理命令
 

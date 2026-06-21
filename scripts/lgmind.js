@@ -55,30 +55,26 @@ function printVersion() {
 function printHelp() {
   console.log(`lgmind ${packageVersion()}
 
-Set up LegionMind assets for supported coding agent runtimes.
+Set up LegionMind assets for coding agents.
 
 Usage:
-  lgmind setup [--agent opencode|openclaw] [options]
-  lgmind <install|verify|rollback|uninstall> [--agent opencode|openclaw] [options]
+  lgmind setup [--scope project|global] [options]
+  lgmind <install|verify|rollback|uninstall> [--scope project|global] [options]
   lgmind install --scope project
   npx lgmind@latest setup
 
 Commands:
-  setup       Guided first-run setup; installs selected runtime assets
-  install     Install or update selected runtime assets
-  verify      Check selected runtime assets; use --strict for checksum ownership checks
+  setup       Guided first-run setup; installs LegionMind assets
+  install     Install or update LegionMind assets
+  verify      Check installed assets; use --strict for checksum ownership checks
   rollback    Restore latest backup batch, or --to <backup-id>
   uninstall   Remove managed, non-drifted assets
   help        Show this help
   version     Print the CLI version
 
-Runtime selection:
-  --agent <opencode|openclaw>   Target runtime (default: opencode; install/setup prompt in TTY)
-  --runtime <opencode|openclaw> Alias for --agent
-
 Install scope:
-  --scope <project|global>      Install to this project or runtime-global defaults
-                               TTY install/setup prompts when omitted; non-TTY defaults to global
+  --scope <project|global>      Install to this project or global agent defaults
+                                TTY install/setup prompts when omitted; non-TTY defaults to global
   --interactive                 Prompt even when stdio is not a TTY
   --no-interactive              Disable prompts even in a TTY
 
@@ -95,6 +91,8 @@ Common options:
   --version, -v             Print the CLI version
 
 Runtime-specific options:
+  --agent <opencode|openclaw>   Advanced compatibility target (default: opencode; never prompted)
+  --runtime <opencode|openclaw> Alias for --agent
   OpenCode: --opencode-home <path>
   OpenClaw: --openclaw-home <path> --skills-dir <path> --no-extra-dir
 
@@ -102,10 +100,8 @@ Examples:
   npx lgmind@latest setup
   npx lgmind@latest install
   npx lgmind@latest install --scope project
-  npx lgmind@latest setup --agent opencode
-  npx lgmind@latest setup --agent openclaw --scope global
-  npx lgmind@latest verify --agent opencode --strict
-  npx lgmind@latest install --agent openclaw --scope project --no-extra-dir
+  npx lgmind@latest setup --scope global
+  npx lgmind@latest verify --strict
 
 Use setup-opencode for the direct OpenCode-only alias.
 `);
@@ -129,19 +125,23 @@ function findCommandArg(argv          )                    {
   return null;
 }
 
+function expectedValueDescription(name                                     )         {
+  return name === '--scope' ? 'project or global' : 'opencode or openclaw';
+}
+
 function getValue(argv          , name                                     )                {
   const exact = argv.find((arg) => arg.startsWith(`${name}=`));
   if (exact) {
     const value = exact.slice(name.length + 1);
     if (!value) {
-      throw new Error(`${name} requires a value: opencode or openclaw.`);
+      throw new Error(`${name} requires a value: ${expectedValueDescription(name)}.`);
     }
     return value;
   }
   const index = argv.indexOf(name);
   if (index >= 0) {
     if (!argv[index + 1] || argv[index + 1].startsWith('--')) {
-      throw new Error(`${name} requires a value: opencode or openclaw.`);
+      throw new Error(`${name} requires a value: ${expectedValueDescription(name)}.`);
     }
     return argv[index + 1];
   }
@@ -195,19 +195,11 @@ async function ask(rl                        , scriptedAnswers                 ,
   return rl.question(prompt);
 }
 
-async function promptRuntime(rl                        , scriptedAnswers                 )                   {
-  console.log('Choose an agent runtime to configure:');
-  console.log('  1) OpenCode  - install LegionMind agents and core skills');
-  console.log('  2) OpenClaw  - install LegionMind skills into OpenClaw local skills root');
-  const answer = await ask(rl, scriptedAnswers, 'Agent runtime [1/opencode]: ');
-  return normalizeRuntime(answer.trim() || 'opencode');
-}
-
 async function promptScope(rl                        , scriptedAnswers                 )                        {
   const projectRoot = resolve(process.cwd(), '.legionmind');
   console.log('Choose an install scope:');
   console.log(`  1) Project - install under ${projectRoot}`);
-  console.log('  2) Global  - install to runtime default locations');
+  console.log('  2) Global  - install to global agent defaults');
   const answer = await ask(rl, scriptedAnswers, 'Install scope [1/project]: ');
   return normalizeScope(answer.trim() || 'project');
 }
@@ -234,7 +226,7 @@ function stripLgmindArgs(argv          , commandArg                   )         
   return next;
 }
 
-async function selectRuntime(argv          , shouldPromptForMissing         , rl                        , scriptedAnswers                 )                   {
+async function selectRuntime(argv          )                   {
   const agentValue = getValue(argv, '--agent');
   const runtimeValue = getValue(argv, '--runtime');
   if (agentValue && runtimeValue) {
@@ -248,9 +240,6 @@ async function selectRuntime(argv          , shouldPromptForMissing         , rl
   const runtime = agentValue ?? runtimeValue;
   if (runtime) {
     return normalizeRuntime(runtime);
-  }
-  if (shouldPromptForMissing) {
-    return promptRuntime(rl, scriptedAnswers);
   }
   return 'opencode';
 }
@@ -336,7 +325,7 @@ async function run() {
   let runtime         ;
   let scope              ;
   try {
-    runtime = await selectRuntime(argv, interactive && getValue(argv, '--agent') === null && getValue(argv, '--runtime') === null, promptInterface, scriptedAnswers);
+    runtime = await selectRuntime(argv);
     scope = await selectScope(argv, rawCommand, interactive && getValue(argv, '--scope') === null, promptInterface, scriptedAnswers);
   } finally {
     promptInterface?.close();

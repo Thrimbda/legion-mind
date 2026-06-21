@@ -1,7 +1,7 @@
 {
   "name": "lgmind",
-  "version": "0.3.0",
-  "description": "Install, verify, rollback, and uninstall LegionMind assets for supported agent runtimes.",
+  "version": "0.3.1",
+  "description": "Install, verify, rollback, and uninstall LegionMind assets for coding agents.",
   "private": false,
   "type": "module",
   "license": "MIT",
