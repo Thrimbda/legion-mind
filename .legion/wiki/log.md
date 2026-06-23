@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-06-23] writeback | linear-legion-scheduler-rfc
+
+- Added task summary for `linear-legion-scheduler-rfc` under `tasks/`.
+- Recorded the Linear + Legion scheduler proposal: Linear owns WI/dependencies, Scheduler DB owns run/lock/event/idempotency, Legion owns per-WI execution protocol, GitHub PR owns delivery terminal state.
+- Promoted the reusable integration pattern that external schedulers should orchestrate but must not replace Legion phase chains; worker entry must go through `legion-workflow`, and modifying work must use `git-worktree-pr`.
+- Recorded key gates from the approved RFC: MVP implementation-ready requires `contract:stable`; downstream unlock uses `isBlockerSatisfied()`; scheduler-side Legion evidence verifier rejects PR-only results.
+
 ## [2026-06-21] closeout | lgmind-0.3.1-publish
 
 - Recorded successful GitHub Actions trusted-publishing run `27898145420` for `lgmind@0.3.1`.

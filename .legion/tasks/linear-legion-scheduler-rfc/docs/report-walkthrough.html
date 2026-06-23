@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Linear + Legion 自动调度器 | Walkthrough</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96% 0.014 95);
+      --surface: oklch(98% 0.008 96);
+      --ink: oklch(24% 0.018 132);
+      --muted: oklch(50% 0.025 132);
+      --line: oklch(82% 0.018 105);
+      --accent: oklch(45% 0.12 153);
+      --accent-soft: oklch(91% 0.055 150);
+      --warn-soft: oklch(91% 0.07 82);
+      --bad-soft: oklch(90% 0.055 35);
+      --shadow: oklch(40% 0.03 130 / 16%);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.66;
+    }
+    main { width: min(1180px, calc(100vw - 36px)); margin: 0 auto; padding: 52px 0 72px; }
+    a { color: var(--accent); text-decoration-thickness: 0.08em; text-underline-offset: 0.18em; }
+    h1 { font-size: clamp(2.1rem, 5vw, 4.2rem); line-height: 1.05; margin: 0.2rem 0 1rem; max-width: 11ch; }
+    h2 { margin-top: 0; font-size: 1.45rem; }
+    p, li { max-width: 74ch; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.94em; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 380px); gap: 34px; align-items: end; margin-bottom: 32px; }
+    .kicker { color: var(--muted); font-weight: 760; letter-spacing: 0.08em; text-transform: uppercase; }
+    .lede { font-size: 1.08rem; color: var(--muted); }
+    .status { border: 1px solid var(--line); border-radius: 24px; background: var(--surface); padding: 24px; box-shadow: 0 18px 44px var(--shadow); }
+    .status-row { display: flex; justify-content: space-between; gap: 18px; border-top: 1px solid var(--line); padding: 12px 0; }
+    .status-row:first-of-type { border-top: 0; }
+    .label { color: var(--muted); }
+    .pill { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; background: var(--accent-soft); padding: 0.12rem 0.64rem; font-weight: 760; white-space: nowrap; }
+    .pill.warn { background: var(--warn-soft); }
+    .pill.blocked { background: var(--bad-soft); }
+    .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 32px; align-items: start; }
+    nav { position: sticky; top: 20px; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); padding: 16px; }
+    nav a { display: block; padding: 8px 6px; text-decoration: none; border-radius: 10px; }
+    nav a:hover { background: var(--accent-soft); }
+    section { border: 1px solid var(--line); border-radius: 24px; background: var(--surface); padding: 28px; margin-bottom: 24px; box-shadow: 0 14px 34px var(--shadow); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 12px; }
+    th { color: var(--muted); font-weight: 760; }
+    .path { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+    .path li { border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; background: oklch(97% 0.012 96); }
+    .checklist li { margin-bottom: 0.5rem; }
+    .note { border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; background: var(--warn-soft); }
+    @media (max-width: 900px) {
+      main { width: min(100% - 24px, 760px); padding-top: 28px; }
+      .hero, .layout { grid-template-columns: 1fr; }
+      nav { position: static; }
+      h1 { max-width: none; }
+    }
+    @media print {
+      body { background: var(--surface); }
+      main { width: auto; padding: 0; }
+      nav { display: none; }
+      section, .status { box-shadow: none; break-inside: avoid; }
+      a { color: var(--ink); }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">RFC-only walkthrough</p>
+        <h1>Linear + Legion 自动调度器</h1>
+        <p class="lede">本交付只请求批准总体技术设计和 8 个后续实现 Work Items，不包含 scheduler 运行时代码。</p>
+      </div>
+      <aside class="status" aria-label="交付终态">
+        <div class="status-row"><span class="label">Profile</span><span class="pill">rfc-only</span></div>
+        <div class="status-row"><span class="label">RFC Review</span><span class="pill">PASS</span></div>
+        <div class="status-row"><span class="label">PR</span><span class="pill warn">not created yet</span></div>
+        <div class="status-row"><span class="label">Render</span><span class="pill blocked">blocked until PR</span></div>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="Walkthrough navigation">
+        <a href="#summary">摘要</a>
+        <a href="#scope">范围</a>
+        <a href="#evidence">证据</a>
+        <a href="#path">路径</a>
+        <a href="#decisions">决策</a>
+        <a href="#verification">审查</a>
+        <a href="#risks">风险</a>
+        <a href="#checklist">清单</a>
+        <a href="#render">渲染</a>
+        <a href="#final">下一步</a>
+      </nav>
+
+      <div>
+        <section id="summary">
+          <h2>Reviewer Summary</h2>
+          <ul>
+            <li>总体 RFC 已覆盖架构、状态机、数据模型、ready 算法、Legion 嵌入、PR lifecycle、并发锁、失败恢复、安全、可观测性和 rollout / rollback。</li>
+            <li><code>review-rfc</code> 第一轮 FAIL，发现 3 个 blocking gaps。设计已补齐并通过第二轮 review。</li>
+            <li>核心边界是 Linear 管队列，Scheduler 管机器状态，Legion 管单 WI 执行协议，GitHub PR 管交付终态。</li>
+          </ul>
+        </section>
+
+        <section id="scope">
+          <h2>Scope</h2>
+          <p><strong>In scope:</strong> <code>.legion/tasks/linear-legion-scheduler-rfc/**</code>、<code>docs/linear-legion-scheduler/rfc.md</code>、<code>docs/linear-legion-scheduler/index.md</code>、<code>docs/linear-legion-scheduler/work-items/*.md</code>。</p>
+          <p><strong>Out of scope:</strong> 不实现 scheduler 服务、worker、数据库 migration、Linear webhook server 或 GitHub integration 代码。</p>
+        </section>
+
+        <section id="evidence">
+          <h2>Evidence Map</h2>
+          <table>
+            <thead><tr><th>Claim</th><th>Evidence</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>任务 contract 已稳定</td><td><code>.legion/tasks/linear-legion-scheduler-rfc/plan.md</code></td><td>PASS</td></tr>
+              <tr><td>现状与约束已摸底</td><td><code>.legion/tasks/linear-legion-scheduler-rfc/docs/research.md</code></td><td>PASS</td></tr>
+              <tr><td>总体 RFC 已完成</td><td><code>docs/linear-legion-scheduler/rfc.md</code></td><td>PASS</td></tr>
+              <tr><td>RFC 对抗审查已通过</td><td><code>.legion/tasks/linear-legion-scheduler-rfc/docs/review-rfc.md</code></td><td>PASS</td></tr>
+              <tr><td>WI 合并为不超过 10 个</td><td><code>docs/linear-legion-scheduler/work-items/</code></td><td>PASS, 8 个</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="path">
+          <h2>Delivery Path</h2>
+          <ol class="path">
+            <li>legion-workflow 入口门</li>
+            <li>brainstorm contract</li>
+            <li>git-worktree-pr envelope</li>
+            <li>spec-rfc design artifacts</li>
+            <li>review-rfc iteration 1 FAIL</li>
+            <li>RFC / WI edits</li>
+            <li>review-rfc iteration 2 PASS</li>
+            <li>report-walkthrough, then legion-wiki, then PR lifecycle</li>
+          </ol>
+        </section>
+
+        <section id="decisions">
+          <h2>What Changed / What Was Decided</h2>
+          <ul>
+            <li>MVP implementation-ready 必须要求 <code>contract:stable</code>。</li>
+            <li>Downstream unlock 使用 <code>isBlockerSatisfied()</code>，不只看 Linear Done，也不把 PR open 当 Done。</li>
+            <li>Scheduler 需要 evidence verifier，拒绝“只有 PR URL、缺 Legion 证据”的结果。</li>
+            <li>后续实现合并为 8 个 WI，按层推进。</li>
+          </ul>
+        </section>
+
+        <section id="verification">
+          <h2>Verification / Review Status</h2>
+          <p><code>review-rfc</code> 第一轮 FAIL 后已完成修复；第二轮 PASS，blocking findings 为 None。本次为 rfc-only profile，无生产代码变更，因此没有 implementation test-report 或 review-change。</p>
+        </section>
+
+        <section id="risks">
+          <h2>Risks and Limits</h2>
+          <ul>
+            <li>这是设计交付，不代表 scheduler 已可运行。</li>
+            <li>Agent Sessions API 与 Temporal 等实现期决策仍保留为后续可选项。</li>
+            <li>根 <code>docs/linear-legion-scheduler/</code> 是 scheduler proposal 文档，不改变 README / wiki 当前真源边界。</li>
+            <li>PR body 只是 PR 创建输入，不代表 checks、review、merge、worktree cleanup 或主工作区 refresh 已完成。</li>
+          </ul>
+        </section>
+
+        <section id="checklist">
+          <h2>Reviewer Checklist</h2>
+          <ul class="checklist">
+            <li><input type="checkbox" /> 同意四层真源边界。</li>
+            <li><input type="checkbox" /> 同意 MVP implementation-ready 必须 <code>contract:stable</code>。</li>
+            <li><input type="checkbox" /> 同意 downstream unlock 以 <code>isBlockerSatisfied()</code> 为准。</li>
+            <li><input type="checkbox" /> 同意 scheduler-side Legion evidence verifier 是必要 gate。</li>
+            <li><input type="checkbox" /> 同意后续实现拆成 8 个 WI。</li>
+          </ul>
+        </section>
+
+        <section id="render">
+          <h2>Render Handoff</h2>
+          <p class="note">HTML artifact 已生成在 <code>.legion/tasks/linear-legion-scheduler-rfc/docs/report-walkthrough.html</code>。当前尚未创建 PR，因此没有 PR-backed rendered URL。PR 创建后可交给 <code>pr-html-render</code>，或继续以 artifact path 作为 fallback。</p>
+        </section>
+
+        <section id="final">
+          <h2>Final State / Next Stage</h2>
+          <p>Design review state: <strong>PASS</strong>。下一步是 <code>legion-wiki</code> writeback，然后进入 PR lifecycle。设计 PR merge 只代表设计批准，后续实现必须按 8 个 WI 分别重新进入 Legion workflow。</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

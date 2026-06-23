@@ -37,6 +37,15 @@
 - 适用边界：`git-worktree-pr` 是 lifecycle envelope，不是第四种执行模式；三种执行模式仍由 `legion-workflow` 与 dispatch matrix 定义。
 - 常见陷阱：不要在主工作区编写 spec/plan/代码/测试；不要因为用户没有逐项要求 commit / push / PR 就停在本地 diff；push 前必须在 worktree 内 `git fetch origin && git rebase origin/master`；不要直接 push `master`/`main` 或使用本地 `master`/`main` 开发；不要绕过 branch protection、checks 或 review；不要在 checks/review/cleanup/main refresh 未闭环时宣告完成；不要把持久化产物写到 repo 外。
 
+## 模式：外部调度器嵌入 Legion 时只编排，不替代阶段链
+
+- 来源任务：`linear-legion-scheduler-rfc`
+- 背景：Linear + Legion scheduler 需要自动扫描 ready WI 并启动 agent，但若 scheduler 直接把 Linear issue 交给 agent 改代码，就会绕过 Legion 的 contract、设计门、验证、review、walkthrough、wiki writeback 和 PR lifecycle。
+- 做法：把外部系统职责拆开：Linear 管 WI / 依赖 / 人机协作状态；Scheduler DB 管 run、attempt、resource lock、event、webhook dedupe 和幂等；Legion 管单 WI 执行协议；GitHub PR 管交付终态。Scheduler 只能 scan、claim、lock、launch worker、track PR、write back status。Worker 的第一动作必须进入 `legion-workflow`；修改仓库时必须进入 `git-worktree-pr`。
+- Gate：MVP implementation-ready 必须要求 `contract:stable`；downstream unlock 不能只看 Linear Done 或 PR open，必须通过 `isBlockerSatisfied()`；PR URL 也不是 Legion 完成证据，scheduler 需要 evidence verifier 来拒绝缺 `plan.md`、`review-rfc` / `review-change`、`report-walkthrough`、wiki writeback 等证据的结果。
+- 适用边界：适用于把 Linear、GitHub issue、Jira、队列系统或其他外部调度器接入 Legion-managed 仓库。它是集成模式，不是新的 Legion 执行模式。
+- 常见陷阱：不要让 scheduler 代替 `brainstorm` 判断 contract 稳定；不要把 brainstorm-only 和 implementation run 混在同一个 ready 状态；不要在 PR open / in_review 时解锁下游；不要让 worker retry 生成重复 Legion task；不要把外部队列状态当作 `.legion/tasks/**` 的替代品。
+
 ## 模式：Legion 入口门禁先于探索
 
 - 来源任务：`harden-legion-workflow-gate`
