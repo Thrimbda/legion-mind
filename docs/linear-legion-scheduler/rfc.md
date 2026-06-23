@@ -13,6 +13,7 @@
 - **Problem**: 用户希望让 Linear 中的 Work Items 形成可自动推进的项目 DAG：一个 WI 完成后，调度器自动扫描不被 blocker 阻塞、且工程资源不冲突的 WI，并行启动 agent 执行，直到项目完成。
 - **Decision**: 采用“Linear 管队列与依赖，Scheduler 管机器状态与并发，Legion 管单 WI 执行协议，GitHub PR 管交付终态”的四层架构。
 - **Key rule**: Scheduler 不直接改代码、不替代 Legion 阶段链；每个 WI worker 的第一动作必须进入 `legion-workflow`，修改仓库时必须使用 `git-worktree-pr` envelope。
+- **Worker runtime**: 首版 worker runtime 固定为 OpenCode。Scheduler 只实现 OpenCode worker launcher，不做 OpenClaw / Codex / custom runtime adapter 抽象。
 - **MVP path**: 先实现 project-scoped reconcile + DB run/lock + Linear graph + 单 worker happy path，再扩展 PR tracking、并行 dispatcher、webhook、retry、admin / observability / security。
 - **Work item split**: 后续实现合并为 8 个 WI，分别覆盖规范、scheduler core、Linear graph、Legion runner、delivery tracking、parallel dispatch、reliability、operations/security。
 - **Primary risks**: 幂等、重复调度、资源锁表达不足、PR 状态误判、agent 逃逸 Legion workflow、凭 Linear 描述误判 contract 稳定。
@@ -113,7 +114,7 @@ Reconcile Engine ──► Dependency Graph Builder ──► Ready Candidate Se
 Scheduler DB ◄──── Claim / Run / Attempt / Event / Lock State
         │
         ▼
-Dispatcher ──► Agent Worker Launcher ──► Legion Workflow Adapter
+Dispatcher ──► OpenCode Worker Launcher ──► OpenCode Worker Contract
         │                                │
         │                                ▼
         │                         .legion task + worktree + PR
@@ -131,8 +132,8 @@ Linear Writeback / Admin CLI / Observability
 - **Reconcile Engine**: project-scoped 调度循环。读取 Linear snapshot、构建 DAG、计算 ready candidate、发起 claim。
 - **Scheduler DB**: 保存 run、attempt、resource lock、webhook dedupe、event log、PR link；是恢复和幂等真源。
 - **Dispatcher**: 根据全局并发、per-repo 并发、resource locks 和 priority 启动 worker。
-- **Agent Worker Launcher**: 以隔离进程 / job 启动 agent，注入 Linear context、repo path、taskId、prompt contract、timeout。
-- **Legion Workflow Adapter**: 不是独立运行时，而是 worker prompt + exit contract + evidence parser；它确保 worker 按 Legion workflow 执行。
+- **OpenCode Worker Launcher**: 以 OpenCode 进程 / job 启动 worker，注入 Linear context、repo path、taskId、prompt contract、timeout。首版不提供其他 runtime backend。
+- **OpenCode Worker Contract**: 不是独立 Legion 运行时，而是 OpenCode prompt artifact + exit contract + evidence parser；它确保 worker 按 Legion workflow 执行。
 - **GitHub PR Tracker**: 查询 PR 状态、checks、review、merge/close；决定 run 是否进入 In Review、Done、Blocked、Failed。
 - **Linear Writeback**: 用 comments / labels / state changes 向人类展示运行状态，避免 scheduler DB 成为黑盒。
 - **Admin CLI**: pause、resume、inspect、retry、cancel、release stale lock、force reconcile。
@@ -264,7 +265,7 @@ Unique constraints:
 |---|---|
 | `run_id` | parent run |
 | `attempt_number` | increasing |
-| `worker_runtime` | opencode / openclaw / codex / custom |
+| `worker_runtime` | constant `opencode`; audit field only, not an MVP extension point |
 | `prompt_hash` | reproducibility |
 | `exit_code` | process result |
 | `result_kind` | success / blocked / failed / timeout |
@@ -420,7 +421,21 @@ Worker enqueue should be driven from the DB-backed outbox. This avoids split-bra
 
 Mapping must be deterministic. Retrying the same WI must restore `.legion/tasks/linear-eng-123/` instead of creating a new task.
 
-### 9.2 Worker prompt contract
+### 9.2 OpenCode worker startup contract
+
+首版 scheduler 只启动 OpenCode worker。不要为 OpenClaw、Codex 或 custom runner 设计 adapter 层；如果未来需要多 runtime 支持，必须作为独立 RFC 重新进入设计门。
+
+OpenCode worker launch 的职责边界：
+
+1. Scheduler 为每个 run 生成一个 prompt artifact，内容包含 Linear context、Legion taskId、repo path、base ref、hard gates、result contract。
+2. Scheduler 在目标 repo 上下文中启动 OpenCode 进程 / job，并把 prompt artifact 作为唯一任务输入。
+3. OpenCode worker 的第一动作必须进入 `legion-workflow`。如果 contract 不稳定，进入 `brainstorm`；如果需要修改仓库文件，进入 `git-worktree-pr`。
+4. OpenCode worker 结束时必须输出 machine-readable result block，并留下 Legion evidence。
+5. Scheduler 只相信 result block + GitHub PR state + Legion evidence verifier 的组合，不单独相信 OpenCode 进程退出码。
+
+本 RFC 不写死最终 OpenCode CLI 参数。实现 WI 应在接入时用当前 OpenCode CLI 语义确定命令行，并用 prompt rendering / launch tests 锁定。
+
+### 9.3 Worker prompt contract
 
 Worker prompt is a protocol, not ad hoc prose. Minimum fields:
 
@@ -452,7 +467,7 @@ delivery:
   successRequiresPrTerminalState: true
 ```
 
-### 9.3 Worker result contract
+### 9.4 Worker result contract
 
 Worker must end with a machine-parseable result block or artifact:
 
@@ -474,7 +489,7 @@ Worker must end with a machine-parseable result block or artifact:
 
 Scheduler should treat this as claimed output, but still verify PR status via GitHub before marking Done.
 
-### 9.4 Legion evidence verifier
+### 9.5 Legion evidence verifier
 
 Prompt compliance is not enough. Scheduler must verify a minimum evidence contract before it can mark a run `done` or unlock downstream WI.
 
@@ -727,7 +742,7 @@ Revert `docs/linear-legion-scheduler/**` and `.legion/tasks/linear-legion-schedu
 
 - mocked Linear project snapshot -> ready list;
 - claim transaction under concurrent workers;
-- worker result parser and Legion evidence verifier;
+- OpenCode worker launch contract, worker result parser, and Legion evidence verifier;
 - GitHub PR state sync;
 - Linear writeback idempotency.
 
@@ -767,7 +782,7 @@ The implementation plan is intentionally 8 WI, not 20. Each WI should be indepen
 ## 19. Open Questions
 
 - Should the first production version use Linear Agent Sessions API, or start with normal app actor + comments/labels and add sessions later? Recommendation: start with app actor and keep Agent Sessions as an enhancement unless the workspace already depends on agent delegation UX.
-- Should workflow orchestration use Temporal immediately? Recommendation: no for MVP; keep an interface that can move to Temporal after the run state model is proven.
+- Should workflow orchestration use Temporal immediately? Recommendation: no for MVP; keep the run / outbox model simple enough to migrate later, but do not introduce a workflow-engine abstraction before the OpenCode single-worker path is proven.
 - How much Linear issue contract should be required before auto-run? Decision for MVP: require `contract:stable` for implementation runs. A future brainstorm-only mode must be a separate run kind and cannot unlock implementation downstream by itself.
 
 ---

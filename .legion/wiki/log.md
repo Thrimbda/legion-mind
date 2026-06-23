@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-23] writeback | lock-scheduler-worker-opencode
+
+- Updated the Linear + Legion scheduler design summary to lock the first worker runtime to OpenCode.
+- Clarified that OpenClaw / Codex / custom worker adapters are out of scope for the current RFC and require a future design gate.
+- Updated the external scheduler integration pattern: scheduler launches OpenCode workers only, while still enforcing `legion-workflow`, `git-worktree-pr`, and Legion evidence verification gates.
+
 ## [2026-06-23] writeback | linear-legion-scheduler-rfc
 
 - Added task summary for `linear-legion-scheduler-rfc` under `tasks/`.
