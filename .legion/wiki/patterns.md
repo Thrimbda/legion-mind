@@ -41,10 +41,10 @@
 
 - 来源任务：`linear-legion-scheduler-rfc`
 - 背景：Linear + Legion scheduler 需要自动扫描 ready WI 并启动 agent，但若 scheduler 直接把 Linear issue 交给 agent 改代码，就会绕过 Legion 的 contract、设计门、验证、review、walkthrough、wiki writeback 和 PR lifecycle。
-- 做法：把外部系统职责拆开：Linear 管 WI / 依赖 / 人机协作状态；Scheduler DB 管 run、attempt、resource lock、event、webhook dedupe 和幂等；Legion 管单 WI 执行协议；GitHub PR 管交付终态。Scheduler 只能 scan、claim、lock、launch worker、track PR、write back status。首版 worker runtime 固定为 OpenCode；Worker 的第一动作必须进入 `legion-workflow`；修改仓库时必须进入 `git-worktree-pr`。
-- Gate：MVP implementation-ready 必须要求 `contract:stable`；downstream unlock 不能只看 Linear Done 或 PR open，必须通过 `isBlockerSatisfied()`；PR URL 也不是 Legion 完成证据，scheduler 需要 evidence verifier 来拒绝缺 `plan.md`、`review-rfc` / `review-change`、`report-walkthrough`、wiki writeback 等证据的结果。不要在首版引入 OpenClaw / Codex / custom runtime adapter。
+- 做法：把外部系统职责拆开：Linear 管 WI / 依赖 / 人机协作状态，以及 native agent presentation/control plane；Scheduler DB 管 run、attempt、resource lock、event、webhook dedupe、AgentSession mapping、native outbox 和幂等；Legion 管单 WI 执行协议；GitHub PR 管交付终态。Scheduler 只能 scan、claim、lock、launch worker、track PR、write back status。首版 worker runtime 固定为 OpenCode；Worker 的第一动作必须进入 `legion-workflow`；修改仓库时必须进入 `git-worktree-pr`。
+- Gate：MVP implementation-ready 必须要求 `contract:stable`；downstream unlock 不能只看 Linear Done、AgentSession complete 或 PR open，必须通过 `isBlockerSatisfied()`。`Done` 只表示 `run_terminal_success`；`canceled`、`abandoned`、`closed-unmerged`、`superseded` 等 terminal non-success 默认不释放 downstream。PR-backed success 还必须包含 Legion evidence PASS、PR merged、checks/review satisfied、worktree cleanup 和 main refresh；缺 cleanup / refresh 时进入 `lifecycle_blocked`。PR URL 也不是 Legion 完成证据，scheduler 需要 evidence verifier 来拒绝缺 `plan.md`、`review-rfc` / `review-change`、`report-walkthrough`、wiki writeback 等证据的结果。不要在首版引入 OpenClaw / Codex / custom runtime adapter。
 - 适用边界：适用于把 Linear、GitHub issue、Jira、队列系统或其他外部调度器接入 Legion-managed 仓库。它是集成模式，不是新的 Legion 执行模式。
-- 常见陷阱：不要让 scheduler 代替 `brainstorm` 判断 contract 稳定；不要把 brainstorm-only 和 implementation run 混在同一个 ready 状态；不要在 PR open / in_review 时解锁下游；不要让 worker retry 生成重复 Legion task；不要把外部队列状态当作 `.legion/tasks/**` 的替代品。
+- 常见陷阱：不要让 scheduler 代替 `brainstorm` 判断 contract 稳定；不要把 brainstorm-only 和 implementation run 混在同一个 ready 状态；不要在 PR open / in_review / AgentSession complete / terminal non-success 时解锁下游；不要让 worker retry 生成重复 Legion task；不要把外部队列状态当作 `.legion/tasks/**` 的替代品。
 
 ## 模式：Legion 入口门禁先于探索
 

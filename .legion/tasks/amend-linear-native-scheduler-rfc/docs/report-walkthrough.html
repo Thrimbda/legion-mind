@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Linear Native Agent RFC amendment walkthrough</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: oklch(0.98 0.01 250);
+      --panel: oklch(1 0 0);
+      --text: oklch(0.24 0.03 255);
+      --muted: oklch(0.48 0.03 255);
+      --line: oklch(0.88 0.02 250);
+      --accent: oklch(0.52 0.17 255);
+      --ok: oklch(0.52 0.13 155);
+      --warn: oklch(0.62 0.14 70);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.55;
+    }
+    main {
+      width: min(1120px, calc(100% - 32px));
+      margin: 32px auto;
+    }
+    header, section {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    h1, h2, h3 { line-height: 1.2; margin: 0 0 12px; }
+    h1 { font-size: clamp(28px, 4vw, 44px); }
+    h2 { font-size: 22px; }
+    p { margin: 0 0 12px; }
+    ul, ol { margin: 8px 0 0; padding-left: 22px; }
+    li { margin: 6px 0; }
+    code {
+      background: oklch(0.94 0.02 250);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 1px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92em;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+    .pill {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 10px;
+      color: var(--muted);
+      background: oklch(0.97 0.01 250);
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 16px;
+      background: oklch(0.99 0 0);
+    }
+    .status-ok { color: var(--ok); font-weight: 700; }
+    .status-warn { color: var(--warn); font-weight: 700; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 15px;
+    }
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { color: var(--muted); font-weight: 700; }
+    a { color: var(--accent); text-decoration-thickness: 2px; }
+    @media (max-width: 760px) {
+      main { width: min(100% - 20px, 1120px); margin: 16px auto; }
+      header, section { padding: 18px; border-radius: 14px; }
+      .grid { grid-template-columns: 1fr; }
+      table { display: block; overflow-x: auto; }
+    }
+    @media print {
+      body { background: white; }
+      main { width: 100%; margin: 0; }
+      header, section { break-inside: avoid; border-color: #ddd; }
+      a { color: black; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <p class="pill">rfc-only walkthrough</p>
+      <h1>Linear Native Agent RFC amendment</h1>
+      <p>本交付把 review blocking points 纳入 Linear + Legion scheduler 设计。重点是 native control plane、成功终态门禁、lifecycle gate、snapshot revalidation 和 8 个 WI 的一致性。</p>
+      <div class="meta">
+        <span class="pill">Review RFC: <strong class="status-ok">PASS</strong></span>
+        <span class="pill">Verification: <strong class="status-ok">PASS</strong></span>
+        <span class="pill">Review Change: <strong class="status-ok">PASS</strong></span>
+        <span class="pill">Runtime code: none</span>
+      </div>
+    </header>
+
+    <section>
+      <h2>What changed</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Native Agent layer</h3>
+          <p><code>Issue.delegate</code>, <code>AgentSession</code>, Activities, Plan, <code>externalUrls</code> and stop signal are now presentation/control plane. Scheduler DB remains machine truth.</p>
+        </div>
+        <div class="card">
+          <h3>Terminal semantics</h3>
+          <p><code>Done</code> means <code>run_terminal_success</code>. Canceled, abandoned and closed-unmerged are terminal non-success and do not unlock downstream by default.</p>
+        </div>
+        <div class="card">
+          <h3>Lifecycle gate</h3>
+          <p>PR merged is not enough. Success also requires evidence PASS plus <code>git-worktree-pr</code> cleanup and main refresh. Missing lifecycle evidence becomes <code>lifecycle_blocked</code>.</p>
+        </div>
+        <div class="card">
+          <h3>WI alignment</h3>
+          <p>All 8 WI docs were updated. WI-06 now waits for WI-05 so parallel lock release cannot precede PR terminal tracking.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Evidence map</h2>
+      <table>
+        <thead><tr><th>Claim</th><th>Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>Native layer is control plane</td><td><code>docs/linear-legion-scheduler/rfc.md</code> sections 4.2 and 6.4</td></tr>
+          <tr><td>Terminal success is safe</td><td><code>rfc.md</code> section 10.2 and <code>review-rfc.md</code></td></tr>
+          <tr><td>Current Linear docs were checked</td><td><code>docs/research.md</code></td></tr>
+          <tr><td>Validation passed</td><td><code>docs/test-report.md</code></td></tr>
+          <tr><td>Readiness review passed</td><td><code>docs/review-change.md</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Known review fixes</h2>
+      <ul>
+        <li><strong class="status-warn">review-rfc first pass:</strong> lifecycle completion was missing from success gate. Fixed with <code>lifecycle_blocked</code> and cleanup/main refresh requirements.</li>
+        <li><strong class="status-warn">review-change first pass:</strong> WI-06 dependency was inconsistent. Fixed by aligning WI-06 to depend on WI-03, WI-04 and WI-05.</li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>Reviewer checklist</h2>
+      <ol>
+        <li>Confirm non-success terminal states cannot unlock downstream without explicit admin override.</li>
+        <li>Confirm AgentSession state cannot replace Scheduler DB truth.</li>
+        <li>Confirm native side effects use outbox idempotency.</li>
+        <li>Confirm cleanup/main refresh are required for success.</li>
+      </ol>
+    </section>
+  </main>
+</body>
+</html>

@@ -11,6 +11,7 @@
 ## 范围
 
 - Linear webhook HTTP endpoint。
+- AgentSessionEvent webhook category：created / prompted / stopped / delegated / permission changes。
 - Raw body signature verification。
 - Webhook dedupe / event persistence。
 - Event -> project reconcile trigger。
@@ -18,6 +19,7 @@
 - Retry policy：backoff、retry limit、non-retryable 分类。
 - Stale heartbeat detection。
 - Stale run / attempt recovery。
+- Native stop/cancel recovery。
 - Safe lock release conditions。
 
 ## 非目标
@@ -42,16 +44,36 @@ receive webhook
   -> verify signature using raw body
   -> store dedupe record
   -> ack quickly
-  -> enqueue reconcile(project)
+  -> enqueue reconcile(project) or native outbox action
 ```
 
 Webhook handler 不直接 claim WI；它只触发 reconcile。
+
+AgentSessionEvent `created` 也不直接启动 worker。Handler 必须快速 ack；outbox worker create/find mapping 后在短时间内 emit `thought` 或更新 `externalUrls`，避免 Linear UI 显示 agent unresponsive。
+
+### Native stop handling
+
+Stop signal 流程：
+
+```text
+AgentSession stopped event
+  -> verify/dedupe/persist
+  -> set runs.native_stop_requested_at
+  -> attempt canceling
+  -> kill/cancel worker
+  -> cleanup policy
+  -> terminal_non_success cancelled
+  -> final AgentSession response/error
+```
+
+Stop/cancel 不表示 blocker satisfied。只有 admin explicit ignore / supersede 才能释放 downstream。
 
 ### Retry classes
 
 - Retryable：Linear API 5xx、GitHub API transient、worker infra crash、network timeout。
 - Conditionally retryable：verification failure、merge conflict、checks failure，如果 worker 能在 scope 内修复。
 - Non-retryable：contract missing、needs-human、security blocked、dependency cycle、permission denied without new token。
+- Control signal：native stop / admin cancel，不自动 retry，等待人类重新 delegate 或 admin retry。
 
 ### Recovery rule
 
@@ -60,15 +82,17 @@ Stale run recovery 必须先判断 worker 是否仍存活；不能因为 TTL 过
 ## 验收标准
 
 - [ ] Webhook signature verification 测试通过。
+- [ ] AgentSessionEvent created/prompted/stopped/delegated 进入 dedupe + outbox，而不是直接 claim/launch worker。
 - [ ] 重复 webhook 不会重复调度。
 - [ ] Webhook 乱序时仍以 Linear 当前 snapshot 为准。
 - [ ] Retry policy 按 failure type 行为不同。
 - [ ] Worker stale 后不会产生重复 active run。
 - [ ] Stale lock release 需要 terminal run、confirmed dead worker 或 admin action。
+- [ ] Native stop 会 cancel/kill worker 并写 terminal non-success；downstream 默认不解锁。
 
 ## 验证
 
-- Unit tests：signature verification、dedupe key、failure taxonomy。
+- Unit tests：signature verification、dedupe key、failure taxonomy、native stop state transition。
 - Integration tests：重复 webhook + periodic reconcile 同时触发，只 claim 一次。
 - Fault injection：fake worker timeout / crash / malformed output。
 
