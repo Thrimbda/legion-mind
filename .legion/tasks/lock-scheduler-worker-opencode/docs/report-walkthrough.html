@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenCode worker runtime amendment | Walkthrough</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96% 0.014 95);
+      --surface: oklch(98% 0.008 96);
+      --ink: oklch(24% 0.018 132);
+      --muted: oklch(50% 0.025 132);
+      --line: oklch(82% 0.018 105);
+      --accent: oklch(45% 0.12 153);
+      --soft: oklch(91% 0.055 150);
+      --warn: oklch(91% 0.07 82);
+      --shadow: oklch(40% 0.03 130 / 14%);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; line-height: 1.64; }
+    main { width: min(1120px, calc(100vw - 36px)); margin: 0 auto; padding: 48px 0 72px; }
+    h1 { font-size: clamp(2rem, 4vw, 3.6rem); line-height: 1.08; margin: 0.2rem 0 1rem; max-width: 14ch; }
+    h2 { margin-top: 0; }
+    p, li { max-width: 74ch; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.94em; }
+    a { color: var(--accent); text-underline-offset: 0.18em; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: 32px; align-items: end; margin-bottom: 30px; }
+    .kicker { color: var(--muted); font-weight: 760; letter-spacing: 0.08em; text-transform: uppercase; }
+    .lede { color: var(--muted); font-size: 1.08rem; }
+    .status, section, nav { border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: 0 14px 34px var(--shadow); }
+    .status { padding: 22px; }
+    .status-row { display: flex; justify-content: space-between; gap: 16px; padding: 11px 0; border-top: 1px solid var(--line); }
+    .status-row:first-of-type { border-top: 0; }
+    .label { color: var(--muted); }
+    .pill { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--soft); padding: 0.12rem 0.62rem; font-weight: 760; white-space: nowrap; }
+    .pill.warn { background: var(--warn); }
+    .layout { display: grid; grid-template-columns: 230px minmax(0, 1fr); gap: 28px; align-items: start; }
+    nav { position: sticky; top: 18px; padding: 14px; }
+    nav a { display: block; padding: 8px 6px; border-radius: 10px; text-decoration: none; }
+    nav a:hover { background: var(--soft); }
+    section { padding: 26px; margin-bottom: 22px; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 12px; }
+    th { color: var(--muted); }
+    .note { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: var(--warn); }
+    @media (max-width: 900px) { main { width: min(100% - 24px, 760px); padding-top: 28px; } .hero, .layout { grid-template-columns: 1fr; } nav { position: static; } h1 { max-width: none; } }
+    @media print { body { background: var(--surface); } main { width: auto; padding: 0; } nav { display: none; } section, .status { box-shadow: none; break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">RFC-only amendment</p>
+        <h1>OpenCode worker runtime</h1>
+        <p class="lede">本交付只更新 Linear + Legion scheduler 的 worker runtime 决策：首版锁定 OpenCode，不做多 runtime adapter。</p>
+      </div>
+      <aside class="status" aria-label="交付状态">
+        <div class="status-row"><span class="label">Profile</span><span class="pill">rfc-only</span></div>
+        <div class="status-row"><span class="label">RFC Review</span><span class="pill">PASS</span></div>
+        <div class="status-row"><span class="label">Runtime</span><span class="pill">OpenCode</span></div>
+        <div class="status-row"><span class="label">PR</span><span class="pill warn">not created yet</span></div>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="Walkthrough navigation">
+        <a href="#summary">摘要</a>
+        <a href="#evidence">证据</a>
+        <a href="#decisions">决策</a>
+        <a href="#review">审查</a>
+        <a href="#risks">风险</a>
+        <a href="#final">下一步</a>
+      </nav>
+
+      <div>
+        <section id="summary">
+          <h2>Reviewer Summary</h2>
+          <ul>
+            <li>RFC 现在明确：scheduler 只实现 OpenCode worker launcher。</li>
+            <li>OpenClaw、Codex、custom worker backend 都移出当前 scope。</li>
+            <li>OpenCode worker 的第一动作仍必须进入 <code>legion-workflow</code>。</li>
+            <li>完成 gate 仍依赖 result block、GitHub PR state 和 Legion evidence verifier。</li>
+          </ul>
+        </section>
+
+        <section id="evidence">
+          <h2>Evidence Map</h2>
+          <table>
+            <thead><tr><th>Claim</th><th>Evidence</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>OpenCode-only 决策已写入 RFC</td><td><code>docs/linear-legion-scheduler/rfc.md</code></td><td>PASS</td></tr>
+              <tr><td>WI-04 已同步实现边界</td><td><code>docs/linear-legion-scheduler/work-items/WI-04-legion-worker-runner.md</code></td><td>PASS</td></tr>
+              <tr><td>设计审查已通过</td><td><code>.legion/tasks/lock-scheduler-worker-opencode/docs/review-rfc.md</code></td><td>PASS</td></tr>
+              <tr><td>Wiki 已记录可复用结论</td><td><code>.legion/wiki/patterns.md</code></td><td>PASS</td></tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section id="decisions">
+          <h2>What Changed / What Was Decided</h2>
+          <p>Scheduler 为每个 run 生成 OpenCode prompt artifact，在目标 repo 上下文启动 OpenCode worker。Worker 必须先进入 <code>legion-workflow</code>，需要修改仓库时进入 <code>git-worktree-pr</code>。未来多 runtime 支持需要独立 RFC。</p>
+        </section>
+
+        <section id="review">
+          <h2>Verification / Review Status</h2>
+          <p><code>review-rfc</code> PASS，无 blocking findings。<code>git diff --check</code> PASS。旧 runtime adapter 误导性表述搜索 PASS。</p>
+        </section>
+
+        <section id="risks">
+          <h2>Risks and Limits</h2>
+          <ul>
+            <li>本 PR 不实现 OpenCode launcher。</li>
+            <li>本 PR 不写死最终 OpenCode CLI 参数，避免承诺未验证命令行。</li>
+            <li>OpenCode-only 降低首版复杂度，但未来 runtime 扩展需要重新设计。</li>
+          </ul>
+        </section>
+
+        <section id="final">
+          <h2>Final State / Next Stage</h2>
+          <p>Design amendment review state: <strong>PASS</strong>。下一步是 PR lifecycle。PR merge 只表示设计 amendment 获批，不代表 OpenCode launcher 已实现。</p>
+          <p class="note">Render handoff: HTML artifact 已生成。当前尚未创建 PR，因此没有 PR-backed rendered URL。</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
