@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-06-23] writeback | amend-linear-native-scheduler-rfc
+
+- Added task summary for `amend-linear-native-scheduler-rfc` under `tasks/`.
+- Updated Linear + Legion scheduler current truth: Linear Native Agent layer is presentation/control plane, while Scheduler DB remains machine truth for claim, attempts, locks, evidence, terminal gate and downstream unlock.
+- Promoted terminal semantics: `Done` only means `run_terminal_success`; terminal non-success does not unlock downstream by default; PR-backed success requires `git-worktree-pr` cleanup and main refresh, otherwise `lifecycle_blocked`.
+- Updated the reusable external scheduler pattern with AgentSession/native outbox, snapshot revalidation, and WI-06 dependency on WI-05 before parallel dispatch.
+
 ## [2026-06-23] writeback | lock-scheduler-worker-opencode
 
 - Updated the Linear + Legion scheduler design summary to lock the first worker runtime to OpenCode.

@@ -16,6 +16,7 @@
 - 当前有效结论：Linear 管 WI / 依赖 / 人机协作状态，Scheduler DB 管 run / lock / event / idempotency，Legion 管单 WI 执行协议，GitHub PR 管交付终态。
 - `review-rfc` 第一轮 FAIL 后已修复 blocking gaps：blocker terminal gate、MVP `contract:stable` eligibility、scheduler-side Legion evidence verifier。第二轮 `review-rfc` PASS。
 - 后续修正：首版 worker runtime 锁定为 OpenCode；不做 OpenClaw / Codex / custom runtime adapter 抽象。
+- 后续修正：Linear Native Agent layer 已作为 presentation/control plane 正式建模；`Done` / `run_terminal_success` 与 non-success 终态已拆开，PR-backed success 还要求 `git-worktree-pr` cleanup 和 main refresh。
 - 设计 PR merge 应视为设计批准；后续实现必须按 8 个 WI 分别重新进入 Legion workflow。
 
 ## Reusable Decisions
@@ -25,6 +26,8 @@
 - Downstream unlock 不应只看 Linear Done 或 PR open；必须通过 scheduler 的 `isBlockerSatisfied()` terminal policy。
 - Scheduler 必须有 Legion evidence verifier，拒绝“只有 PR URL、缺 Legion 证据”的结果。
 - 首版 scheduler 只启动 OpenCode worker；未来多 runtime 支持必须单独设计。
+- AgentSession state 不能替代 Scheduler DB truth；native side effects 必须通过 DB-backed outbox 幂等执行。
+- Terminal non-success 默认不释放 downstream；PR merged 但 lifecycle follow-up 缺失应进入 `lifecycle_blocked`。
 - 后续实现 WI 为 8 个：contract policy、scheduler core state、Linear graph scanner、Legion runner、PR writeback、parallel locks、webhooks/retry/recovery、operations/security。
 
 ## Related Raw Sources

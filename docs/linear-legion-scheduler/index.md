@@ -1,6 +1,6 @@
 # Linear + Legion Scheduler 设计入口
 
-本目录是 Linear + Legion 自动调度器的设计提案，不替代 LegionMind 当前 README / wiki 真源。
+本目录是 Linear + Legion 自动调度器的设计提案，不替代 LegionMind 当前 README / wiki 真源。当前设计要求 Linear Native Agent 层只做人类可见 presentation/control plane；Scheduler DB 仍是 claim、attempt、locks、evidence 和 downstream unlock 的 machine truth。
 
 ## 总体设计
 
@@ -26,11 +26,14 @@ WI-01
   ↓
 WI-02
   ↓
-WI-03 ──┐
-        ├─→ WI-04 → WI-05
-        │             ↓
-        └────────→ WI-06 → WI-07 → WI-08
+WI-03 ───────────────┐
+  ↓                  │
+WI-04 → WI-05 ───────┤
+  ↓                  │
+  └────────────────→ WI-06 → WI-07 → WI-08
 ```
+
+WI-06 必须等待 WI-03、WI-04、WI-05：并行 dispatch 不能早于 graph scanner、worker runner 和 PR terminal / lifecycle gate。
 
 ## 最小闭环
 
@@ -39,9 +42,12 @@ WI-03 ──┐
 ```text
 Linear ready WI
   -> scheduler claim
+  -> AgentSession / delegate / initial activity
   -> worker enters Legion workflow
   -> PR created / tracked
-  -> Linear writeback
+  -> run_terminal_success writeback
 ```
+
+`Done` 只代表成功终态。`abandoned`、`canceled`、`closed-unmerged`、native stop 等属于 terminal non-success，默认不释放 downstream。
 
 完成 WI-06 到 WI-08 后，系统才进入可长期运行的自动调度器形态：并行、可靠恢复、可观测、可运维、权限边界清晰。

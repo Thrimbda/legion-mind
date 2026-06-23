@@ -19,6 +19,7 @@
 - `isBlockerSatisfied()` terminal gate，不能只看 Linear Done。
 - Ready candidate sorting。
 - Skipped reason report。
+- Native action preview：如果 claim，会 create/find 哪个 AgentSession、设置哪个 delegate、发哪些 initial activities / externalUrls。
 - Dry-run CLI / service endpoint。
 
 ## 非目标
@@ -44,7 +45,19 @@ Dry-run 输出至少包含：
   "project": "...",
   "observedAt": "...",
   "ready": [
-    { "identifier": "ENG-123", "priority": 2, "locks": ["repo:api", "area:billing"] }
+    {
+      "identifier": "ENG-123",
+      "priority": 2,
+      "locks": ["repo:api", "area:billing"],
+      "snapshotHash": "...",
+      "linearUpdatedAt": "...",
+      "nativePreview": {
+        "delegate": "linear-agent-app-user",
+        "agentSession": "create_or_find",
+        "initialActivity": "thought: checking ready conditions",
+        "externalUrls": ["scheduler_run"]
+      }
+    }
   ],
   "skipped": [
     { "identifier": "ENG-124", "reason": "blocked_by", "details": ["ENG-120"] }
@@ -66,14 +79,16 @@ Dry-run 输出至少包含：
 - active run exists;
 - resource conflict;
 - project paused。
+- stale snapshot after revalidation。
 
 ## 验收标准
 
 - [ ] 能拉取指定 Linear project 的 issue snapshot。
 - [ ] 能从 blocker relations 构建 DAG。
 - [ ] 能检测 dependency cycle，并给出 cycle path。
-- [ ] 能按 scheduler terminal policy 判断 blocker 是否满足，覆盖 manual done 与 scheduler-run done。
+- [ ] 能按 scheduler terminal policy 判断 blocker 是否满足，覆盖 manual done 与 scheduler-run terminal success / non-success。
 - [ ] 能输出 ready list 和 skipped reason report。
+- [ ] Dry-run ready output 包含 snapshot hash / Linear updatedAt，以及 native action preview。
 - [ ] Scanner 不会修改 Linear。
 - [ ] Scanner 写入 `work_item_snapshots`，供后续 diff / debug。
 
