@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-06-24] writeback | linear-legion-scheduler-wi-01
+
+- Added task summary for `linear-legion-scheduler-wi-01` under `tasks/`.
+- Recorded the WI-01 Linear-side contract / scheduling policy artifact: `docs/linear-legion-scheduler/linear-wi-contract-policy.md`.
+- Updated scheduler current truth and reusable pattern to point future scanner / runner WIs at the WI-01 policy for template, labels, state mapping, ready/skipped rules, blocker satisfaction and native agent control-plane boundaries.
+
 ## [2026-06-23] writeback | amend-linear-native-scheduler-rfc
 
 - Added task summary for `amend-linear-native-scheduler-rfc` under `tasks/`.
