@@ -12,7 +12,7 @@
 
 后续实现拆成 8 个 Work Items。它们按依赖顺序排列，既能分阶段交付，又避免把任务拆得过碎。
 
-WI-01 已落成可执行 policy 文档；后续 scanner / runner / writeback WI 应以 [`linear-wi-contract-policy.md`](linear-wi-contract-policy.md) 作为 Linear 侧 contract 输入。WI-02 已落成 SQLite-backed scheduler core；后续 scanner / runner 应通过 [`scheduler-core-sqlite.md`](scheduler-core-sqlite.md) 中描述的 repository / outbox 边界接入 durable state。
+WI-01 已落成可执行 policy 文档；后续 scanner / runner / writeback WI 应以 [`linear-wi-contract-policy.md`](linear-wi-contract-policy.md) 作为 Linear 侧 contract 输入。WI-02 已落成 SQLite-backed scheduler core，并作为仓库根 `scheduler/` 下的独立 npm project 维护；后续 scanner / runner 应通过 [`scheduler-core-sqlite.md`](scheduler-core-sqlite.md) 中描述的 repository / outbox 边界接入 durable state。
 
 1. [WI-01 Linear WI contract and scheduling policy](work-items/WI-01-linear-wi-contract.md)
 2. [WI-02 Scheduler core service and durable state](work-items/WI-02-scheduler-core-state.md)

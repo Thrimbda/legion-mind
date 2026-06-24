@@ -1,0 +1,16 @@
+{
+  "name": "linear-legion-scheduler",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Standalone npm project for the Linear + Legion scheduler prototype.",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "debug": "node --experimental-strip-types --experimental-sqlite src/cli.ts",
+    "health": "node --experimental-strip-types --experimental-sqlite src/cli.ts health",
+    "test": "node --test --experimental-strip-types --experimental-sqlite tests/*.test.ts"
+  },
+  "engines": {
+    "node": ">=22.6.0"
+  }
+}

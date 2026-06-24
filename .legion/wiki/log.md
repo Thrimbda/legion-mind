@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-06-24] writeback | extract-linear-scheduler-npm-project
+
+- Added task summary for `extract-linear-scheduler-npm-project` under `tasks/`.
+- Updated Linear + Legion scheduler current truth: WI-02 runtime code now lives in standalone npm project `scheduler/`, not root `scripts/` or root package scripts.
+- Updated reusable patterns so root regression and scheduler regression are distinct validation surfaces: `npm run test:regression` for root setup/CLI regression, `npm --prefix scheduler test` for scheduler core regression.
+- Recorded a non-blocking CI follow-up to make `npm --prefix scheduler test` explicit if scheduler becomes long-lived runtime surface.
+
 ## [2026-06-24] writeback | linear-legion-scheduler-wi-02
 
 - Added task summary for `linear-legion-scheduler-wi-02` under `tasks/`.

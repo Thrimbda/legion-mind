@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { openSchedulerStore, stableHash } from '../../scripts/lib/linear-scheduler/sqlite-store.ts';
-import type { WorkItemSnapshotInput } from '../../scripts/lib/linear-scheduler/sqlite-store.ts';
-import { assertValidRunTransition, canTransitionRun, isTerminalNonSuccessRunState } from '../../scripts/lib/linear-scheduler/state-machine.ts';
+import { openSchedulerStore, stableHash } from '../src/sqlite-store.ts';
+import type { WorkItemSnapshotInput } from '../src/sqlite-store.ts';
+import { assertValidRunTransition, canTransitionRun, isTerminalNonSuccessRunState } from '../src/state-machine.ts';
 
-const repoRoot = resolve(new URL('../..', import.meta.url).pathname);
-const regressionCacheRoot = join(repoRoot, '.cache', 'regression');
+const projectRoot = resolve(new URL('..', import.meta.url).pathname);
+const regressionCacheRoot = join(projectRoot, '.cache', 'regression');
 
 function tmpDb(name: string) {
   mkdirSync(regressionCacheRoot, { recursive: true });
@@ -289,8 +289,8 @@ test('done run requires delivery and evidence gates before downstream satisfacti
 test('debug command applies migrations and prints health JSON for SQLite DB', () => {
   const { root, dbPath } = tmpDb('scheduler-debug-command');
   try {
-    const output = execFileSync(process.execPath, ['--experimental-strip-types', '--experimental-sqlite', 'scripts/linear-scheduler.ts', 'health', '--db', dbPath], {
-      cwd: repoRoot,
+    const output = execFileSync(process.execPath, ['--experimental-strip-types', '--experimental-sqlite', 'src/cli.ts', 'health', '--db', dbPath], {
+      cwd: projectRoot,
       encoding: 'utf-8',
       stdio: ['ignore', 'pipe', 'pipe'],
     });

@@ -13,11 +13,11 @@ Delivered source:
 
 | Path | Purpose |
 |---|---|
-| `scripts/lib/linear-scheduler/state-machine.ts` | Central run state machine and terminal-state helpers |
-| `scripts/lib/linear-scheduler/sqlite-store.ts` | SQLite migrations, repository APIs, claim transaction, locks, outbox and debug service |
-| `scripts/linear-scheduler.ts` | Minimal debug command / service skeleton |
-| `tests/regression/linear-scheduler-core.test.ts` | Unit and integration coverage for migration, claim, locks, outbox, state transitions and debug command |
-| `package.json` | Adds `scheduler:debug` and `test:linear-scheduler`; regression tests run with `--experimental-sqlite` |
+| `scheduler/package.json` | Standalone npm project boundary for the scheduler prototype |
+| `scheduler/src/state-machine.ts` | Central run state machine and terminal-state helpers |
+| `scheduler/src/sqlite-store.ts` | SQLite migrations, repository APIs, claim transaction, locks, outbox and debug service |
+| `scheduler/src/cli.ts` | Minimal debug command / service skeleton |
+| `scheduler/tests/linear-scheduler-core.test.ts` | Unit and integration coverage for migration, claim, locks, outbox, state transitions and debug command |
 
 SQLite is intentionally used as the WI-02 local durable DB. The code keeps SQL access behind `SchedulerStore` so WI-03 / WI-04 can consume DTO-level APIs instead of depending on SQLite details.
 
@@ -81,12 +81,12 @@ The transaction uses SQLite `BEGIN IMMEDIATE` so the active-run and held-lock ch
 The debug command is intentionally small and repo-local:
 
 ```bash
-npm run scheduler:debug -- health --db .cache/linear-scheduler/dev.sqlite
-npm run scheduler:debug -- runs list --db .cache/linear-scheduler/dev.sqlite
-npm run scheduler:debug -- events list --run <run-id> --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- health --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- runs list --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- events list --run <run-id> --db .cache/linear-scheduler/dev.sqlite
 ```
 
-It applies migrations on open and prints JSON. It is not a production admin CLI; WI-08 owns full admin / observability hardening.
+It applies migrations on open and prints JSON. The command lives in the standalone `scheduler/` npm project instead of the root `lgmind` package. It is not a production admin CLI; WI-08 owns full admin / observability hardening.
 
 ## 6. Boundaries for later WIs
 
