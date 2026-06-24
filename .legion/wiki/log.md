@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-06-24] writeback | linear-legion-scheduler-wi-02
+
+- Added task summary for `linear-legion-scheduler-wi-02` under `tasks/`.
+- Recorded the WI-02 SQLite scheduler core / durable state artifact: `docs/linear-legion-scheduler/scheduler-core-sqlite.md`.
+- Updated scheduler current truth and reusable pattern: WI-02 uses SQLite as the local durable-state prototype, with Scheduler DB machine truth, transaction-backed claim, active-run/lock constraints, native / worker outbox, native stop cancel semantics and non-success terminal states that do not unlock downstream by default.
+- Updated the regression pattern to include WI-02 scheduler core coverage under `npm run test:regression`.
+
 ## [2026-06-24] writeback | linear-legion-scheduler-wi-01
 
 - Added task summary for `linear-legion-scheduler-wi-01` under `tasks/`.

@@ -1,5 +1,8 @@
 # WI-02: Scheduler core service and durable state
 
+> **交付产物**: [`../scheduler-core-sqlite.md`](../scheduler-core-sqlite.md)<br>
+> **状态**: 已完成为 SQLite-backed scheduler core skeleton；后续 WI-03 / WI-04 / WI-05 应通过 repository / outbox 边界接入，不直接绕过 Scheduler DB truth。
+
 ## 目标
 
 建立调度器服务骨架和持久化状态模型，让后续 Linear scanner、worker runner、PR tracker 和 retry recovery 都有统一的 run / attempt / lock / event 真源。
@@ -87,16 +90,16 @@ Worker launch 必须由 outbox 驱动，避免 claim transaction 成功后进程
 
 ## 验收标准
 
-- [ ] 本地能启动 scheduler service，并连接测试 DB。
-- [ ] Migration 能创建所有核心表。
-- [ ] Claim API 在并发调用下只会为同一个 Linear issue 创建一个 active run。
-- [ ] Claim 前会 revalidate snapshot；issue/blocker/label/contract/resource hint 变化时拒绝旧 ready 结果。
-- [ ] Claim 成功后会产生 outbox job；outbox worker 可重试 dispatch，且不会重复启动同一 active run。
-- [ ] AgentSession create/find、activity、externalUrls 和 stop/cancel 通过 native outbox 幂等处理。
-- [ ] Resource lock acquisition / release 有单元测试。
-- [ ] Run state transition 有非法转换测试。
-- [ ] Non-success terminal states 不会释放 downstream，除非 admin override 有 audit event。
-- [ ] Event log 能重建某个 run 的 timeline。
+- [x] 本地能启动 scheduler service，并连接测试 DB。
+- [x] Migration 能创建所有核心表。
+- [x] Claim API 在并发调用下只会为同一个 Linear issue 创建一个 active run。
+- [x] Claim 前会 revalidate snapshot；issue/blocker/label/contract/resource hint 变化时拒绝旧 ready 结果。
+- [x] Claim 成功后会产生 outbox job；outbox worker 可重试 dispatch，且不会重复启动同一 active run。
+- [x] AgentSession create/find、activity、externalUrls 和 stop/cancel 通过 native outbox 幂等处理。
+- [x] Resource lock acquisition / release 有单元测试。
+- [x] Run state transition 有非法转换测试。
+- [x] Non-success terminal states 不会释放 downstream，除非 admin override 有 audit event。
+- [x] Event log 能重建某个 run 的 timeline。
 
 ## 验证
 
@@ -106,6 +109,6 @@ Worker launch 必须由 outbox 驱动，避免 claim transaction 成功后进程
 
 ## 风险
 
-- **DB model 过度复杂**: 过早引入 workflow engine 会拖慢 MVP。缓解：先用 Postgres + job queue 抽象，保留未来迁移 Temporal 的接口。
+- **DB model 过度复杂**: 过早引入 workflow engine 会拖慢 MVP。缓解：本 WI 使用 SQLite + transaction / outbox repository 边界，保留未来迁移 Postgres / Temporal 的语义接口。
 - **幂等不足**: Linear webhook 和 timer 可能同时触发 claim。缓解：DB unique constraint + transaction 是硬要求。
 - **日志泄密**: event payload 可能包含 issue private content。缓解：默认保存摘要，raw payload 另行 redaction。
