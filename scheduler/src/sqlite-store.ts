@@ -141,6 +141,28 @@ export interface SchedulerEventRow {
   created_at: string;
 }
 
+export interface WorkItemSnapshotRow {
+  id: string;
+  linear_issue_id: string;
+  linear_identifier: string;
+  linear_project_id: string;
+  title: string;
+  state_name: string;
+  state_type: string;
+  labels_json: string;
+  relations_json: string;
+  repo_key: string;
+  risk: RiskLevel;
+  contract_state: ContractState;
+  resource_hints_json: string;
+  blockers_hash: string;
+  snapshot_hash: string;
+  linear_updated_at: string;
+  observed_version: number;
+  created_at: string;
+  observed_at: string;
+}
+
 export interface OutboxRow {
   id: string;
   outbox_kind: OutboxKind;
@@ -741,6 +763,22 @@ export class SchedulerStore {
 
   listRuns(): RunRow[] {
     return this.db.prepare('SELECT * FROM runs ORDER BY created_at DESC, id DESC').all() as RunRow[];
+  }
+
+  listSnapshots(): WorkItemSnapshotRow[] {
+    return this.db.prepare('SELECT * FROM work_item_snapshots ORDER BY observed_at DESC, linear_identifier ASC').all() as WorkItemSnapshotRow[];
+  }
+
+  latestRunForIssue(linearIssueId: string): RunRow | null {
+    return (this.db.prepare('SELECT * FROM runs WHERE linear_issue_id = ? ORDER BY created_at DESC, id DESC LIMIT 1').get(linearIssueId) as RunRow | undefined) ?? null;
+  }
+
+  findActiveRunForIssue(linearIssueId: string, taskId?: string): RunRow | null {
+    return this.findActiveRun(linearIssueId, taskId ?? '');
+  }
+
+  heldLockConflicts(lockKeys: string[]): Array<{ lockKey: string; runId: string }> {
+    return this.findHeldLocks(uniqueSorted(lockKeys));
   }
 
   timelineForRun(runId: string): Array<SchedulerEventRow & { payload: unknown }> {

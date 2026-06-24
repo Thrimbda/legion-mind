@@ -1,5 +1,13 @@
 # Legion Wiki Log
 
+## [2026-06-24] writeback | linear-legion-scheduler-wi-03
+
+- Added task summary for `linear-legion-scheduler-wi-03` under `tasks/`.
+- Recorded the WI-03 dry-run Linear graph scanner / skipped reason report artifact: `docs/linear-legion-scheduler/linear-graph-scanner.md`.
+- Updated scheduler current truth and reusable pattern: scanner reads Linear project snapshots, builds `blocker -> blocked` DAGs, detects cycles, emits ready/skipped/cycles, persists `work_item_snapshots`, and does not claim runs, launch workers or mutate Linear.
+- Updated scheduler regression pattern to include WI-03 scanner coverage under `npm --prefix scheduler test`.
+- Recorded a follow-up to run `scan project` against a real Linear test project with a read-only token before enabling live scheduling.
+
 ## [2026-06-24] writeback | extract-linear-scheduler-npm-project
 
 - Added task summary for `extract-linear-scheduler-npm-project` under `tasks/`.
