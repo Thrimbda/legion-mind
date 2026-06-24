@@ -1,5 +1,6 @@
 import { normalizeSnapshot, stableHash } from './sqlite-store.ts';
 import type { ContractState, NormalizedSnapshot, RiskLevel, RunRow, SchedulerStore, WorkItemSnapshotInput } from './sqlite-store.ts';
+import { taskIdFromLinearIdentifier } from './task-id.ts';
 
 export type SkippedReason =
   | 'state_not_candidate'
@@ -182,12 +183,8 @@ function hasLabel(issue: ScannerIssueInput, label: string): boolean {
   return issue.labels.includes(label);
 }
 
-function slug(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
-
 function taskIdForIssue(issue: ScannerIssueInput, config: ScannerConfig): string {
-  return issue.taskId ?? `${config.taskIdPrefix ?? 'linear'}-${slug(issue.identifier)}`;
+  return issue.taskId ?? taskIdFromLinearIdentifier(issue.identifier, config.taskIdPrefix ?? 'linear');
 }
 
 function stateMatches(issue: ScannerIssueInput, types: string[], names: string[]): boolean {
