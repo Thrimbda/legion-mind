@@ -3,6 +3,7 @@
 import { readFileSync } from 'node:fs';
 import { createDebugService, openSchedulerStore } from './sqlite-store.ts';
 import { fetchLinearProjectSnapshot, scanLinearProject } from './scanner.ts';
+import { processOpenCodeWorkerDispatch } from './worker-runner.ts';
 import type { LinearProjectSnapshotInput, ScannerConfig } from './scanner.ts';
 
 function printHelp() {
@@ -14,6 +15,7 @@ Usage:
   npm run debug -- events list --run <run-id> [--db <path|:memory:>]
   npm run debug -- scan project --project <linear-project-id> [--db <path|:memory:>] [--token-env LINEAR_API_KEY]
   npm run debug -- scan fixture --fixture <snapshot.json> [--db <path|:memory:>]
+  npm run debug -- worker dispatch --run <run-id> --attempt <attempt-id> --repo <repo-path> [--db <path|:memory:>] [--timeout-ms <ms>]
 
 Commands:
   health        Apply migrations and print DB health as JSON
@@ -21,6 +23,7 @@ Commands:
   events list   List one run timeline as JSON
   scan project  Fetch a Linear project snapshot, persist work_item_snapshots, print dry-run ready/skipped report
   scan fixture  Load a repo-local fixture snapshot and print the same scanner report without Linear API access
+  worker dispatch  Launch one pending OpenCode worker dispatch outbox row; native startup outbox must already be sent
 `);
 }
 
@@ -85,6 +88,34 @@ async function runScan(argv: string[], dbPath: string) {
   }
 }
 
+async function runWorker(argv: string[], dbPath: string) {
+  const mode = argv[1];
+  if (mode !== 'dispatch') {
+    throw new Error('worker requires mode `dispatch`.');
+  }
+  const runId = valueAfter(argv, '--run');
+  const attemptId = valueAfter(argv, '--attempt');
+  const repoPath = valueAfter(argv, '--repo');
+  if (!runId || !attemptId || !repoPath) {
+    throw new Error('worker dispatch requires --run <run-id> --attempt <attempt-id> --repo <repo-path>.');
+  }
+  const store = openSchedulerStore(dbPath);
+  try {
+    const row = store.pendingOutbox().find((entry) => entry.outbox_kind === 'worker_dispatch' && entry.run_id === runId && entry.attempt_id === attemptId);
+    if (!row) {
+      throw new Error(`No pending worker dispatch outbox row for run ${runId} attempt ${attemptId}.`);
+    }
+    const result = await processOpenCodeWorkerDispatch(store, row, {
+      repoPath,
+      baseRef: valueAfter(argv, '--base-ref') ?? 'origin/master',
+      timeoutMs: Number(valueAfter(argv, '--timeout-ms') ?? 60 * 60 * 1000),
+    });
+    console.log(JSON.stringify(result, null, 2));
+  } finally {
+    store.close();
+  }
+}
+
 async function main(argv: string[]) {
   const command = argv[0] ?? 'help';
   if (command === 'help' || command === '--help' || command === '-h') {
@@ -95,6 +126,10 @@ async function main(argv: string[]) {
   const dbPath = valueAfter(argv, '--db') ?? ':memory:';
   if (command === 'scan') {
     await runScan(argv, dbPath);
+    return;
+  }
+  if (command === 'worker') {
+    await runWorker(argv, dbPath);
     return;
   }
 

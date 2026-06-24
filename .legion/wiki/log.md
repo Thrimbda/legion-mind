@@ -1,5 +1,13 @@
 # Legion Wiki Log
 
+## [2026-06-25] writeback | linear-0xc-58
+
+- Added task summary for `linear-0xc-58` under `tasks/`.
+- Recorded the WI-04 OpenCode-only worker runner artifact: `docs/linear-legion-scheduler/worker-runner.md`.
+- Updated Linear + Legion scheduler current truth and reusable pattern: runner renders prompt artifacts, requires native startup outbox before launch, launches a single OpenCode attempt, allowlists child env, enforces stop/cancel gates, validates DB/outbox/result identity, and rejects PR-only or out-of-task Legion evidence.
+- Updated scheduler regression pattern to include WI-04 worker runner coverage under `npm --prefix scheduler test`.
+- Recorded follow-ups for real OpenCode / Linear native smoke and non-blocking runner hardening.
+
 ## [2026-06-24] writeback | linear-legion-scheduler-wi-03
 
 - Added task summary for `linear-legion-scheduler-wi-03` under `tasks/`.

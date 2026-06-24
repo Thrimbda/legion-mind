@@ -1,5 +1,8 @@
 # WI-04: Legion task mapping and worker runner
 
+> **交付产物**: [`../worker-runner.md`](../worker-runner.md)<br>
+> **状态**: 已完成为 `scheduler/` 独立 npm project 中的 OpenCode-only worker runner；后续 WI-05 继续接入 GitHub PR tracking 与 Linear delivery writeback。
+
 ## 目标
 
 实现 Linear WI 到 Legion task 的确定性映射，并提供 OpenCode worker launcher，让 scheduler 能启动一个 OpenCode worker 按 Legion workflow 执行单个 WI。

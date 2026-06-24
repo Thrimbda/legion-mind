@@ -19,6 +19,7 @@ export type EvidenceStatus = 'unknown' | 'pending' | 'passed' | 'missing' | 'sta
 export type OutboxKind = 'native_agent' | 'worker_dispatch';
 export type OutboxState = 'pending' | 'sent' | 'retrying' | 'failed';
 export type SchedulerActor = 'scheduler' | 'worker' | 'webhook' | 'admin' | 'test';
+export type AttemptResultKind = 'success' | 'blocked' | 'failed' | 'timeout' | 'cancelled';
 
 export interface WorkItemSnapshotInput {
   id?: string;
@@ -175,6 +176,20 @@ export interface OutboxRow {
   last_error: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface RunAttemptRow {
+  id: string;
+  run_id: string;
+  attempt_number: number;
+  worker_runtime: 'opencode';
+  prompt_hash: string;
+  exit_code: number | null;
+  result_kind: AttemptResultKind | null;
+  log_uri: string | null;
+  started_at: string | null;
+  ended_at: string | null;
+  created_at: string;
 }
 
 interface InitialOutboxEntry {
@@ -753,8 +768,130 @@ export class SchedulerStore {
     this.db.prepare("UPDATE native_outbox SET state = 'sent', last_error = NULL, updated_at = ? WHERE idempotency_key = ?").run(now, idempotencyKey);
   }
 
+  markOutboxFailed(idempotencyKey: string, error: string, options: { retry?: boolean; now?: string } = {}) {
+    const now = options.now ?? nowIso();
+    this.db.prepare('UPDATE native_outbox SET state = ?, last_error = ?, updated_at = ? WHERE idempotency_key = ?').run(options.retry ? 'retrying' : 'failed', error, now, idempotencyKey);
+  }
+
   pendingOutbox(): OutboxRow[] {
     return this.db.prepare("SELECT * FROM native_outbox WHERE state IN ('pending', 'retrying') ORDER BY created_at, id").all() as OutboxRow[];
+  }
+
+  outboxForRun(runId: string): OutboxRow[] {
+    return this.db.prepare('SELECT * FROM native_outbox WHERE run_id = ? ORDER BY created_at, id').all(runId) as OutboxRow[];
+  }
+
+  getAttempt(attemptId: string): RunAttemptRow | null {
+    return (this.db.prepare('SELECT * FROM run_attempts WHERE id = ?').get(attemptId) as RunAttemptRow | undefined) ?? null;
+  }
+
+  markAttemptStarted(attemptId: string, options: { promptHash?: string; logUri?: string | null; now?: string } = {}) {
+    const attempt = this.getAttempt(attemptId);
+    if (!attempt) {
+      throw new Error(`Attempt not found: ${attemptId}`);
+    }
+    const now = options.now ?? nowIso();
+    this.transaction(() => {
+      this.db.prepare(`
+        UPDATE run_attempts SET
+          prompt_hash = COALESCE(?, prompt_hash),
+          log_uri = COALESCE(?, log_uri),
+          started_at = COALESCE(started_at, ?)
+        WHERE id = ?
+      `).run(options.promptHash ?? null, options.logUri ?? null, now, attemptId);
+      this.heartbeatRun(attempt.run_id, { now });
+    });
+  }
+
+  markAttemptFinished(attemptId: string, options: { exitCode: number | null; resultKind: AttemptResultKind; logUri?: string | null; now?: string }) {
+    const attempt = this.getAttempt(attemptId);
+    if (!attempt) {
+      throw new Error(`Attempt not found: ${attemptId}`);
+    }
+    const now = options.now ?? nowIso();
+    this.transaction(() => {
+      this.db.prepare(`
+        UPDATE run_attempts SET
+          exit_code = ?,
+          result_kind = ?,
+          log_uri = COALESCE(?, log_uri),
+          ended_at = ?,
+          started_at = COALESCE(started_at, ?)
+        WHERE id = ?
+      `).run(options.exitCode, options.resultKind, options.logUri ?? null, now, now, attemptId);
+      this.heartbeatRun(attempt.run_id, { now });
+    });
+  }
+
+  heartbeatRun(runId: string, options: { now?: string } = {}) {
+    const now = options.now ?? nowIso();
+    this.db.prepare('UPDATE runs SET heartbeat_at = ?, updated_at = ? WHERE id = ?').run(now, now, runId);
+  }
+
+  updateRunMetadata(runId: string, input: {
+    prUrl?: string | null;
+    deliveryGateStatus?: DeliveryGateStatus;
+    evidenceStatus?: EvidenceStatus;
+    failureType?: string | null;
+    failureReason?: string | null;
+    nativeStateObserved?: string | null;
+    now?: string;
+  }) {
+    const now = input.now ?? nowIso();
+    this.db.prepare(`
+      UPDATE runs SET
+        pr_url = COALESCE(?, pr_url),
+        delivery_gate_status = COALESCE(?, delivery_gate_status),
+        evidence_status = COALESCE(?, evidence_status),
+        failure_type = COALESCE(?, failure_type),
+        failure_reason = COALESCE(?, failure_reason),
+        native_state_observed = COALESCE(?, native_state_observed),
+        heartbeat_at = ?,
+        updated_at = ?
+      WHERE id = ?
+    `).run(
+      input.prUrl ?? null,
+      input.deliveryGateStatus ?? null,
+      input.evidenceStatus ?? null,
+      input.failureType ?? null,
+      input.failureReason ?? null,
+      input.nativeStateObserved ?? null,
+      now,
+      now,
+      runId,
+    );
+  }
+
+  updateNativeRunContext(runId: string, input: {
+    agentSessionId?: string | null;
+    delegateAppUserId?: string | null;
+    promptContextHash?: string | null;
+    lastAgentActivityId?: string | null;
+    lastAgentActivityAt?: string | null;
+    nativeStateObserved?: string | null;
+    now?: string;
+  }) {
+    const now = input.now ?? nowIso();
+    this.db.prepare(`
+      UPDATE runs SET
+        linear_agent_session_id = COALESCE(?, linear_agent_session_id),
+        linear_delegate_app_user_id = COALESCE(?, linear_delegate_app_user_id),
+        linear_prompt_context_hash = COALESCE(?, linear_prompt_context_hash),
+        last_agent_activity_id = COALESCE(?, last_agent_activity_id),
+        last_agent_activity_at = COALESCE(?, last_agent_activity_at),
+        native_state_observed = COALESCE(?, native_state_observed),
+        updated_at = ?
+      WHERE id = ?
+    `).run(
+      input.agentSessionId ?? null,
+      input.delegateAppUserId ?? null,
+      input.promptContextHash ?? null,
+      input.lastAgentActivityId ?? null,
+      input.lastAgentActivityAt ?? null,
+      input.nativeStateObserved ?? null,
+      now,
+      runId,
+    );
   }
 
   getRun(runId: string): RunRow | null {
@@ -784,6 +921,19 @@ export class SchedulerStore {
   timelineForRun(runId: string): Array<SchedulerEventRow & { payload: unknown }> {
     return (this.db.prepare('SELECT * FROM scheduler_events WHERE run_id = ? ORDER BY created_at, id').all(runId) as SchedulerEventRow[])
       .map((event) => ({ ...event, payload: parseJson(event.payload_json) }));
+  }
+
+  recordSchedulerEvent(input: {
+    runId?: string | null;
+    eventType: string;
+    actor: SchedulerActor;
+    payload: unknown;
+    traceId?: string | null;
+    linearIdentifier?: string | null;
+    taskId?: string | null;
+    createdAt?: string;
+  }): string {
+    return this.insertEvent(input);
   }
 
   recordAdminOverride(runId: string, reason: string, options: { actor?: SchedulerActor; traceId?: string; now?: string } = {}) {
@@ -997,7 +1147,25 @@ export class SchedulerStore {
         outboxKind: 'worker_dispatch',
         sideEffect: 'dispatch_worker',
         idempotencyKey: `run:${runId}:attempt:${attemptId}:dispatch-worker`,
-        payload: { runId, attemptId, taskId: input.taskId, linearIdentifier: snapshot.linearIdentifier, traceId },
+        payload: {
+          runId,
+          attemptId,
+          taskId: input.taskId,
+          linearIdentifier: snapshot.linearIdentifier,
+          traceId,
+          linear: {
+            issueId: snapshot.linearIssueId,
+            identifier: snapshot.linearIdentifier,
+            projectId: snapshot.linearProjectId,
+            title: snapshot.title,
+            labels: snapshot.labels,
+            blockers: snapshot.blockers,
+            repoKey: snapshot.repoKey,
+            risk: snapshot.risk,
+            contractState: snapshot.contractState,
+            linearUpdatedAt: snapshot.linearUpdatedAt,
+          },
+        },
       },
     ];
 
