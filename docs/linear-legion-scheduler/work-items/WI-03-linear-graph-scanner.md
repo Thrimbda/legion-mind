@@ -1,5 +1,7 @@
 # WI-03: Linear API integration and ready graph scanner
 
+> **Status**: Delivered by [Linear graph scanner and skipped reason report](../linear-graph-scanner.md).
+
 ## 目标
 
 实现 Linear API 集成、project snapshot 拉取、dependency graph 构建、cycle 检测、ready / skipped reason 计算，并提供 dry-run scanner。
@@ -83,14 +85,14 @@ Dry-run 输出至少包含：
 
 ## 验收标准
 
-- [ ] 能拉取指定 Linear project 的 issue snapshot。
-- [ ] 能从 blocker relations 构建 DAG。
-- [ ] 能检测 dependency cycle，并给出 cycle path。
-- [ ] 能按 scheduler terminal policy 判断 blocker 是否满足，覆盖 manual done 与 scheduler-run terminal success / non-success。
-- [ ] 能输出 ready list 和 skipped reason report。
-- [ ] Dry-run ready output 包含 snapshot hash / Linear updatedAt，以及 native action preview。
-- [ ] Scanner 不会修改 Linear。
-- [ ] Scanner 写入 `work_item_snapshots`，供后续 diff / debug。
+- [x] 能拉取指定 Linear project 的 issue snapshot。
+- [x] 能从 blocker relations 构建 DAG。
+- [x] 能检测 dependency cycle，并给出 cycle path。
+- [x] 能按 scheduler terminal policy 判断 blocker 是否满足，覆盖 manual done 与 scheduler-run terminal success / non-success。
+- [x] 能输出 ready list 和 skipped reason report。
+- [x] Dry-run ready output 包含 snapshot hash / Linear updatedAt，以及 native action preview。
+- [x] Scanner 不会修改 Linear。
+- [x] Scanner 写入 `work_item_snapshots`，供后续 diff / debug。
 
 ## 验证
 
