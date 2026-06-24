@@ -1,14 +1,14 @@
 #!/usr/bin/env node --experimental-strip-types --experimental-sqlite
 
-import { createDebugService } from './lib/linear-scheduler/sqlite-store.ts';
+import { createDebugService } from './sqlite-store.ts';
 
 function printHelp() {
   console.log(`linear-scheduler debug service
 
 Usage:
-  node --experimental-strip-types --experimental-sqlite scripts/linear-scheduler.ts health [--db <path|:memory:>]
-  node --experimental-strip-types --experimental-sqlite scripts/linear-scheduler.ts runs list [--db <path|:memory:>]
-  node --experimental-strip-types --experimental-sqlite scripts/linear-scheduler.ts events list --run <run-id> [--db <path|:memory:>]
+  npm run debug -- health [--db <path|:memory:>]
+  npm run debug -- runs list [--db <path|:memory:>]
+  npm run debug -- events list --run <run-id> [--db <path|:memory:>]
 
 Commands:
   health       Apply migrations and print DB health as JSON

@@ -54,8 +54,6 @@
     "openclaw:verify": "node --experimental-strip-types scripts/setup-openclaw.ts verify --strict",
     "openclaw:rollback": "node --experimental-strip-types scripts/setup-openclaw.ts rollback",
     "openclaw:uninstall": "node --experimental-strip-types scripts/setup-openclaw.ts uninstall",
-    "scheduler:debug": "node --experimental-strip-types --experimental-sqlite scripts/linear-scheduler.ts",
-    "test:linear-scheduler": "node --test --experimental-strip-types --experimental-sqlite tests/regression/linear-scheduler-core.test.ts",
     "pack:dry-run": "npm pack --dry-run --json",
     "test:regression": "node --test --experimental-strip-types --experimental-sqlite tests/regression/*.test.ts"
   },
