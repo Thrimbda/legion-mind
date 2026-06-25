@@ -1,6 +1,7 @@
 import { createHmac, createHash, timingSafeEqual } from 'node:crypto';
 import type { IncomingHttpHeaders, IncomingMessage, ServerResponse } from 'node:http';
 import { createServer } from 'node:http';
+import { handlePermissionChange } from './admin.ts';
 import type { SchedulerStore } from './sqlite-store.ts';
 
 export const LINEAR_SIGNATURE_HEADER = 'linear-signature';
@@ -200,6 +201,14 @@ export function ingestLinearWebhook(input: IngestLinearWebhookInput): IngestLine
   const action = envelope.action.toLowerCase();
 
   if (type === 'permissionschange' || type === 'permissionchange' || action === 'teamaccesschanged') {
+    const projectId = projectIdFromEnvelope(envelope);
+    const security = handlePermissionChange(input.store, {
+      projectId,
+      teamId: envelope.teamId ?? null,
+      reason: 'Linear PermissionChange webhook received; scope revalidation required before launching new workers.',
+      traceId: input.traceId ?? null,
+      now: input.now,
+    });
     const outboxId = input.store.enqueueSchedulerOutbox({
       sideEffect: 'permission_change',
       idempotencyKey: `webhook:${record.id}:permission-change`,
@@ -213,6 +222,9 @@ export function ingestLinearWebhook(input: IngestLinearWebhookInput): IngestLine
       now: input.now,
     });
     routed.push(outboxId);
+    if (security.control) {
+      routed.push(`security_blocked:${security.control.project_id}`);
+    }
     return { accepted: true, duplicate: false, webhookEventId: record.id, resourceType: envelope.type, action: envelope.action, routed };
   }
 

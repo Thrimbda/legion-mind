@@ -43,6 +43,7 @@ test('SQLite migration creates WI-02 core tables and service health', () => {
     assert.equal(health.ok, true);
     assert.deepEqual(health.tables, [
       'native_outbox',
+      'project_controls',
       'resource_locks',
       'run_attempts',
       'runs',

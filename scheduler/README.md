@@ -6,7 +6,9 @@ This directory is a standalone npm project for the Linear + Legion scheduler pro
 
 | Path | Purpose |
 |---|---|
-| `src/cli.ts` | Minimal debug command for health, run listing and event timeline inspection |
+| `src/cli.ts` | Admin/debug command for health, reconcile, run inspection, retry/cancel, locks, project pause/resume and scheduler fixture flows |
+| `src/admin.ts` | Admin service for project controls, run inspection, audited retry/cancel/lock release, project health and security validation |
+| `src/observability.ts` | Structured log context, secret redaction and in-process metrics snapshots |
 | `src/scanner.ts` | Linear project snapshot adapter, dependency graph, ready/skipped scanner and dry-run report |
 | `src/state-machine.ts` | Central run state machine and terminal-state helpers |
 | `src/sqlite-store.ts` | SQLite migrations, repository APIs, claim transaction, locks, outbox and debug service |
@@ -32,7 +34,16 @@ Run from the repository root with `--prefix`:
 ```bash
 npm --prefix scheduler test
 npm --prefix scheduler run health -- --db :memory:
+npm --prefix scheduler run debug -- reconcile --project <linear-project-id> --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- runs list --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- run inspect <run-id> --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- run retry <run-id> --reason "operator reason" --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- run cancel <run-id> --reason "operator reason" --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- locks list --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- locks release <lock-key> --run <run-id> --reason "operator reason" --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- project pause <linear-project-id> --reason "maintenance window" --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- project resume <linear-project-id> --reason "maintenance complete" --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- project health <linear-project-id> --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- scan fixture --fixture scheduler/tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- scan project --project <linear-project-id> --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- dispatch fixture --fixture scheduler/tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite --parallel-repos legion-mind --global-concurrency 4
@@ -46,6 +57,9 @@ Or run inside this directory:
 npm test
 npm run health -- --db :memory:
 npm run debug -- events list --run <run-id> --db .cache/linear-scheduler/dev.sqlite
+npm run debug -- run inspect <run-id> --db .cache/linear-scheduler/dev.sqlite
+npm run debug -- project pause <linear-project-id> --reason "maintenance window" --db .cache/linear-scheduler/dev.sqlite
+npm run debug -- project health <linear-project-id> --db .cache/linear-scheduler/dev.sqlite
 npm run debug -- scan project --project <linear-project-id> --db .cache/linear-scheduler/dev.sqlite
 npm run debug -- dispatch fixture --fixture tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite --parallel-repos legion-mind --global-concurrency 4
 npm run debug -- worker dispatch --run <run-id> --attempt <attempt-id> --repo <repo-path> --db .cache/linear-scheduler/dev.sqlite
@@ -54,10 +68,31 @@ npm run debug -- delivery track --run <run-id> --repo <repo-path> --fixture sche
 
 `scan project` reads Linear through the official GraphQL API using `LINEAR_API_KEY` by default. It only persists `work_item_snapshots` and prints a dry-run report; it does not claim runs, start workers, set delegates, create AgentSessions or write Linear labels/comments.
 
+`reconcile` is the admin spelling for project scan. It respects durable project controls stored in `project_controls`, so a paused or `security_blocked` project is reported as skipped before any new worker claim can happen.
+
+`project pause` / `project resume` persist scheduler-local project controls and write `scheduler_events` audit entries. Pause blocks new claims/worker launch for the project but does not cancel active runs; use `run inspect` to keep tracking them or `run cancel --reason ...` for an explicit terminal non-success.
+
+`run retry`, `run cancel`, and `locks release` require a non-empty `--reason` and write admin audit events before mutating run/attempt/lock state. `run inspect` shows the run row, evaluated snapshot, attempts, resource locks, event timeline, outbox rows, AgentSession id, last activity, native stop request and terminal success/non-success reason.
+
+CLI JSON output is redacted through `src/observability.ts` so token-like values, Authorization headers, signatures and signed URL query parameters are not printed by default.
+
 `worker dispatch` consumes one pending `worker_dispatch` outbox row and launches OpenCode non-interactively with a generated prompt artifact. It refuses to launch until native startup outbox rows for the run are sent, passes only the prompt artifact path through argv, allowlists the child environment, records heartbeat / attempt exit data, captures stdout/stderr to a repo-local `.cache/linear-scheduler/worker-logs/` artifact, parses the worker result block, and runs the scheduler-side Legion evidence verifier. It is intentionally OpenCode-only. A worker-reported `done` result now waits in `in_review` until PR delivery tracking verifies GitHub terminal state.
 
 `delivery track` observes one GitHub PR snapshot through either a fixture or the GitHub REST adapter, updates the run delivery state, and enqueues idempotent Linear native writeback rows for PR external URL, AgentActivity, Agent Plan, coarse issue state/labels and final summary. It only marks `done` after PR merged + checks/review resolved + Legion evidence PASS + `git-worktree-pr` lifecycle complete.
 
 `dispatch fixture` plans and claims multiple ready WIs under global/project/repo capacity limits and resource locks. It only writes scheduler DB rows/events/outbox jobs; it does not launch OpenCode workers by itself. Waiting items are reported as `waiting_for_lock`, `waiting_for_capacity`, or `waiting_for_blocker` and are not marked running.
 
-The scheduler remains a local prototype. It connects to Linear for dry-run project scanning, can claim parallel non-conflicting fixture WIs, has a single-worker OpenCode runner path, PR delivery tracking, webhook ingestion primitives, bounded retry policy and stale-run recovery. It still does not implement production native Linear API adapters, metrics dashboards or admin/security hardening.
+## Security readiness checklist
+
+- Linear production auth should prefer OAuth/app actor or client credentials; personal API keys are prototype-only.
+- Production writeback should use `actor=app` where supported.
+- Request `app:assignable` only when the app is used as `Issue.delegate`; request `app:mentionable` only when users should mention the app in Linear editors.
+- `Issue.delegate` never replaces a human assignee/owner.
+- PermissionChange/app access revocation must pause or `security_blocked` affected projects until scopes are validated again.
+- Linear webhooks must verify signatures over the raw body.
+- GitHub tokens must be limited to required repo(s) and PR/check/review operations; do not bypass branch protection.
+- Workers should receive only WI context, repo path, prompt artifact path and least credentials needed for that WI; they must not receive scheduler DB superuser credentials.
+- Raw webhook payloads and worker logs should be sanitized or treated as sensitive; development artifacts under `.cache/linear-scheduler/` are repo-local and should not be published unreviewed.
+- Log retention and data retention policy must be explicit before production deployment.
+
+The scheduler remains a local prototype. It connects to Linear for dry-run project scanning, can claim parallel non-conflicting fixture WIs, has a single-worker OpenCode runner path, PR delivery tracking, webhook ingestion primitives, bounded retry policy, stale-run recovery, and an audited admin/security hardening layer. It still does not implement production native Linear API adapters or a metrics dashboard/exporter.

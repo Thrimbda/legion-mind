@@ -4,6 +4,7 @@ import { findResourceLockConflicts } from './resource-locks.ts';
 import { scanLinearProject } from './scanner.ts';
 import type { LinearProjectSnapshotInput, ReadyCandidate, ScannerConfig, ScannerReport, SkippedItem } from './scanner.ts';
 import { stableHash } from './sqlite-store.ts';
+import { scannerConfigWithProjectControls } from './admin.ts';
 
 export interface DispatchLimits {
   globalConcurrency?: number;
@@ -307,7 +308,8 @@ export function dispatchParallelWorkItems(store: SchedulerStore, input: {
   config?: DispatchConfig;
 }): DispatchOutcome {
   const now = input.config?.now ?? nowIso();
-  const report = scanLinearProject(input.project, { store, config: input.config });
+  const config = scannerConfigWithProjectControls(store, input.config);
+  const report = scanLinearProject(input.project, { store, config });
   const staleLocks = store.listStaleHeldLocks({ now });
   for (const lock of staleLocks) {
     store.recordStaleLockDetection(lock, { now, traceId: input.config?.traceId });
