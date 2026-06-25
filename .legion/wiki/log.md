@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-06-25] writeback | accept-linear-scheduler-overall
+
+- Added task summary for `accept-linear-scheduler-overall` under `tasks/`.
+- Recorded the Linear + Legion scheduler overall local prototype acceptance: 57/57 scheduler tests plus local CLI smoke passed.
+- Promoted the durable conclusion that `scheduler/` is a sandbox integration candidate, not production-accepted unattended scheduler.
+- Recorded consolidated production blockers and cleanup items in `maintenance.md`, including live Linear/GitHub/OpenCode E2E, native writeback, security/observability/retention, README fixture/test-list drift, work-item checklist drift, manual Done audit boundary and native stop lock-release hardening.
+
 ## [2026-06-25] writeback | linear-0xc-59-operations-security
 
 - Added task summary for `linear-0xc-59-operations-security` under `tasks/`.
