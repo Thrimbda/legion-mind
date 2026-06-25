@@ -435,7 +435,7 @@ test('worker dispatch handles malformed result, nonzero exit, and native stop ca
     assert.equal(nonzero.ok, true);
     if (!nonzero.ok) return;
     for (const row of store.pendingOutbox().filter((entry) => entry.outbox_kind === 'native_agent' && entry.run_id === nonzero.runId)) store.markOutboxSent(row.idempotency_key);
-    const nonzeroOutcome = await processOpenCodeWorkerDispatch(store, workerOutbox(store), { repoPath: root, launcher: { async launch() { return { kind: 'nonzero_exit', exitCode: 7, stdout: '', stderr: 'boom' }; } } });
+    const nonzeroOutcome = await processOpenCodeWorkerDispatch(store, workerOutbox(store), { repoPath: root, retryPolicy: { maxAttempts: 1 }, launcher: { async launch() { return { kind: 'nonzero_exit', exitCode: 7, stdout: '', stderr: 'boom' }; } } });
     assert.equal(nonzeroOutcome.result, 'failed');
     assert.equal(store.getRun(nonzero.runId)?.state, 'failed');
     assert.equal(store.getAttempt(nonzero.attemptId)?.exit_code, 7);

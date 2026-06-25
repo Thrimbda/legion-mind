@@ -17,7 +17,7 @@ export type RiskLevel = 'low' | 'medium' | 'high';
 export type ContractState = 'stable' | 'needs-review' | 'unknown';
 export type DeliveryGateStatus = 'pending' | 'passed' | 'blocked' | 'failed';
 export type EvidenceStatus = 'unknown' | 'pending' | 'passed' | 'missing' | 'stale';
-export type OutboxKind = 'native_agent' | 'worker_dispatch';
+export type OutboxKind = 'native_agent' | 'worker_dispatch' | 'scheduler';
 export type OutboxState = 'pending' | 'sent' | 'retrying' | 'failed';
 export type SchedulerActor = 'scheduler' | 'worker' | 'webhook' | 'admin' | 'test';
 export type AttemptResultKind = 'success' | 'blocked' | 'failed' | 'timeout' | 'cancelled';
@@ -210,6 +210,17 @@ export interface HeldLockSummary {
   lockKey: string;
   runId: string;
   expiresAt: string | null;
+}
+
+export interface WebhookEventRecordResult {
+  id: string;
+  duplicate: boolean;
+}
+
+export interface RetryAttemptResult {
+  attemptId: string;
+  attemptNumber: number;
+  outboxId: string;
 }
 
 interface InitialOutboxEntry {
@@ -464,7 +475,7 @@ export class SchedulerStore {
 
       CREATE TABLE IF NOT EXISTS native_outbox (
         id TEXT PRIMARY KEY,
-        outbox_kind TEXT NOT NULL CHECK (outbox_kind IN ('native_agent', 'worker_dispatch')),
+        outbox_kind TEXT NOT NULL CHECK (outbox_kind IN ('native_agent', 'worker_dispatch', 'scheduler')),
         run_id TEXT REFERENCES runs(id) ON DELETE CASCADE,
         attempt_id TEXT REFERENCES run_attempts(id) ON DELETE CASCADE,
         idempotency_key TEXT NOT NULL UNIQUE,
@@ -478,7 +489,11 @@ export class SchedulerStore {
           'update_issue_labels',
           'update_issue_state',
           'final_response',
-          'dispatch_worker'
+          'dispatch_worker',
+          'reconcile_project',
+          'permission_change',
+          'native_session_event',
+          'retry_worker'
         )),
         payload_json TEXT NOT NULL,
         state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'sent', 'retrying', 'failed')),
@@ -502,18 +517,19 @@ export class SchedulerStore {
 
     this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(1, 'wi02_sqlite_scheduler_core', nowIso());
     this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(2, 'wi05_delivery_writeback_side_effects', nowIso());
+    this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(3, 'wi07_webhook_retry_recovery_outbox', nowIso());
   }
 
   private ensureNativeOutboxSideEffectCheck() {
     const table = this.db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'native_outbox'").get() as { sql: string } | undefined;
-    if (!table || table.sql.includes("'update_issue_state'")) {
+    if (!table || (table.sql.includes("'update_issue_state'") && table.sql.includes("'reconcile_project'") && table.sql.includes("'scheduler'"))) {
       return;
     }
     this.db.exec(`
       ALTER TABLE native_outbox RENAME TO native_outbox_old;
       CREATE TABLE native_outbox (
         id TEXT PRIMARY KEY,
-        outbox_kind TEXT NOT NULL CHECK (outbox_kind IN ('native_agent', 'worker_dispatch')),
+        outbox_kind TEXT NOT NULL CHECK (outbox_kind IN ('native_agent', 'worker_dispatch', 'scheduler')),
         run_id TEXT REFERENCES runs(id) ON DELETE CASCADE,
         attempt_id TEXT REFERENCES run_attempts(id) ON DELETE CASCADE,
         idempotency_key TEXT NOT NULL UNIQUE,
@@ -527,7 +543,11 @@ export class SchedulerStore {
           'update_issue_labels',
           'update_issue_state',
           'final_response',
-          'dispatch_worker'
+          'dispatch_worker',
+          'reconcile_project',
+          'permission_change',
+          'native_session_event',
+          'retry_worker'
         )),
         payload_json TEXT NOT NULL,
         state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'sent', 'retrying', 'failed')),
@@ -793,10 +813,14 @@ export class SchedulerStore {
     });
   }
 
-  releaseLocksForRun(runId: string, options: { actor?: SchedulerActor; reason: string; traceId?: string; now?: string }) {
+  releaseLocksForRun(runId: string, options: { actor?: SchedulerActor; reason: string; traceId?: string; now?: string; confirmedDeadWorker?: boolean; adminOverride?: boolean }) {
     const run = this.getRun(runId);
     if (!run) {
       throw new Error(`Run not found: ${runId}`);
+    }
+    const safeRelease = isTerminalRunState(run.state) || options.confirmedDeadWorker === true || options.adminOverride === true || options.actor === 'admin';
+    if (!safeRelease) {
+      throw new Error(`Unsafe lock release for non-terminal run ${runId}: terminal run, confirmed dead worker, or admin action is required.`);
     }
     const now = options.now ?? nowIso();
     this.transaction(() => {
@@ -805,7 +829,7 @@ export class SchedulerStore {
         runId,
         eventType: 'locks_released',
         actor: options.actor ?? 'scheduler',
-        payload: { reason: options.reason, releasedCount: result.changes },
+        payload: { reason: options.reason, releasedCount: result.changes, confirmedDeadWorker: options.confirmedDeadWorker ?? false, adminOverride: options.adminOverride ?? false },
         traceId: options.traceId,
         linearIdentifier: run.linear_identifier,
         taskId: run.task_id,
@@ -836,6 +860,25 @@ export class SchedulerStore {
     return id;
   }
 
+  enqueueSchedulerOutbox(entry: {
+    sideEffect: 'reconcile_project' | 'permission_change' | 'native_session_event' | 'retry_worker';
+    idempotencyKey: string;
+    payload: unknown;
+    runId?: string | null;
+    attemptId?: string | null;
+    now?: string;
+  }): string {
+    return this.enqueueOutbox({
+      outboxKind: 'scheduler',
+      runId: entry.runId ?? null,
+      attemptId: entry.attemptId ?? null,
+      idempotencyKey: entry.idempotencyKey,
+      sideEffect: entry.sideEffect,
+      payload: entry.payload,
+      now: entry.now,
+    });
+  }
+
   markOutboxSent(idempotencyKey: string, options: { now?: string } = {}) {
     const now = options.now ?? nowIso();
     this.db.prepare("UPDATE native_outbox SET state = 'sent', last_error = NULL, updated_at = ? WHERE idempotency_key = ?").run(now, idempotencyKey);
@@ -856,6 +899,90 @@ export class SchedulerStore {
 
   getAttempt(attemptId: string): RunAttemptRow | null {
     return (this.db.prepare('SELECT * FROM run_attempts WHERE id = ?').get(attemptId) as RunAttemptRow | undefined) ?? null;
+  }
+
+  listAttemptsForRun(runId: string): RunAttemptRow[] {
+    return this.db.prepare('SELECT * FROM run_attempts WHERE run_id = ? ORDER BY attempt_number, created_at, id').all(runId) as RunAttemptRow[];
+  }
+
+  latestAttemptForRun(runId: string): RunAttemptRow | null {
+    return (this.db.prepare('SELECT * FROM run_attempts WHERE run_id = ? ORDER BY attempt_number DESC, created_at DESC, id DESC LIMIT 1').get(runId) as RunAttemptRow | undefined) ?? null;
+  }
+
+  createRetryAttempt(runId: string, options: {
+    failureType: string;
+    failureReason: string;
+    notBefore?: string | null;
+    traceId?: string | null;
+    now?: string;
+  }): RetryAttemptResult {
+    const run = this.getRun(runId);
+    if (!run) {
+      throw new Error(`Run not found: ${runId}`);
+    }
+    if (isTerminalRunState(run.state)) {
+      throw new Error(`Cannot create retry attempt for terminal run ${runId}.`);
+    }
+    const now = options.now ?? nowIso();
+    const latest = this.latestAttemptForRun(runId);
+    const evaluated = this.evaluatedSnapshotForRun(runId);
+    const evaluatedRelations = evaluated ? parseJson<{ blockers?: string[] }>(evaluated.relations_json) : null;
+    const evaluatedLinear = evaluated
+      ? {
+          issueId: run.linear_issue_id,
+          identifier: run.linear_identifier,
+          projectId: run.linear_project_id,
+          title: evaluated.title,
+          labels: parseJson<string[]>(evaluated.labels_json),
+          blockers: Array.isArray(evaluatedRelations?.blockers) ? evaluatedRelations.blockers : [],
+          repoKey: evaluated.repo_key,
+          risk: evaluated.risk,
+          contractState: evaluated.contract_state,
+          linearUpdatedAt: evaluated.linear_updated_at,
+        }
+      : undefined;
+    const attemptNumber = (latest?.attempt_number ?? 0) + 1;
+    const attemptId = randomUUID();
+    const promptHash = stableHash({ retryOf: runId, attemptNumber, failureType: options.failureType, notBefore: options.notBefore ?? null });
+    return this.transaction(() => {
+      this.db.prepare(`
+        INSERT INTO run_attempts(id, run_id, attempt_number, worker_runtime, prompt_hash, created_at)
+        VALUES (?, ?, ?, 'opencode', ?, ?)
+      `).run(attemptId, runId, attemptNumber, promptHash, now);
+      const outboxId = this.enqueueOutbox({
+        outboxKind: 'worker_dispatch',
+        runId,
+        attemptId,
+        idempotencyKey: `run:${runId}:attempt:${attemptId}:dispatch-worker`,
+        sideEffect: 'dispatch_worker',
+        payload: {
+          runId,
+          attemptId,
+          taskId: run.task_id,
+          linearIdentifier: run.linear_identifier,
+          traceId: options.traceId ?? null,
+          linear: evaluatedLinear,
+          retry: {
+            attemptNumber,
+            failureType: options.failureType,
+            failureReason: options.failureReason,
+            notBefore: options.notBefore ?? null,
+          },
+        },
+        now,
+      });
+      this.insertEvent({
+        runId,
+        eventType: 'retry_attempt_created',
+        actor: 'scheduler',
+        payload: { attemptId, attemptNumber, failureType: options.failureType, failureReason: options.failureReason, notBefore: options.notBefore ?? null },
+        traceId: options.traceId,
+        linearIdentifier: run.linear_identifier,
+        taskId: run.task_id,
+        createdAt: now,
+      });
+      return { attemptId, attemptNumber, outboxId };
+    });
   }
 
   markAttemptStarted(attemptId: string, options: { promptHash?: string; logUri?: string | null; now?: string } = {}) {
@@ -971,6 +1098,15 @@ export class SchedulerStore {
     return (this.db.prepare('SELECT * FROM runs WHERE id = ?').get(runId) as RunRow | undefined) ?? null;
   }
 
+  findRunByAgentSessionId(agentSessionId: string): RunRow | null {
+    return (this.db.prepare(`
+      SELECT * FROM runs
+      WHERE linear_agent_session_id = ?
+      ORDER BY CASE WHEN state IN (${ACTIVE_RUN_STATE_SQL}) THEN 0 ELSE 1 END, updated_at DESC, created_at DESC
+      LIMIT 1
+    `).get(agentSessionId) as RunRow | undefined) ?? null;
+  }
+
   listRuns(): RunRow[] {
     return this.db.prepare('SELECT * FROM runs ORDER BY created_at DESC, id DESC').all() as RunRow[];
   }
@@ -1011,6 +1147,18 @@ export class SchedulerStore {
   listStaleHeldLocks(options: { now?: string } = {}): HeldLockSummary[] {
     const now = options.now ?? nowIso();
     return this.listHeldLocks().filter((lock) => Boolean(lock.expiresAt) && String(lock.expiresAt) <= now);
+  }
+
+  listStaleActiveRuns(options: { staleAfterMs: number; now?: string }): RunRow[] {
+    const now = options.now ?? nowIso();
+    const cutoff = new Date(Date.parse(now) - options.staleAfterMs).toISOString();
+    return this.db.prepare(`
+      SELECT * FROM runs
+      WHERE state IN (${ACTIVE_RUN_STATE_SQL})
+        AND heartbeat_at IS NOT NULL
+        AND heartbeat_at <= ?
+      ORDER BY heartbeat_at ASC, created_at ASC, id ASC
+    `).all(cutoff) as RunRow[];
   }
 
   recordStaleLockDetection(lock: { lockKey: string; runId: string; expiresAt?: string | null }, options: { actor?: SchedulerActor; traceId?: string; now?: string } = {}) {
@@ -1115,6 +1263,17 @@ export class SchedulerStore {
           taskId: run.task_id,
           createdAt: now,
         });
+        const released = this.db.prepare("UPDATE resource_locks SET state = 'released', updated_at = ? WHERE run_id = ? AND state = 'held'").run(now, runId);
+        this.insertEvent({
+          runId,
+          eventType: 'locks_released',
+          actor: options.actor ?? 'webhook',
+          payload: { reason: 'native_stop_requested', releasedCount: released.changes, terminalKind: 'run_terminal_non_success' },
+          traceId: options.traceId,
+          linearIdentifier: run.linear_identifier,
+          taskId: run.task_id,
+          createdAt: now,
+        });
       }
 
       this.enqueueOutbox({
@@ -1159,18 +1318,18 @@ export class SchedulerStore {
     rawPayloadUri?: string | null;
     payload: unknown;
     now?: string;
-  }): string {
+  }): WebhookEventRecordResult {
     const now = input.now ?? nowIso();
     const existing = this.db.prepare('SELECT id FROM webhook_events WHERE signature_hash = ? OR (delivery_id IS NOT NULL AND delivery_id = ?)').get(input.signatureHash, input.deliveryId ?? null) as { id: string } | undefined;
     if (existing) {
-      return existing.id;
+      return { id: existing.id, duplicate: true };
     }
     const id = randomUUID();
     this.db.prepare(`
       INSERT INTO webhook_events(id, linear_webhook_id, delivery_id, signature_hash, resource_type, action, raw_payload_uri, payload_json, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, input.linearWebhookId ?? null, input.deliveryId ?? null, input.signatureHash, input.resourceType, input.action, input.rawPayloadUri ?? null, stableStringify(input.payload), now);
-    return id;
+    return { id, duplicate: false };
   }
 
   private transaction<T>(fn: () => T): T {

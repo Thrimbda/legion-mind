@@ -15,11 +15,15 @@ This directory is a standalone npm project for the Linear + Legion scheduler pro
 | `src/pr-tracker.ts` | GitHub PR snapshot adapter, PR delivery decision mapping and Linear native writeback outbox enqueueing |
 | `src/resource-locks.ts` | Resource lock parser, canonical key derivation and conflict matrix |
 | `src/dispatcher.ts` | Parallel dispatcher planning/execution with capacity limits, waiting visibility and stale lock hooks |
+| `src/retry-policy.ts` | Failure taxonomy, retry classification and deterministic bounded backoff |
+| `src/recovery.ts` | Stale active run detection, worker liveness probe boundary and retry/terminal recovery executor |
+| `src/webhook.ts` | Linear webhook raw-body signature verification, dedupe persistence, event routing and optional Node HTTP handler |
 | `tests/linear-scheduler-core.test.ts` | Scheduler core regression tests |
 | `tests/linear-graph-scanner.test.ts` | Scanner graph, terminal blocker, skipped reason and dry-run CLI tests |
 | `tests/linear-worker-runner.test.ts` | Worker runner prompt, native outbox, fake OpenCode launch, cancel and evidence verifier tests |
 | `tests/linear-pr-tracker.test.ts` | PR state mapping, terminal gate, Linear writeback idempotency and fixture CLI tests |
 | `tests/linear-dispatcher.test.ts` | Resource lock parser, fair scheduling and parallel dispatcher regression tests |
+| `tests/linear-reliability.test.ts` | Webhook signature/dedupe, retry policy, native stop and stale recovery regression tests |
 
 ## Commands
 
@@ -56,4 +60,4 @@ npm run debug -- delivery track --run <run-id> --repo <repo-path> --fixture sche
 
 `dispatch fixture` plans and claims multiple ready WIs under global/project/repo capacity limits and resource locks. It only writes scheduler DB rows/events/outbox jobs; it does not launch OpenCode workers by itself. Waiting items are reported as `waiting_for_lock`, `waiting_for_capacity`, or `waiting_for_blocker` and are not marked running.
 
-The scheduler remains a local prototype. It connects to Linear for dry-run project scanning, can claim parallel non-conflicting fixture WIs, has a single-worker OpenCode runner path and has PR delivery tracking, but it still does not implement webhook recovery or production native Linear API adapters.
+The scheduler remains a local prototype. It connects to Linear for dry-run project scanning, can claim parallel non-conflicting fixture WIs, has a single-worker OpenCode runner path, PR delivery tracking, webhook ingestion primitives, bounded retry policy and stale-run recovery. It still does not implement production native Linear API adapters, metrics dashboards or admin/security hardening.
