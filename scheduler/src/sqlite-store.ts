@@ -21,6 +21,7 @@ export type OutboxKind = 'native_agent' | 'worker_dispatch' | 'scheduler';
 export type OutboxState = 'pending' | 'sent' | 'retrying' | 'failed';
 export type SchedulerActor = 'scheduler' | 'worker' | 'webhook' | 'admin' | 'test';
 export type AttemptResultKind = 'success' | 'blocked' | 'failed' | 'timeout' | 'cancelled';
+export type ProjectControlState = 'active' | 'paused' | 'security_blocked';
 
 export interface WorkItemSnapshotInput {
   id?: string;
@@ -206,6 +207,17 @@ export interface ResourceLockRow {
   updated_at: string;
 }
 
+export interface ProjectControlRow {
+  project_id: string;
+  project_key: string | null;
+  state: ProjectControlState;
+  reason: string;
+  actor: SchedulerActor;
+  source: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface HeldLockSummary {
   lockKey: string;
   runId: string;
@@ -238,6 +250,7 @@ const CORE_TABLES = [
   'scheduler_events',
   'webhook_events',
   'native_outbox',
+  'project_controls',
 ] as const;
 
 const ACTIVE_RUN_STATE_SQL = ACTIVE_RUN_STATES.map((state) => `'${state}'`).join(', ');
@@ -460,6 +473,17 @@ export class SchedulerStore {
         created_at TEXT NOT NULL
       ) STRICT;
 
+      CREATE TABLE IF NOT EXISTS project_controls (
+        project_id TEXT PRIMARY KEY,
+        project_key TEXT,
+        state TEXT NOT NULL CHECK (state IN ('active', 'paused', 'security_blocked')),
+        reason TEXT NOT NULL,
+        actor TEXT NOT NULL CHECK (actor IN ('scheduler', 'worker', 'webhook', 'admin', 'test')),
+        source TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+
       CREATE TABLE IF NOT EXISTS webhook_events (
         id TEXT PRIMARY KEY,
         linear_webhook_id TEXT,
@@ -508,6 +532,7 @@ export class SchedulerStore {
       CREATE INDEX IF NOT EXISTS runs_project_state_idx ON runs(linear_project_id, state, updated_at DESC);
       CREATE UNIQUE INDEX IF NOT EXISTS resource_locks_held_key_idx ON resource_locks(lock_key) WHERE state = 'held';
       CREATE INDEX IF NOT EXISTS scheduler_events_run_timeline_idx ON scheduler_events(run_id, created_at, id);
+      CREATE INDEX IF NOT EXISTS project_controls_state_idx ON project_controls(state, updated_at DESC);
       CREATE UNIQUE INDEX IF NOT EXISTS webhook_events_delivery_idx ON webhook_events(delivery_id) WHERE delivery_id IS NOT NULL;
       CREATE UNIQUE INDEX IF NOT EXISTS webhook_events_signature_idx ON webhook_events(signature_hash);
       CREATE INDEX IF NOT EXISTS native_outbox_pending_idx ON native_outbox(state, created_at, id);
@@ -518,6 +543,7 @@ export class SchedulerStore {
     this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(1, 'wi02_sqlite_scheduler_core', nowIso());
     this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(2, 'wi05_delivery_writeback_side_effects', nowIso());
     this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(3, 'wi07_webhook_retry_recovery_outbox', nowIso());
+    this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(4, 'wi08_project_controls_admin_observability', nowIso());
   }
 
   private ensureNativeOutboxSideEffectCheck() {
@@ -578,12 +604,14 @@ export class SchedulerStore {
     const tables = this.db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name IN (${placeholders([...CORE_TABLES])}) ORDER BY name`).all(...CORE_TABLES) as Array<{ name: string }>;
     const activeRuns = this.db.prepare(`SELECT COUNT(*) AS count FROM runs WHERE state IN (${ACTIVE_RUN_STATE_SQL})`).get() as { count: number };
     const pendingOutbox = this.db.prepare("SELECT COUNT(*) AS count FROM native_outbox WHERE state = 'pending'").get() as { count: number };
+    const projectControls = this.db.prepare("SELECT COUNT(*) AS count FROM project_controls WHERE state IN ('paused', 'security_blocked')").get() as { count: number };
     return {
       ok: tables.length === CORE_TABLES.length,
       dbPath: this.dbPath,
       tables: tables.map((row) => row.name),
       activeRuns: activeRuns.count,
       pendingOutbox: pendingOutbox.count,
+      projectControls: projectControls.count,
     };
   }
 
@@ -830,6 +858,35 @@ export class SchedulerStore {
         eventType: 'locks_released',
         actor: options.actor ?? 'scheduler',
         payload: { reason: options.reason, releasedCount: result.changes, confirmedDeadWorker: options.confirmedDeadWorker ?? false, adminOverride: options.adminOverride ?? false },
+        traceId: options.traceId,
+        linearIdentifier: run.linear_identifier,
+        taskId: run.task_id,
+        createdAt: now,
+      });
+    });
+  }
+
+  releaseLockForRun(runId: string, lockKey: string, options: { actor?: SchedulerActor; reason: string; traceId?: string; now?: string; confirmedDeadWorker?: boolean; adminOverride?: boolean }) {
+    const run = this.getRun(runId);
+    if (!run) {
+      throw new Error(`Run not found: ${runId}`);
+    }
+    const lock = this.db.prepare("SELECT * FROM resource_locks WHERE run_id = ? AND lock_key = ? AND state = 'held'").get(runId, lockKey) as ResourceLockRow | undefined;
+    if (!lock) {
+      throw new Error(`Held lock not found for run ${runId}: ${lockKey}`);
+    }
+    const safeRelease = isTerminalRunState(run.state) || options.confirmedDeadWorker === true || options.adminOverride === true || options.actor === 'admin';
+    if (!safeRelease) {
+      throw new Error(`Unsafe lock release for non-terminal run ${runId}: terminal run, confirmed dead worker, or admin action is required.`);
+    }
+    const now = options.now ?? nowIso();
+    this.transaction(() => {
+      const result = this.db.prepare("UPDATE resource_locks SET state = 'released', updated_at = ? WHERE run_id = ? AND lock_key = ? AND state = 'held'").run(now, runId, lockKey);
+      this.insertEvent({
+        runId,
+        eventType: 'locks_released',
+        actor: options.actor ?? 'scheduler',
+        payload: { reason: options.reason, lockKey, releasedCount: result.changes, confirmedDeadWorker: options.confirmedDeadWorker ?? false, adminOverride: options.adminOverride ?? false },
         traceId: options.traceId,
         linearIdentifier: run.linear_identifier,
         taskId: run.task_id,
@@ -1144,9 +1201,84 @@ export class SchedulerStore {
     return (this.db.prepare("SELECT lock_key AS lockKey, run_id AS runId, expires_at AS expiresAt FROM resource_locks WHERE state = 'held' ORDER BY lock_key, run_id").all() as HeldLockSummary[]);
   }
 
+  listResourceLocks(options: { runId?: string; states?: Array<ResourceLockRow['state']> } = {}): ResourceLockRow[] {
+    const clauses: string[] = [];
+    const values: unknown[] = [];
+    if (options.runId) {
+      clauses.push('run_id = ?');
+      values.push(options.runId);
+    }
+    if (options.states?.length) {
+      clauses.push(`state IN (${placeholders(options.states)})`);
+      values.push(...options.states);
+    }
+    const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+    return this.db.prepare(`SELECT * FROM resource_locks ${where} ORDER BY state, lock_key, run_id`).all(...values) as ResourceLockRow[];
+  }
+
   listStaleHeldLocks(options: { now?: string } = {}): HeldLockSummary[] {
     const now = options.now ?? nowIso();
     return this.listHeldLocks().filter((lock) => Boolean(lock.expiresAt) && String(lock.expiresAt) <= now);
+  }
+
+  setProjectControl(input: {
+    projectId: string;
+    projectKey?: string | null;
+    state: ProjectControlState;
+    reason: string;
+    actor: SchedulerActor;
+    source: string;
+    traceId?: string | null;
+    now?: string;
+  }): ProjectControlRow {
+    const projectId = input.projectId.trim();
+    const reason = input.reason.trim();
+    if (!projectId) {
+      throw new Error('Project control requires projectId.');
+    }
+    if (!reason) {
+      throw new Error('Project control requires reason.');
+    }
+    const now = input.now ?? nowIso();
+    this.transaction(() => {
+      this.db.prepare(`
+        INSERT INTO project_controls(project_id, project_key, state, reason, actor, source, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(project_id) DO UPDATE SET
+          project_key = excluded.project_key,
+          state = excluded.state,
+          reason = excluded.reason,
+          actor = excluded.actor,
+          source = excluded.source,
+          updated_at = excluded.updated_at
+      `).run(projectId, input.projectKey ?? null, input.state, reason, input.actor, input.source, now, now);
+      this.insertEvent({
+        runId: null,
+        eventType: input.state === 'active' ? 'project_resumed' : input.state === 'paused' ? 'project_paused' : 'project_security_blocked',
+        actor: input.actor,
+        payload: { projectId, projectKey: input.projectKey ?? null, state: input.state, reason, source: input.source },
+        traceId: input.traceId ?? null,
+        linearIdentifier: null,
+        taskId: null,
+        createdAt: now,
+      });
+    });
+    return this.getProjectControl(projectId) as ProjectControlRow;
+  }
+
+  getProjectControl(projectId: string): ProjectControlRow | null {
+    return (this.db.prepare('SELECT * FROM project_controls WHERE project_id = ?').get(projectId) as ProjectControlRow | undefined) ?? null;
+  }
+
+  listProjectControls(states?: ProjectControlState[]): ProjectControlRow[] {
+    if (states?.length) {
+      return this.db.prepare(`SELECT * FROM project_controls WHERE state IN (${placeholders(states)}) ORDER BY updated_at DESC, project_id`).all(...states) as ProjectControlRow[];
+    }
+    return this.db.prepare('SELECT * FROM project_controls ORDER BY updated_at DESC, project_id').all() as ProjectControlRow[];
+  }
+
+  pausedOrBlockedProjectIds(): string[] {
+    return this.listProjectControls(['paused', 'security_blocked']).map((control) => control.project_id);
   }
 
   listStaleActiveRuns(options: { staleAfterMs: number; now?: string }): RunRow[] {

@@ -1,5 +1,13 @@
 # Legion Wiki Log
 
+## [2026-06-25] writeback | linear-0xc-59-operations-security
+
+- Added task summary for `linear-0xc-59-operations-security` under `tasks/`.
+- Recorded the WI-08 admin CLI / observability / security hardening artifact: `docs/linear-legion-scheduler/operations-security.md`.
+- Updated Linear + Legion scheduler current truth and reusable pattern: project pause / `security_blocked` is durable Scheduler DB state, blocks new claims and pending worker launches, but does not auto-cancel active runs; dangerous admin actions require reason + audit; PermissionChange/scope failure fails closed for affected projects.
+- Updated scheduler regression pattern to include WI-08 admin/observability/security coverage under `npm --prefix scheduler test`.
+- Recorded follow-ups for real Linear OAuth/GitHub/native security smoke and future metrics/exporter/retention hardening.
+
 ## [2026-06-25] writeback | linear-0xc-62-webhooks-retry-recovery
 
 - Added task summary for `linear-0xc-62-webhooks-retry-recovery` under `tasks/`.

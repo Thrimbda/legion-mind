@@ -761,6 +761,21 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
     store.markOutboxFailed(row.idempotency_key, `Retry not due until ${payload.retry.notBefore}.`, { retry: true, now });
     return { result: 'launch_failed' };
   }
+  const projectControl = store.getProjectControl(run.linear_project_id);
+  if (projectControl && projectControl.state !== 'active') {
+    store.markOutboxFailed(row.idempotency_key, `Project ${run.linear_project_id} is ${projectControl.state}: ${projectControl.reason}`, { retry: true, now });
+    store.recordSchedulerEvent({
+      runId: run.id,
+      eventType: 'worker_dispatch_paused',
+      actor: 'scheduler',
+      payload: { projectId: run.linear_project_id, controlState: projectControl.state, reason: projectControl.reason, action: 'worker_launch_deferred' },
+      traceId: payload.traceId ?? null,
+      linearIdentifier: run.linear_identifier,
+      taskId: run.task_id,
+      createdAt: now,
+    });
+    return { result: 'launch_failed' };
+  }
   const dispatchFailures = dispatchIdentityFailures(row, payload, run, attempt);
   if (dispatchFailures.length > 0) {
     store.markOutboxFailed(row.idempotency_key, dispatchFailures.join('; '));

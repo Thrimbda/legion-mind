@@ -67,6 +67,7 @@ export interface ScannerConfig {
   knownRepoKeys?: string[];
   defaultRepoKey?: string;
   pausedProjectIds?: string[];
+  projectControls?: Record<string, { state: 'paused' | 'security_blocked'; reason?: string | null }>;
   pausedRepoKeys?: string[];
   delegateAppUserId?: string | null;
   schedulerRunUrlBase?: string;
@@ -441,7 +442,8 @@ export function scanLinearProject(input: LinearProjectSnapshotInput, options: { 
   const cycleMembers = new Set(cycles.flatMap((cycle) => cycle.path));
   const ready: ReadyCandidate[] = [];
   const skipped: SkippedItem[] = [];
-  const projectPaused = (config.pausedProjectIds ?? []).includes(input.project.id);
+  const projectControl = config.projectControls?.[input.project.id] ?? null;
+  const projectPaused = (config.pausedProjectIds ?? []).includes(input.project.id) || Boolean(projectControl);
 
   for (const issue of issues) {
     const repo = parseRepo(issue.labels, config);
@@ -453,7 +455,7 @@ export function scanLinearProject(input: LinearProjectSnapshotInput, options: { 
     const skip = (reason: SkippedReason, details: Record<string, unknown> = {}) => skipped.push(buildSkippedItem(issue, reason, details, snapshot, taskIdForIssue(issue, config)));
 
     if (projectPaused) {
-      skip('project_paused', { projectId: input.project.id });
+      skip('project_paused', { projectId: input.project.id, controlState: projectControl?.state ?? 'paused', reason: projectControl?.reason ?? null });
       continue;
     }
     if (!isCandidateState(issue, config)) {

@@ -86,6 +86,14 @@ trace_id, project_key, linear_identifier, run_id, attempt_id, task_id, repo_key,
 - Manual drill：解释一个 blocked WI、释放一个 stale lock、暂停项目再恢复。
 - Security review：按 checklist 逐项确认，包括 app actor scopes 与 native agent writeback 权限。
 
+## Delivery notes
+
+- Admin CLI lives in `scheduler/src/cli.ts` and is backed by `scheduler/src/admin.ts`.
+- Durable project pause / security-blocked controls live in scheduler DB table `project_controls`; paused projects do not start new workers while active runs remain inspectable.
+- Structured logging, metrics snapshots and secret redaction live in `scheduler/src/observability.ts`.
+- PermissionChange / app access revocation handling records a security event and sets affected projects to `security_blocked` when a project can be identified.
+- Security checklist and operator commands are documented in `scheduler/README.md`.
+
 ## 风险
 
 - **运维入口过强**: release lock / cancel run 可能破坏一致性。缓解：必须 reason + audit + guard checks。

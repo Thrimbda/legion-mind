@@ -2,6 +2,18 @@
 
 import { readFileSync } from 'node:fs';
 import {
+  cancelRun,
+  inspectRun,
+  listRuns as listAdminRuns,
+  pauseProject,
+  projectHealth,
+  releaseLock,
+  resumeProject,
+  retryRun,
+  scannerConfigWithProjectControls,
+} from './admin.ts';
+import { redactSecrets } from './observability.ts';
+import {
   StaticPullRequestClient,
   createGitHubRestPullRequestClient,
   pullRequestSnapshotFromFixture,
@@ -19,7 +31,16 @@ function printHelp() {
 
 Usage:
   npm run debug -- health [--db <path|:memory:>]
+  npm run debug -- reconcile --project <linear-project-id> [--db <path|:memory:>] [--token-env LINEAR_API_KEY]
   npm run debug -- runs list [--db <path|:memory:>]
+  npm run debug -- run inspect <run-id> [--db <path|:memory:>]
+  npm run debug -- run retry <run-id> --reason <reason> [--db <path|:memory:>]
+  npm run debug -- run cancel <run-id> --reason <reason> [--db <path|:memory:>]
+  npm run debug -- locks list [--db <path|:memory:>]
+  npm run debug -- locks release <lock-key> --run <run-id> --reason <reason> [--db <path|:memory:>]
+  npm run debug -- project pause <project-id> --reason <reason> [--db <path|:memory:>]
+  npm run debug -- project resume <project-id> --reason <reason> [--db <path|:memory:>]
+  npm run debug -- project health <project-id> [--db <path|:memory:>]
   npm run debug -- events list --run <run-id> [--db <path|:memory:>]
   npm run debug -- scan project --project <linear-project-id> [--db <path|:memory:>] [--token-env LINEAR_API_KEY]
   npm run debug -- scan fixture --fixture <snapshot.json> [--db <path|:memory:>]
@@ -29,7 +50,15 @@ Usage:
 
 Commands:
   health        Apply migrations and print DB health as JSON
-  runs list     List scheduler runs as JSON
+  reconcile     Fetch/scan one Linear project and print ready/skipped report; respects durable pause/security controls
+  runs list     List scheduler runs as JSON, optionally filtered by --project
+  run inspect   Inspect run timeline, attempts, locks, outbox, native AgentSession and terminal reason
+  run retry     Retry a non-terminal run; requires --reason and writes audit event
+  run cancel    Cancel a non-terminal run; requires --reason, writes audit event and releases locks
+  locks list    List scheduler resource locks
+  locks release Release one held lock for a run; requires --reason and writes audit event
+  project pause/resume  Persist project control state; pause blocks new workers but not active-run inspection
+  project health Print project control, runs, locks, pending outbox and skipped/waiting evidence
   events list   List one run timeline as JSON
   scan project  Fetch a Linear project snapshot, persist work_item_snapshots, print dry-run ready/skipped report
   scan fixture  Load a repo-local fixture snapshot and print the same scanner report without Linear API access
@@ -37,6 +66,10 @@ Commands:
   worker dispatch  Launch one pending OpenCode worker dispatch outbox row; native startup outbox must already be sent
   delivery track  Observe one PR snapshot, update run delivery state, and enqueue idempotent Linear native writeback rows
 `);
+}
+
+function printJson(value: unknown) {
+  console.log(JSON.stringify(redactSecrets(value), null, 2));
 }
 
 function valueAfter(argv: string[], name: string): string | null {
@@ -76,6 +109,14 @@ function optionalNumber(argv: string[], name: string): number | undefined {
     throw new Error(`${name} must be a positive number.`);
   }
   return parsed;
+}
+
+function positional(argv: string[], index: number, description: string): string {
+  const value = argv[index];
+  if (!value || value.startsWith('--')) {
+    throw new Error(`Missing ${description}.`);
+  }
+  return value;
 }
 
 function dispatchConfig(argv: string[]): DispatchConfig {
@@ -121,7 +162,7 @@ async function runScan(argv: string[], dbPath: string) {
       throw new Error('scan requires mode `project` or `fixture`.');
     }
 
-    console.log(JSON.stringify(scanLinearProject(snapshot, { store, config: scannerConfig(argv) }), null, 2));
+    printJson(scanLinearProject(snapshot, { store, config: scannerConfigWithProjectControls(store, scannerConfig(argv)) }));
   } finally {
     store.close();
   }
@@ -140,7 +181,7 @@ async function runDispatch(argv: string[], dbPath: string) {
   try {
     const snapshot = loadFixture(fixturePath);
     const outcome = dispatchParallelWorkItems(store, { project: snapshot, config: dispatchConfig(argv) });
-    console.log(JSON.stringify(outcome, null, 2));
+    printJson(outcome);
   } finally {
     store.close();
   }
@@ -168,7 +209,7 @@ async function runWorker(argv: string[], dbPath: string) {
       baseRef: valueAfter(argv, '--base-ref') ?? 'origin/master',
       timeoutMs: Number(valueAfter(argv, '--timeout-ms') ?? 60 * 60 * 1000),
     });
-    console.log(JSON.stringify(result, null, 2));
+    printJson(result);
   } finally {
     store.close();
   }
@@ -199,7 +240,79 @@ async function runDelivery(argv: string[], dbPath: string) {
       repoPath,
       traceId: valueAfter(argv, '--trace-id'),
     });
-    console.log(JSON.stringify(result, null, 2));
+    printJson(result);
+  } finally {
+    store.close();
+  }
+}
+
+async function runReconcile(argv: string[], dbPath: string) {
+  const store = openSchedulerStore(dbPath);
+  try {
+    const fixturePath = valueAfter(argv, '--fixture');
+    let snapshot: LinearProjectSnapshotInput;
+    if (fixturePath) {
+      snapshot = loadFixture(fixturePath);
+    } else {
+      const projectId = valueAfter(argv, '--project');
+      if (!projectId) {
+        throw new Error('reconcile requires --project <linear-project-id> or --fixture <snapshot.json>.');
+      }
+      const tokenEnv = valueAfter(argv, '--token-env') ?? 'LINEAR_API_KEY';
+      const apiKey = process.env[tokenEnv];
+      if (!apiKey) {
+        throw new Error(`reconcile requires ${tokenEnv} to contain a Linear API key.`);
+      }
+      snapshot = await fetchLinearProjectSnapshot({ apiKey, projectId, endpoint: valueAfter(argv, '--endpoint') ?? undefined });
+    }
+    printJson(scanLinearProject(snapshot, { store, config: scannerConfigWithProjectControls(store, scannerConfig(argv)) }));
+  } finally {
+    store.close();
+  }
+}
+
+async function runAdminCommand(command: string, argv: string[], dbPath: string): Promise<boolean> {
+  const store = openSchedulerStore(dbPath);
+  try {
+    if (command === 'runs' && argv[1] === 'list') {
+      printJson(listAdminRuns(store, valueAfter(argv, '--project')));
+      return true;
+    }
+    if (command === 'run' && argv[1] === 'inspect') {
+      printJson(inspectRun(store, positional(argv, 2, 'run id')));
+      return true;
+    }
+    if (command === 'run' && argv[1] === 'retry') {
+      printJson(retryRun(store, { runId: positional(argv, 2, 'run id'), reason: valueAfter(argv, '--reason') ?? '', traceId: valueAfter(argv, '--trace-id') }));
+      return true;
+    }
+    if (command === 'run' && argv[1] === 'cancel') {
+      printJson(cancelRun(store, { runId: positional(argv, 2, 'run id'), reason: valueAfter(argv, '--reason') ?? '', traceId: valueAfter(argv, '--trace-id') }));
+      return true;
+    }
+    if (command === 'locks' && argv[1] === 'list') {
+      printJson(store.listResourceLocks());
+      return true;
+    }
+    if (command === 'locks' && argv[1] === 'release') {
+      const runId = valueAfter(argv, '--run');
+      if (!runId) throw new Error('locks release requires --run <run-id>.');
+      printJson(releaseLock(store, { lockKey: positional(argv, 2, 'lock key'), runId, reason: valueAfter(argv, '--reason') ?? '', traceId: valueAfter(argv, '--trace-id') }));
+      return true;
+    }
+    if (command === 'project' && argv[1] === 'pause') {
+      printJson(pauseProject(store, { projectId: positional(argv, 2, 'project id'), reason: valueAfter(argv, '--reason') ?? '', traceId: valueAfter(argv, '--trace-id') }));
+      return true;
+    }
+    if (command === 'project' && argv[1] === 'resume') {
+      printJson(resumeProject(store, { projectId: positional(argv, 2, 'project id'), reason: valueAfter(argv, '--reason') ?? '', traceId: valueAfter(argv, '--trace-id') }));
+      return true;
+    }
+    if (command === 'project' && argv[1] === 'health') {
+      printJson(projectHealth(store, positional(argv, 2, 'project id')));
+      return true;
+    }
+    return false;
   } finally {
     store.close();
   }
@@ -217,6 +330,10 @@ async function main(argv: string[]) {
     await runScan(argv, dbPath);
     return;
   }
+  if (command === 'reconcile') {
+    await runReconcile(argv, dbPath);
+    return;
+  }
   if (command === 'dispatch') {
     await runDispatch(argv, dbPath);
     return;
@@ -230,14 +347,14 @@ async function main(argv: string[]) {
     return;
   }
 
+  if (await runAdminCommand(command, argv, dbPath)) {
+    return;
+  }
+
   const service = createDebugService(dbPath);
   try {
     if (command === 'health') {
-      console.log(JSON.stringify(service.health(), null, 2));
-      return;
-    }
-    if (command === 'runs' && argv[1] === 'list') {
-      console.log(JSON.stringify(service.listRuns(), null, 2));
+      printJson(service.health());
       return;
     }
     if (command === 'events' && argv[1] === 'list') {
@@ -245,7 +362,7 @@ async function main(argv: string[]) {
       if (!runId) {
         throw new Error('events list requires --run <run-id>.');
       }
-      console.log(JSON.stringify(service.timeline(runId), null, 2));
+      printJson(service.timeline(runId));
       return;
     }
 

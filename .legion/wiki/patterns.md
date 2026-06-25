@@ -68,6 +68,14 @@
 - Stale recovery：heartbeat 或 lock TTL stale 只是检测信号。Recovery 必须先通过 worker liveness probe；worker alive 时只记录 inspection event；confirmed dead 且有 retry budget 时 schedule retry；retry exhausted 时 terminal failed 并以 confirmed-dead-worker reason 安全释放 locks。
 - Lock / downstream：`releaseLocksForRun()` 默认拒绝非 terminal run，除非有 confirmed-dead-worker proof 或 admin action。Native stop/cancel 可以释放 runtime locks after cleanup，但仍是 terminal non-success，默认不 satisfy downstream blocker。
 
+### WI-08 current operations/security rule
+
+- 来源任务：`linear-0xc-59-operations-security`
+- Admin：scheduler admin CLI 支持 reconcile、runs list、run inspect、run retry/cancel、locks list/release、project pause/resume/health；危险命令必须有非空 reason，并写 `scheduler_events` audit。
+- Project controls：`project_controls` 是 Scheduler DB durable control。`paused` / `security_blocked` 会让 scan/dispatch 输出 project-paused skipped reason，并在 worker dispatch 前 defer launch；pause 不自动 cancel active runs，active runs 仍可 inspect / cancel。
+- Observability：structured log context 应携带 trace/project/Linear/run/attempt/task/repo/PR/AgentSession/event 字段；CLI/log 输出必须经过 secret redaction，覆盖 token-like strings、Authorization headers、signatures、signed URL query params 和 nested payloads。
+- Security：生产 Linear auth 优先 OAuth/app actor/client credentials；`app:assignable` / `app:mentionable` 只在 delegate/mention 需要时申请；`Issue.delegate` 不替代 human assignee；PermissionChange / scope validation failure 对 affected project 进入 `security_blocked`；workers 不应获得 scheduler DB superuser credentials。
+
 ## 模式：Legion 入口门禁先于探索
 
 - 来源任务：`harden-legion-workflow-gate`
@@ -136,6 +144,7 @@
 - 来源任务：`harden-v1-kernel-harness`
 - 背景：LegionMind 已有 setup automation 与 CLI 薄工具，但缺少可重复回归入口来防止安装 lifecycle、skill surface 与 CLI 文件系统不变量漂移。
 - 做法：使用 Node built-in `node:test` 维护 root `tests/regression/**`，并通过 `npm run test:regression` 运行。当前 root regression 覆盖 OpenCode/OpenClaw isolated setup lifecycle、`lgmind` scope-only interactive install / output mode / advanced runtime compatibility、installed/package-like npm bin execution、OpenCode 固定核心 skill list 与 OpenClaw dynamic skill surface 的包含关系、`legion.ts init -> task create -> status -> task list` 文件系统不变量。Scheduler regression 已拆到 `scheduler/` 独立 npm project，通过 `npm --prefix scheduler test` 覆盖 WI-02 SQLite scheduler core 的 migration / state machine / claim / lock / outbox / native stop debug smoke，WI-03 scanner 的 GraphQL pagination adapter、dependency graph、cycle detection、terminal blocker policy、skipped reasons、snapshot persistence 和 dry-run CLI，WI-04 worker runner 的 taskId mapping、prompt hard gates、native startup ordering / stop gating、fake OpenCode launch、result identity、env sanitizer、evidence verifier 和 negative paths，WI-05 PR tracker 的 in-review / blocked / done / terminal-non-success mapping、writeback idempotency、evidence/lifecycle negative cases 和 delivery fixture CLI，WI-06 dispatcher 的 lock parser/conflict matrix、fair scheduling、parallel claim、capacity wait、restart recovery、terminal release、stale lock hooks 和 dispatch fixture CLI，以及 WI-07 reliability 的 webhook signature/dedupe, AgentSessionEvent stop, retry taxonomy/backoff, worker timeout retry, stale liveness recovery 和 safe lock release。
+- WI-08 扩展：scheduler regression 现在还覆盖 admin CLI/service、project pause/security controls、pending worker-launch defer、reason audit、redaction、metrics snapshots、security validation 和 PermissionChange `security_blocked`。
 - 安全边界：测试必须在 repo-local `.cache/regression` 下创建临时根，避免把 Legion 任务产物、日志或临时缓存写到 repo 外；真实 home 目录不得参与 regression。
 - 常见陷阱：不要把 regression 扩成端到端 agent runtime harness；不要让 README 声称支持 OpenCode/OpenClaw 之外的运行时；不要把 CLI 测试写成 workflow phase decision 测试，CLI 仍只是薄文件工具。
 
