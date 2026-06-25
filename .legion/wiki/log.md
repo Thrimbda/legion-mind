@@ -1,5 +1,13 @@
 # Legion Wiki Log
 
+## [2026-06-25] writeback | linear-0xc-60
+
+- Added task summary for `linear-0xc-60` under `tasks/`.
+- Recorded the WI-05 PR delivery tracking / Linear writeback artifact: `docs/linear-legion-scheduler/delivery-pr-writeback.md`.
+- Updated Linear + Legion scheduler current truth and reusable pattern: worker `done` no longer unlocks downstream; PR tracker must verify GitHub PR merged/checks/review, Legion evidence, `git-worktree-pr` lifecycle and final writeback enqueue before `run_terminal_success`.
+- Updated scheduler regression pattern to include WI-05 PR tracker coverage under `npm --prefix scheduler test`.
+- Recorded follow-ups for real GitHub / Linear native smoke, branch protection policy interpretation and legacy migration coverage.
+
 ## [2026-06-25] writeback | linear-0xc-58
 
 - Added task summary for `linear-0xc-58` under `tasks/`.

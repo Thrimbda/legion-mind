@@ -454,6 +454,9 @@ export class SchedulerStore {
           'create_activity',
           'update_plan',
           'update_external_urls',
+          'create_comment',
+          'update_issue_labels',
+          'update_issue_state',
           'final_response',
           'dispatch_worker'
         )),
@@ -475,7 +478,48 @@ export class SchedulerStore {
       CREATE INDEX IF NOT EXISTS native_outbox_pending_idx ON native_outbox(state, created_at, id);
     `);
 
+    this.ensureNativeOutboxSideEffectCheck();
+
     this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(1, 'wi02_sqlite_scheduler_core', nowIso());
+    this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(2, 'wi05_delivery_writeback_side_effects', nowIso());
+  }
+
+  private ensureNativeOutboxSideEffectCheck() {
+    const table = this.db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'native_outbox'").get() as { sql: string } | undefined;
+    if (!table || table.sql.includes("'update_issue_state'")) {
+      return;
+    }
+    this.db.exec(`
+      ALTER TABLE native_outbox RENAME TO native_outbox_old;
+      CREATE TABLE native_outbox (
+        id TEXT PRIMARY KEY,
+        outbox_kind TEXT NOT NULL CHECK (outbox_kind IN ('native_agent', 'worker_dispatch')),
+        run_id TEXT REFERENCES runs(id) ON DELETE CASCADE,
+        attempt_id TEXT REFERENCES run_attempts(id) ON DELETE CASCADE,
+        idempotency_key TEXT NOT NULL UNIQUE,
+        side_effect TEXT NOT NULL CHECK (side_effect IN (
+          'create_or_find_session',
+          'set_delegate',
+          'create_activity',
+          'update_plan',
+          'update_external_urls',
+          'create_comment',
+          'update_issue_labels',
+          'update_issue_state',
+          'final_response',
+          'dispatch_worker'
+        )),
+        payload_json TEXT NOT NULL,
+        state TEXT NOT NULL DEFAULT 'pending' CHECK (state IN ('pending', 'sent', 'retrying', 'failed')),
+        last_error TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      ) STRICT;
+      INSERT INTO native_outbox(id, outbox_kind, run_id, attempt_id, idempotency_key, side_effect, payload_json, state, last_error, created_at, updated_at)
+      SELECT id, outbox_kind, run_id, attempt_id, idempotency_key, side_effect, payload_json, state, last_error, created_at, updated_at FROM native_outbox_old;
+      DROP TABLE native_outbox_old;
+      CREATE INDEX IF NOT EXISTS native_outbox_pending_idx ON native_outbox(state, created_at, id);
+    `);
   }
 
   close() {
@@ -680,6 +724,8 @@ export class SchedulerStore {
     assertValidRunTransition(run.state, nextState);
     const now = options.now ?? nowIso();
     const terminal = nextState === 'done' || isTerminalNonSuccessRunState(nextState);
+    const hasFailureType = Object.prototype.hasOwnProperty.call(options, 'failureType');
+    const hasFailureReason = Object.prototype.hasOwnProperty.call(options, 'failureReason');
     this.transaction(() => {
       this.db.prepare(`
         UPDATE runs SET
@@ -697,8 +743,8 @@ export class SchedulerStore {
         nextState,
         options.deliveryGateStatus ?? null,
         options.evidenceStatus ?? null,
-        options.failureType ?? run.failure_type,
-        options.failureReason ?? run.failure_reason,
+        hasFailureType ? options.failureType ?? null : run.failure_type,
+        hasFailureReason ? options.failureReason ?? null : run.failure_reason,
         nextState,
         now,
         terminal ? 1 : 0,
@@ -908,6 +954,19 @@ export class SchedulerStore {
 
   latestRunForIssue(linearIssueId: string): RunRow | null {
     return (this.db.prepare('SELECT * FROM runs WHERE linear_issue_id = ? ORDER BY created_at DESC, id DESC LIMIT 1').get(linearIssueId) as RunRow | undefined) ?? null;
+  }
+
+  evaluatedSnapshotForRun(runId: string): WorkItemSnapshotRow | null {
+    const run = this.getRun(runId);
+    if (!run) {
+      return null;
+    }
+    return (this.db.prepare(`
+      SELECT * FROM work_item_snapshots
+      WHERE linear_issue_id = ? AND snapshot_hash = ?
+      ORDER BY observed_at DESC, id DESC
+      LIMIT 1
+    `).get(run.linear_issue_id, run.evaluated_snapshot_hash) as WorkItemSnapshotRow | undefined) ?? null;
   }
 
   findActiveRunForIssue(linearIssueId: string, taskId?: string): RunRow | null {

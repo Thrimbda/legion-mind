@@ -127,7 +127,10 @@ export interface NativeAgentAdapter {
   createActivity(input: { runId: string; kind: string; message: string; traceId?: string | null }): Promise<{ activityId?: string | null }>;
   updatePlan(input: { runId: string; steps: string[]; traceId?: string | null }): Promise<void>;
   updateExternalUrls(input: { runId: string; urls: Array<{ label: string; url: string }>; traceId?: string | null }): Promise<void>;
-  finalResponse(input: { runId: string; result: string; reason?: string | null; traceId?: string | null }): Promise<void>;
+  createComment(input: { runId: string; body: string; traceId?: string | null }): Promise<{ commentId?: string | null }>;
+  updateIssueLabels(input: { runId: string; addLabels?: string[]; removeLabels?: string[]; traceId?: string | null }): Promise<void>;
+  updateIssueState(input: { runId: string; schedulerState: string; suggestedState?: string | null; traceId?: string | null }): Promise<void>;
+  finalResponse(input: { runId: string; result: string; reason?: string | null; terminalKind?: string | null; summaryMarkdown?: string | null; traceId?: string | null }): Promise<void>;
 }
 
 interface WorkerDispatchPayload {
@@ -531,7 +534,10 @@ export async function processNativeAgentOutbox(store: SchedulerStore, adapter: N
     ['create_activity', 2],
     ['update_plan', 3],
     ['update_external_urls', 4],
-    ['final_response', 5],
+    ['update_issue_state', 5],
+    ['update_issue_labels', 6],
+    ['create_comment', 7],
+    ['final_response', 8],
   ]);
   const rows = store.pendingOutbox()
     .filter((entry) => entry.outbox_kind === 'native_agent')
@@ -583,8 +589,15 @@ export async function processNativeAgentOutbox(store: SchedulerStore, adapter: N
         await adapter.updatePlan({ runId: row.run_id, steps: payload.steps as string[], traceId: payload.traceId as string | null | undefined });
       } else if (row.side_effect === 'update_external_urls') {
         await adapter.updateExternalUrls({ runId: row.run_id, urls: payload.urls as Array<{ label: string; url: string }>, traceId: payload.traceId as string | null | undefined });
+      } else if (row.side_effect === 'update_issue_state') {
+        await adapter.updateIssueState({ runId: row.run_id, schedulerState: String(payload.schedulerState), suggestedState: payload.suggestedState as string | null | undefined, traceId: payload.traceId as string | null | undefined });
+      } else if (row.side_effect === 'update_issue_labels') {
+        await adapter.updateIssueLabels({ runId: row.run_id, addLabels: payload.addLabels as string[] | undefined, removeLabels: payload.removeLabels as string[] | undefined, traceId: payload.traceId as string | null | undefined });
+      } else if (row.side_effect === 'create_comment') {
+        const result = await adapter.createComment({ runId: row.run_id, body: String(payload.body), traceId: payload.traceId as string | null | undefined });
+        store.updateNativeRunContext(row.run_id, { lastAgentActivityId: result.commentId ?? null, lastAgentActivityAt: nowIso(), nativeStateObserved: 'comment' });
       } else if (row.side_effect === 'final_response') {
-        await adapter.finalResponse({ runId: row.run_id, result: String(payload.result), reason: payload.reason as string | null | undefined, traceId: payload.traceId as string | null | undefined });
+        await adapter.finalResponse({ runId: row.run_id, result: String(payload.result), reason: payload.reason as string | null | undefined, terminalKind: payload.terminalKind as string | null | undefined, summaryMarkdown: payload.summaryMarkdown as string | null | undefined, traceId: payload.traceId as string | null | undefined });
       } else {
         throw new Error(`Unsupported native side effect: ${row.side_effect}`);
       }
@@ -792,10 +805,18 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
       return { result: 'done', promptPath: artifact.path, logPath: launchLogPath, verificationPath, verification };
     }
     transitionToInReview(store, run, parsed, payload.traceId);
-    store.transitionRun(run.id, 'done', { actor: 'worker', traceId: payload.traceId ?? undefined, deliveryGateStatus: 'passed', evidenceStatus: 'passed' });
-    store.releaseLocksForRun(run.id, { actor: 'worker', reason: 'run_terminal_success', traceId: payload.traceId ?? undefined });
+    store.updateRunMetadata(run.id, { deliveryGateStatus: 'pending', evidenceStatus: 'passed' });
+    store.recordSchedulerEvent({
+      runId: run.id,
+      eventType: 'pr_tracking_required',
+      actor: 'worker',
+      payload: { prUrl: parsed.prUrl, reason: 'Worker returned done; scheduler must still verify GitHub PR terminal state before run_terminal_success.' },
+      traceId: payload.traceId ?? null,
+      linearIdentifier: run.linear_identifier,
+      taskId: run.task_id,
+    });
     store.markOutboxSent(row.idempotency_key);
-    return { result: 'done', promptPath: artifact.path, logPath: launchLogPath, verificationPath, verification };
+    return { result: 'in_review', promptPath: artifact.path, logPath: launchLogPath, verificationPath, verification };
   }
 
   store.markOutboxSent(row.idempotency_key);

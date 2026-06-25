@@ -46,6 +46,13 @@
 - 适用边界：适用于把 Linear、GitHub issue、Jira、队列系统或其他外部调度器接入 Legion-managed 仓库。它是集成模式，不是新的 Legion 执行模式。
 - 常见陷阱：不要让 scheduler 代替 `brainstorm` 判断 contract 稳定；不要把 brainstorm-only 和 implementation run 混在同一个 ready 状态；不要在 PR open / in_review / AgentSession complete / terminal non-success 时解锁下游；不要让 worker retry 生成重复 Legion task；不要把外部队列状态当作 `.legion/tasks/**` 的替代品。
 
+### WI-05 current delivery-tracking rule
+
+- 来源任务：`linear-0xc-60`
+- 做法：PR-backed implementation 的 worker `done` 结果只能把 run 推到 `in_review` 并记录 `pr_tracking_required`；真正的 `run_terminal_success` 由 scheduler-side PR tracker 决定。PR tracker 必须组合 GitHub PR snapshot、Legion evidence verifier、`git-worktree-pr` lifecycle evidence 与 final Linear writeback outbox enqueue，再标记 `done`、release locks、触发 downstream reconcile。
+- 状态映射：PR open/draft/pending review -> `in_review`；checks failing / changes requested -> `blocked` / `pr_blocked`；merged + missing evidence -> `legion_evidence_missing`；merged + lifecycle gap -> `lifecycle_blocked`；closed-unmerged / rejected / cancelled / abandoned / superseded -> terminal non-success，默认不 satisfy blocker。
+- Writeback：Linear native writeback 继续走 DB-backed `native_outbox`，使用 deterministic idempotency key 发送 PR external URL、activity、Agent Plan、coarse state/labels、final comment 与 final response；Linear native layer 仍不是 machine truth。
+
 ## 模式：Legion 入口门禁先于探索
 
 - 来源任务：`harden-legion-workflow-gate`
@@ -113,7 +120,7 @@
 
 - 来源任务：`harden-v1-kernel-harness`
 - 背景：LegionMind 已有 setup automation 与 CLI 薄工具，但缺少可重复回归入口来防止安装 lifecycle、skill surface 与 CLI 文件系统不变量漂移。
-- 做法：使用 Node built-in `node:test` 维护 root `tests/regression/**`，并通过 `npm run test:regression` 运行。当前 root regression 覆盖 OpenCode/OpenClaw isolated setup lifecycle、`lgmind` scope-only interactive install / output mode / advanced runtime compatibility、installed/package-like npm bin execution、OpenCode 固定核心 skill list 与 OpenClaw dynamic skill surface 的包含关系、`legion.ts init -> task create -> status -> task list` 文件系统不变量。Scheduler regression 已拆到 `scheduler/` 独立 npm project，通过 `npm --prefix scheduler test` 覆盖 WI-02 SQLite scheduler core 的 migration / state machine / claim / lock / outbox / native stop debug smoke，WI-03 scanner 的 GraphQL pagination adapter、dependency graph、cycle detection、terminal blocker policy、skipped reasons、snapshot persistence 和 dry-run CLI，以及 WI-04 worker runner 的 taskId mapping、prompt hard gates、native startup ordering / stop gating、fake OpenCode launch、result identity、env sanitizer、evidence verifier 和 negative paths。
+- 做法：使用 Node built-in `node:test` 维护 root `tests/regression/**`，并通过 `npm run test:regression` 运行。当前 root regression 覆盖 OpenCode/OpenClaw isolated setup lifecycle、`lgmind` scope-only interactive install / output mode / advanced runtime compatibility、installed/package-like npm bin execution、OpenCode 固定核心 skill list 与 OpenClaw dynamic skill surface 的包含关系、`legion.ts init -> task create -> status -> task list` 文件系统不变量。Scheduler regression 已拆到 `scheduler/` 独立 npm project，通过 `npm --prefix scheduler test` 覆盖 WI-02 SQLite scheduler core 的 migration / state machine / claim / lock / outbox / native stop debug smoke，WI-03 scanner 的 GraphQL pagination adapter、dependency graph、cycle detection、terminal blocker policy、skipped reasons、snapshot persistence 和 dry-run CLI，WI-04 worker runner 的 taskId mapping、prompt hard gates、native startup ordering / stop gating、fake OpenCode launch、result identity、env sanitizer、evidence verifier 和 negative paths，以及 WI-05 PR tracker 的 in-review / blocked / done / terminal-non-success mapping、writeback idempotency、evidence/lifecycle negative cases 和 delivery fixture CLI。
 - 安全边界：测试必须在 repo-local `.cache/regression` 下创建临时根，避免把 Legion 任务产物、日志或临时缓存写到 repo 外；真实 home 目录不得参与 regression。
 - 常见陷阱：不要把 regression 扩成端到端 agent runtime harness；不要让 README 声称支持 OpenCode/OpenClaw 之外的运行时；不要把 CLI 测试写成 workflow phase decision 测试，CLI 仍只是薄文件工具。
 

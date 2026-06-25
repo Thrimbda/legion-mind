@@ -89,6 +89,12 @@ function fakeNativeAdapter(calls: string[] = []): NativeAgentAdapter {
     },
     async updatePlan() { calls.push('update_plan'); },
     async updateExternalUrls() { calls.push('update_external_urls'); },
+    async createComment() {
+      calls.push('create_comment');
+      return { commentId: `comment-${calls.length}` };
+    },
+    async updateIssueLabels() { calls.push('update_issue_labels'); },
+    async updateIssueState() { calls.push('update_issue_state'); },
     async finalResponse() { calls.push('final_response'); },
   };
 }
@@ -208,7 +214,7 @@ test('evidence verifier rejects PR-only and lifecycle-incomplete results, then p
   }
 });
 
-test('native startup outbox is processed before worker dispatch and single-worker success reaches done', async () => {
+test('native startup outbox is processed before worker dispatch and worker done waits for PR tracking', async () => {
   const root = tmpRoot('worker-dispatch-success');
   const store = openSchedulerStore(':memory:');
   try {
@@ -259,17 +265,18 @@ test('native startup outbox is processed before worker dispatch and single-worke
     };
 
     const outcome = await processOpenCodeWorkerDispatch(store, workerOutbox(store), { repoPath: root, launcher, timeoutMs: 5000 });
-    assert.equal(outcome.result, 'done');
+    assert.equal(outcome.result, 'in_review');
     assert.equal(outcome.verification?.ok, true);
     assert.ok(outcome.promptPath);
     assert.ok(outcome.logPath);
     assert.ok(outcome.verificationPath);
-    assert.equal(store.getRun(claim.runId)?.state, 'done');
-    assert.equal(store.getRun(claim.runId)?.delivery_gate_status, 'passed');
+    assert.equal(store.getRun(claim.runId)?.state, 'in_review');
+    assert.equal(store.getRun(claim.runId)?.delivery_gate_status, 'pending');
     assert.equal(store.getRun(claim.runId)?.evidence_status, 'passed');
     assert.equal(store.getAttempt(claim.attemptId)?.result_kind, 'success');
     assert.equal(readFileSync(outcome.logPath as string, 'utf-8').includes('LEGION_WORKER_RESULT_START'), true);
-    assert.equal(store.isBlockerSatisfiedByRun(claim.runId).satisfied, true);
+    assert.equal(store.isBlockerSatisfiedByRun(claim.runId).satisfied, false);
+    assert.equal(store.timelineForRun(claim.runId).some((event) => event.event_type === 'pr_tracking_required'), true);
     assert.equal(store.pendingOutbox().length, 0);
   } finally {
     store.close();
