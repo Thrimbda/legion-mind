@@ -53,6 +53,13 @@
 - 状态映射：PR open/draft/pending review -> `in_review`；checks failing / changes requested -> `blocked` / `pr_blocked`；merged + missing evidence -> `legion_evidence_missing`；merged + lifecycle gap -> `lifecycle_blocked`；closed-unmerged / rejected / cancelled / abandoned / superseded -> terminal non-success，默认不 satisfy blocker。
 - Writeback：Linear native writeback 继续走 DB-backed `native_outbox`，使用 deterministic idempotency key 发送 PR external URL、activity、Agent Plan、coarse state/labels、final comment 与 final response；Linear native layer 仍不是 machine truth。
 
+### WI-06 current parallel-dispatch rule
+
+- 来源任务：`linear-0xc-61`
+- 做法：dispatcher 只能 claim 同时满足容量和 resource lock 条件的 ready WI。`repo:<name>` 默认互斥；只有配置 `parallelRepoKeys` 后，同 repo WI 才能在更窄的 repo-scoped `area:<repo>/<name>` / global `mutex:<name>` 锁下并行。waiting candidate 保持 unclaimed，不持有 locks，不得写成 `agent:running`。
+- Lock truth：`SchedulerStore.claimReadyWorkItem()` 仍是唯一 durable claim / lock acquisition boundary，并使用与 dispatcher planning 相同的 conflict matrix。TTL 只产生 stale-lock inspection / `stale_lock_detected` event，不自动 release，也不满足 downstream blocker。
+- Waiting visibility：dispatcher output / scheduler events 使用 `waiting_for_lock`、`waiting_for_capacity`、`waiting_for_blocker`；生产 Linear adapter 后续消费这些 payload 时仍必须保持 Linear native layer 为 presentation/control plane。
+
 ## 模式：Legion 入口门禁先于探索
 
 - 来源任务：`harden-legion-workflow-gate`
@@ -120,7 +127,7 @@
 
 - 来源任务：`harden-v1-kernel-harness`
 - 背景：LegionMind 已有 setup automation 与 CLI 薄工具，但缺少可重复回归入口来防止安装 lifecycle、skill surface 与 CLI 文件系统不变量漂移。
-- 做法：使用 Node built-in `node:test` 维护 root `tests/regression/**`，并通过 `npm run test:regression` 运行。当前 root regression 覆盖 OpenCode/OpenClaw isolated setup lifecycle、`lgmind` scope-only interactive install / output mode / advanced runtime compatibility、installed/package-like npm bin execution、OpenCode 固定核心 skill list 与 OpenClaw dynamic skill surface 的包含关系、`legion.ts init -> task create -> status -> task list` 文件系统不变量。Scheduler regression 已拆到 `scheduler/` 独立 npm project，通过 `npm --prefix scheduler test` 覆盖 WI-02 SQLite scheduler core 的 migration / state machine / claim / lock / outbox / native stop debug smoke，WI-03 scanner 的 GraphQL pagination adapter、dependency graph、cycle detection、terminal blocker policy、skipped reasons、snapshot persistence 和 dry-run CLI，WI-04 worker runner 的 taskId mapping、prompt hard gates、native startup ordering / stop gating、fake OpenCode launch、result identity、env sanitizer、evidence verifier 和 negative paths，以及 WI-05 PR tracker 的 in-review / blocked / done / terminal-non-success mapping、writeback idempotency、evidence/lifecycle negative cases 和 delivery fixture CLI。
+- 做法：使用 Node built-in `node:test` 维护 root `tests/regression/**`，并通过 `npm run test:regression` 运行。当前 root regression 覆盖 OpenCode/OpenClaw isolated setup lifecycle、`lgmind` scope-only interactive install / output mode / advanced runtime compatibility、installed/package-like npm bin execution、OpenCode 固定核心 skill list 与 OpenClaw dynamic skill surface 的包含关系、`legion.ts init -> task create -> status -> task list` 文件系统不变量。Scheduler regression 已拆到 `scheduler/` 独立 npm project，通过 `npm --prefix scheduler test` 覆盖 WI-02 SQLite scheduler core 的 migration / state machine / claim / lock / outbox / native stop debug smoke，WI-03 scanner 的 GraphQL pagination adapter、dependency graph、cycle detection、terminal blocker policy、skipped reasons、snapshot persistence 和 dry-run CLI，WI-04 worker runner 的 taskId mapping、prompt hard gates、native startup ordering / stop gating、fake OpenCode launch、result identity、env sanitizer、evidence verifier 和 negative paths，WI-05 PR tracker 的 in-review / blocked / done / terminal-non-success mapping、writeback idempotency、evidence/lifecycle negative cases 和 delivery fixture CLI，以及 WI-06 dispatcher 的 lock parser/conflict matrix、fair scheduling、parallel claim、capacity wait、restart recovery、terminal release、stale lock hooks 和 dispatch fixture CLI。
 - 安全边界：测试必须在 repo-local `.cache/regression` 下创建临时根，避免把 Legion 任务产物、日志或临时缓存写到 repo 外；真实 home 目录不得参与 regression。
 - 常见陷阱：不要把 regression 扩成端到端 agent runtime harness；不要让 README 声称支持 OpenCode/OpenClaw 之外的运行时；不要把 CLI 测试写成 workflow phase decision 测试，CLI 仍只是薄文件工具。
 

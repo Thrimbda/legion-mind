@@ -8,8 +8,10 @@ import {
   trackPrDelivery,
 } from './pr-tracker.ts';
 import { createDebugService, openSchedulerStore } from './sqlite-store.ts';
+import { dispatchParallelWorkItems } from './dispatcher.ts';
 import { fetchLinearProjectSnapshot, scanLinearProject } from './scanner.ts';
 import { processOpenCodeWorkerDispatch } from './worker-runner.ts';
+import type { DispatchConfig } from './dispatcher.ts';
 import type { LinearProjectSnapshotInput, ScannerConfig } from './scanner.ts';
 
 function printHelp() {
@@ -21,6 +23,7 @@ Usage:
   npm run debug -- events list --run <run-id> [--db <path|:memory:>]
   npm run debug -- scan project --project <linear-project-id> [--db <path|:memory:>] [--token-env LINEAR_API_KEY]
   npm run debug -- scan fixture --fixture <snapshot.json> [--db <path|:memory:>]
+  npm run debug -- dispatch fixture --fixture <snapshot.json> [--db <path|:memory:>] [--global-concurrency <n>] [--per-project-concurrency <n>] [--per-repo-concurrency <n>]
   npm run debug -- worker dispatch --run <run-id> --attempt <attempt-id> --repo <repo-path> [--db <path|:memory:>] [--timeout-ms <ms>]
   npm run debug -- delivery track --run <run-id> --repo <repo-path> [--pr-url <url>] [--fixture <pr-snapshot.json>] [--db <path|:memory:>] [--token-env GITHUB_TOKEN]
 
@@ -30,6 +33,7 @@ Commands:
   events list   List one run timeline as JSON
   scan project  Fetch a Linear project snapshot, persist work_item_snapshots, print dry-run ready/skipped report
   scan fixture  Load a repo-local fixture snapshot and print the same scanner report without Linear API access
+  dispatch fixture  Plan and claim multiple ready fixture WIs under capacity/resource locks without launching workers
   worker dispatch  Launch one pending OpenCode worker dispatch outbox row; native startup outbox must already be sent
   delivery track  Observe one PR snapshot, update run delivery state, and enqueue idempotent Linear native writeback rows
 `);
@@ -50,6 +54,7 @@ function valueAfter(argv: string[], name: string): string | null {
 function scannerConfig(argv: string[]): ScannerConfig {
   const pausedRepo = valueAfter(argv, '--repo-paused');
   const knownRepos = valueAfter(argv, '--known-repos');
+  const parallelRepos = valueAfter(argv, '--parallel-repos');
   return {
     delegateAppUserId: valueAfter(argv, '--delegate'),
     schedulerRunUrlBase: valueAfter(argv, '--scheduler-run-url-base') ?? undefined,
@@ -57,6 +62,32 @@ function scannerConfig(argv: string[]): ScannerConfig {
     knownRepoKeys: knownRepos ? knownRepos.split(',').map((repo) => repo.trim()).filter(Boolean) : undefined,
     pausedProjectIds: valueAfter(argv, '--project-paused') ? [valueAfter(argv, '--project-paused') as string] : undefined,
     pausedRepoKeys: pausedRepo ? [pausedRepo] : undefined,
+    parallelRepoKeys: parallelRepos ? parallelRepos.split(',').map((repo) => repo.trim()).filter(Boolean) : undefined,
+  };
+}
+
+function optionalNumber(argv: string[], name: string): number | undefined {
+  const value = valueAfter(argv, name);
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    throw new Error(`${name} must be a positive number.`);
+  }
+  return parsed;
+}
+
+function dispatchConfig(argv: string[]): DispatchConfig {
+  return {
+    ...scannerConfig(argv),
+    traceId: valueAfter(argv, '--trace-id') ?? undefined,
+    lockTtlMs: optionalNumber(argv, '--lock-ttl-ms'),
+    limits: {
+      globalConcurrency: optionalNumber(argv, '--global-concurrency'),
+      perProjectConcurrency: optionalNumber(argv, '--per-project-concurrency'),
+      perRepoConcurrency: optionalNumber(argv, '--per-repo-concurrency'),
+    },
   };
 }
 
@@ -91,6 +122,25 @@ async function runScan(argv: string[], dbPath: string) {
     }
 
     console.log(JSON.stringify(scanLinearProject(snapshot, { store, config: scannerConfig(argv) }), null, 2));
+  } finally {
+    store.close();
+  }
+}
+
+async function runDispatch(argv: string[], dbPath: string) {
+  const mode = argv[1];
+  if (mode !== 'fixture') {
+    throw new Error('dispatch requires mode `fixture`.');
+  }
+  const fixturePath = valueAfter(argv, '--fixture');
+  if (!fixturePath) {
+    throw new Error('dispatch fixture requires --fixture <snapshot.json>.');
+  }
+  const store = openSchedulerStore(dbPath);
+  try {
+    const snapshot = loadFixture(fixturePath);
+    const outcome = dispatchParallelWorkItems(store, { project: snapshot, config: dispatchConfig(argv) });
+    console.log(JSON.stringify(outcome, null, 2));
   } finally {
     store.close();
   }
@@ -165,6 +215,10 @@ async function main(argv: string[]) {
   const dbPath = valueAfter(argv, '--db') ?? ':memory:';
   if (command === 'scan') {
     await runScan(argv, dbPath);
+    return;
+  }
+  if (command === 'dispatch') {
+    await runDispatch(argv, dbPath);
     return;
   }
   if (command === 'worker') {

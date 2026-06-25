@@ -1,5 +1,13 @@
 # Legion Wiki Log
 
+## [2026-06-25] writeback | linear-0xc-61
+
+- Added task summary for `linear-0xc-61` under `tasks/`.
+- Recorded the WI-06 parallel dispatch / resource locks artifact: `docs/linear-legion-scheduler/parallel-dispatch-locks.md`.
+- Updated Linear + Legion scheduler current truth and reusable pattern: dispatcher claims only capacity-available, non-conflicting WI; repo locks are default mutual; `parallelRepoKeys` enables narrower area/mutex parallelism; waiting candidates remain unclaimed and not running.
+- Updated scheduler regression pattern to include WI-06 dispatcher coverage under `npm --prefix scheduler test`.
+- Recorded follow-ups for real Linear/native waiting visibility smoke and future admin stale recovery / release flows.
+
 ## [2026-06-25] writeback | linear-0xc-60
 
 - Added task summary for `linear-0xc-60` under `tasks/`.
