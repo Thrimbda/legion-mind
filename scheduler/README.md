@@ -13,10 +13,13 @@ This directory is a standalone npm project for the Linear + Legion scheduler pro
 | `src/task-id.ts` | Deterministic Linear identifier to Legion task id mapping |
 | `src/worker-runner.ts` | OpenCode-only worker prompt, native startup processing, launcher, result parser and Legion evidence verifier |
 | `src/pr-tracker.ts` | GitHub PR snapshot adapter, PR delivery decision mapping and Linear native writeback outbox enqueueing |
+| `src/resource-locks.ts` | Resource lock parser, canonical key derivation and conflict matrix |
+| `src/dispatcher.ts` | Parallel dispatcher planning/execution with capacity limits, waiting visibility and stale lock hooks |
 | `tests/linear-scheduler-core.test.ts` | Scheduler core regression tests |
 | `tests/linear-graph-scanner.test.ts` | Scanner graph, terminal blocker, skipped reason and dry-run CLI tests |
 | `tests/linear-worker-runner.test.ts` | Worker runner prompt, native outbox, fake OpenCode launch, cancel and evidence verifier tests |
 | `tests/linear-pr-tracker.test.ts` | PR state mapping, terminal gate, Linear writeback idempotency and fixture CLI tests |
+| `tests/linear-dispatcher.test.ts` | Resource lock parser, fair scheduling and parallel dispatcher regression tests |
 
 ## Commands
 
@@ -28,6 +31,7 @@ npm --prefix scheduler run health -- --db :memory:
 npm --prefix scheduler run debug -- runs list --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- scan fixture --fixture scheduler/tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- scan project --project <linear-project-id> --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- dispatch fixture --fixture scheduler/tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite --parallel-repos legion-mind --global-concurrency 4
 npm --prefix scheduler run debug -- worker dispatch --run <run-id> --attempt <attempt-id> --repo <repo-path> --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- delivery track --run <run-id> --repo <repo-path> --pr-url <github-pr-url> --db .cache/linear-scheduler/dev.sqlite
 ```
@@ -39,6 +43,7 @@ npm test
 npm run health -- --db :memory:
 npm run debug -- events list --run <run-id> --db .cache/linear-scheduler/dev.sqlite
 npm run debug -- scan project --project <linear-project-id> --db .cache/linear-scheduler/dev.sqlite
+npm run debug -- dispatch fixture --fixture tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite --parallel-repos legion-mind --global-concurrency 4
 npm run debug -- worker dispatch --run <run-id> --attempt <attempt-id> --repo <repo-path> --db .cache/linear-scheduler/dev.sqlite
 npm run debug -- delivery track --run <run-id> --repo <repo-path> --fixture scheduler/tests/fixtures/pr-open.json --db .cache/linear-scheduler/dev.sqlite
 ```
@@ -49,4 +54,6 @@ npm run debug -- delivery track --run <run-id> --repo <repo-path> --fixture sche
 
 `delivery track` observes one GitHub PR snapshot through either a fixture or the GitHub REST adapter, updates the run delivery state, and enqueues idempotent Linear native writeback rows for PR external URL, AgentActivity, Agent Plan, coarse issue state/labels and final summary. It only marks `done` after PR merged + checks/review resolved + Legion evidence PASS + `git-worktree-pr` lifecycle complete.
 
-The scheduler remains a local prototype. It connects to Linear for dry-run project scanning, has a single-worker OpenCode runner path and has PR delivery tracking, but it still does not implement parallel dispatch, webhook recovery or production native Linear API adapters.
+`dispatch fixture` plans and claims multiple ready WIs under global/project/repo capacity limits and resource locks. It only writes scheduler DB rows/events/outbox jobs; it does not launch OpenCode workers by itself. Waiting items are reported as `waiting_for_lock`, `waiting_for_capacity`, or `waiting_for_blocker` and are not marked running.
+
+The scheduler remains a local prototype. It connects to Linear for dry-run project scanning, can claim parallel non-conflicting fixture WIs, has a single-worker OpenCode runner path and has PR delivery tracking, but it still does not implement webhook recovery or production native Linear API adapters.

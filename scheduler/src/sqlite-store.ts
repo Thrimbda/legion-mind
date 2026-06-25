@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
+import { findResourceLockConflicts, resourceLockKeysForIssue, uniqueSortedLockKeys } from './resource-locks.ts';
 import {
   ACTIVE_RUN_STATES,
   RUN_STATES,
@@ -66,6 +67,8 @@ export interface ClaimWorkItemInput {
   branch?: string | null;
   worktreePath?: string | null;
   lockKeys?: string[];
+  lockTtlMs?: number;
+  lockExpiresAt?: string | null;
   nativeAgent?: ClaimNativeAgentInput;
   traceId?: string;
   now?: string;
@@ -190,6 +193,23 @@ export interface RunAttemptRow {
   started_at: string | null;
   ended_at: string | null;
   created_at: string;
+}
+
+export interface ResourceLockRow {
+  id: string;
+  lock_key: string;
+  run_id: string;
+  state: 'held' | 'released' | 'stale';
+  expires_at: string | null;
+  metadata_json: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface HeldLockSummary {
+  lockKey: string;
+  runId: string;
+  expiresAt: string | null;
 }
 
 interface InitialOutboxEntry {
@@ -600,8 +620,15 @@ export class SchedulerStore {
     const ready = normalizeSnapshot(input.readySnapshot, now);
     const current = normalizeSnapshot(input.currentSnapshot, now);
     const changedFields = changedSnapshotFields(ready, current);
-    const lockKeys = uniqueSorted(input.lockKeys ?? [`repo:${current.repoKey}`, ...current.resourceHints]);
+    const lockKeys = input.lockKeys
+      ? uniqueSortedLockKeys(input.lockKeys)
+      : resourceLockKeysForIssue({ repoKey: current.repoKey, labels: current.labels, resourceHints: current.resourceHints });
     const traceId = input.traceId ?? randomUUID();
+    const lockExpiresAt = input.lockExpiresAt !== undefined
+      ? input.lockExpiresAt
+      : input.lockTtlMs
+        ? new Date(Date.parse(now) + input.lockTtlMs).toISOString()
+        : null;
 
     return this.transaction(() => {
       this.recordSnapshot(current);
@@ -687,9 +714,9 @@ export class SchedulerStore {
 
       for (const lockKey of lockKeys) {
         this.db.prepare(`
-          INSERT INTO resource_locks(id, lock_key, run_id, state, metadata_json, created_at, updated_at)
-          VALUES (?, ?, ?, 'held', ?, ?, ?)
-        `).run(randomUUID(), lockKey, runId, stableStringify({ source: 'claim', traceId }), now, now);
+          INSERT INTO resource_locks(id, lock_key, run_id, state, expires_at, metadata_json, created_at, updated_at)
+          VALUES (?, ?, ?, 'held', ?, ?, ?, ?)
+        `).run(randomUUID(), lockKey, runId, lockExpiresAt, stableStringify({ source: 'claim', traceId }), now, now);
       }
 
       this.insertEvent({
@@ -974,11 +1001,39 @@ export class SchedulerStore {
   }
 
   heldLockConflicts(lockKeys: string[]): Array<{ lockKey: string; runId: string }> {
-    return this.findHeldLocks(uniqueSorted(lockKeys));
+    return this.findHeldLocks(uniqueSortedLockKeys(lockKeys)).map(({ lockKey, runId }) => ({ lockKey, runId }));
+  }
+
+  listHeldLocks(): HeldLockSummary[] {
+    return (this.db.prepare("SELECT lock_key AS lockKey, run_id AS runId, expires_at AS expiresAt FROM resource_locks WHERE state = 'held' ORDER BY lock_key, run_id").all() as HeldLockSummary[]);
+  }
+
+  listStaleHeldLocks(options: { now?: string } = {}): HeldLockSummary[] {
+    const now = options.now ?? nowIso();
+    return this.listHeldLocks().filter((lock) => Boolean(lock.expiresAt) && String(lock.expiresAt) <= now);
+  }
+
+  recordStaleLockDetection(lock: { lockKey: string; runId: string; expiresAt?: string | null }, options: { actor?: SchedulerActor; traceId?: string; now?: string } = {}) {
+    const run = this.getRun(lock.runId);
+    this.insertEvent({
+      runId: lock.runId,
+      eventType: 'stale_lock_detected',
+      actor: options.actor ?? 'scheduler',
+      payload: { lockKey: lock.lockKey, expiresAt: lock.expiresAt ?? null, action: 'inspection_only_no_auto_release' },
+      traceId: options.traceId,
+      linearIdentifier: run?.linear_identifier ?? null,
+      taskId: run?.task_id ?? null,
+      createdAt: options.now ?? nowIso(),
+    });
   }
 
   timelineForRun(runId: string): Array<SchedulerEventRow & { payload: unknown }> {
     return (this.db.prepare('SELECT * FROM scheduler_events WHERE run_id = ? ORDER BY created_at, id').all(runId) as SchedulerEventRow[])
+      .map((event) => ({ ...event, payload: parseJson(event.payload_json) }));
+  }
+
+  listSchedulerEvents(): Array<SchedulerEventRow & { payload: unknown }> {
+    return (this.db.prepare('SELECT * FROM scheduler_events ORDER BY created_at, id').all() as SchedulerEventRow[])
       .map((event) => ({ ...event, payload: parseJson(event.payload_json) }));
   }
 
@@ -1144,7 +1199,10 @@ export class SchedulerStore {
     if (lockKeys.length === 0) {
       return [];
     }
-    return (this.db.prepare(`SELECT lock_key AS lockKey, run_id AS runId FROM resource_locks WHERE state = 'held' AND lock_key IN (${placeholders(lockKeys)}) ORDER BY lock_key`).all(...lockKeys) as Array<{ lockKey: string; runId: string }>);
+    return findResourceLockConflicts(lockKeys, this.listHeldLocks()).map((conflict) => ({
+      lockKey: conflict.lockKey,
+      runId: conflict.runId,
+    }));
   }
 
   private insertEvent(input: {

@@ -1,5 +1,6 @@
 import { normalizeSnapshot, stableHash } from './sqlite-store.ts';
 import type { ContractState, NormalizedSnapshot, RiskLevel, RunRow, SchedulerStore, WorkItemSnapshotInput } from './sqlite-store.ts';
+import { resourceLockKeysForIssue } from './resource-locks.ts';
 import { taskIdFromLinearIdentifier } from './task-id.ts';
 
 export type SkippedReason =
@@ -70,6 +71,7 @@ export interface ScannerConfig {
   delegateAppUserId?: string | null;
   schedulerRunUrlBase?: string;
   taskIdPrefix?: string;
+  parallelRepoKeys?: string[];
 }
 
 export interface NativeActionPreview {
@@ -84,9 +86,24 @@ export interface NativeActionPreview {
 }
 
 export interface ReadyCandidate {
+  linearIssueId: string;
   identifier: string;
   title: string;
+  projectId: string;
+  stateName: string;
+  stateType: string;
+  labels: string[];
   priority: number;
+  repoKey: string;
+  risk: RiskLevel;
+  contractState: ContractState;
+  taskId: string;
+  blockerIdentifiers: string[];
+  resourceHints: string[];
+  createdAt?: string;
+  updatedAt: string;
+  downstreamCount: number;
+  dependencyDepth: number;
   locks: string[];
   snapshotHash: string;
   linearUpdatedAt: string;
@@ -95,6 +112,7 @@ export interface ReadyCandidate {
 
 export interface SkippedItem {
   identifier: string;
+  taskId: string;
   title: string;
   reason: SkippedReason;
   details: Record<string, unknown>;
@@ -243,12 +261,7 @@ function parseRepo(labels: string[], config: ScannerConfig): { repoKey?: string;
   return { repoKey, values: [repoKey] };
 }
 
-function lockKeysForIssue(issue: ScannerIssueInput, repoKey: string): string[] {
-  const labelLocks = issue.labels.filter((label) => label.startsWith('area:') || label.startsWith('mutex:'));
-  return uniqueSorted([`repo:${repoKey}`, ...labelLocks, ...(issue.resourceHints ?? [])]);
-}
-
-function snapshotInputForIssue(issue: ScannerIssueInput, repoKey: string, risk: RiskLevel, contractState: ContractState): WorkItemSnapshotInput {
+export function snapshotInputForIssue(issue: ScannerIssueInput, repoKey: string, risk: RiskLevel, contractState: ContractState): WorkItemSnapshotInput {
   return {
     linearIssueId: issue.linearIssueId,
     linearIdentifier: issue.identifier,
@@ -265,6 +278,40 @@ function snapshotInputForIssue(issue: ScannerIssueInput, repoKey: string, risk: 
     relations: issue.relations ?? { blockers: issue.blockerIdentifiers ?? [] },
     linearUpdatedAt: issue.updatedAt,
   };
+}
+
+function repoAllowsParallel(repoKey: string, config: ScannerConfig): boolean {
+  return (config.parallelRepoKeys ?? []).includes(repoKey);
+}
+
+function downstreamReach(graph: DependencyGraph, identifier: string): number {
+  const seen = new Set<string>();
+  const visit = (current: string) => {
+    for (const next of graph.outgoing.get(current) ?? []) {
+      if (seen.has(next)) {
+        continue;
+      }
+      seen.add(next);
+      visit(next);
+    }
+  };
+  visit(identifier);
+  return seen.size;
+}
+
+function dependencyDepth(graph: DependencyGraph, identifier: string, visiting = new Set<string>()): number {
+  if (visiting.has(identifier)) {
+    return 0;
+  }
+  visiting.add(identifier);
+  const blockers = graph.incoming.get(identifier) ?? [];
+  if (blockers.length === 0) {
+    visiting.delete(identifier);
+    return 0;
+  }
+  const depth = 1 + Math.max(...blockers.map((blocker) => dependencyDepth(graph, blocker, visiting)));
+  visiting.delete(identifier);
+  return depth;
 }
 
 function isTerminalRun(run: RunRow): boolean {
@@ -373,9 +420,10 @@ function sortReadyCandidates(candidates: ReadyCandidate[]): ReadyCandidate[] {
   });
 }
 
-function buildSkippedItem(issue: ScannerIssueInput, reason: SkippedReason, details: Record<string, unknown>, snapshot: NormalizedSnapshot): SkippedItem {
+function buildSkippedItem(issue: ScannerIssueInput, reason: SkippedReason, details: Record<string, unknown>, snapshot: NormalizedSnapshot, taskId: string): SkippedItem {
   return {
     identifier: issue.identifier,
+    taskId,
     title: issue.title,
     reason,
     details,
@@ -402,7 +450,7 @@ export function scanLinearProject(input: LinearProjectSnapshotInput, options: { 
     const snapshot = options.store?.recordSnapshot(snapshotInputForIssue(issue, repo.repoKey ?? '', risk.risk, contract.state))
       ?? normalizeSnapshot(snapshotInputForIssue(issue, repo.repoKey ?? '', risk.risk, contract.state), observedAt);
 
-    const skip = (reason: SkippedReason, details: Record<string, unknown> = {}) => skipped.push(buildSkippedItem(issue, reason, details, snapshot));
+    const skip = (reason: SkippedReason, details: Record<string, unknown> = {}) => skipped.push(buildSkippedItem(issue, reason, details, snapshot, taskIdForIssue(issue, config)));
 
     if (projectPaused) {
       skip('project_paused', { projectId: input.project.id });
@@ -477,7 +525,12 @@ export function scanLinearProject(input: LinearProjectSnapshotInput, options: { 
       continue;
     }
 
-    const locks = lockKeysForIssue(issue, repo.repoKey);
+    const locks = resourceLockKeysForIssue({
+      repoKey: repo.repoKey,
+      labels: issue.labels,
+      resourceHints: issue.resourceHints ?? [],
+      allowRepoParallel: repoAllowsParallel(repo.repoKey, config),
+    });
     const lockConflicts = options.store?.heldLockConflicts(locks) ?? [];
     if (lockConflicts.length > 0) {
       skip('resource_conflict', { lockConflicts });
@@ -489,9 +542,24 @@ export function scanLinearProject(input: LinearProjectSnapshotInput, options: { 
     }
 
     ready.push({
+      linearIssueId: issue.linearIssueId,
       identifier: issue.identifier,
       title: issue.title,
+      projectId: issue.projectId,
+      stateName: issue.stateName,
+      stateType: issue.stateType,
+      labels: issue.labels,
       priority: issue.priority,
+      repoKey: repo.repoKey,
+      risk: risk.risk,
+      contractState: contract.state,
+      taskId: taskIdForIssue(issue, config),
+      blockerIdentifiers: issue.blockerIdentifiers ?? [],
+      resourceHints: issue.resourceHints ?? [],
+      createdAt: issue.createdAt,
+      updatedAt: issue.updatedAt,
+      downstreamCount: downstreamReach(graph, issue.identifier),
+      dependencyDepth: dependencyDepth(graph, issue.identifier),
       locks,
       snapshotHash: snapshot.snapshotHash,
       linearUpdatedAt: issue.updatedAt,

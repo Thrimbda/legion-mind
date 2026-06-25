@@ -82,6 +82,7 @@ test('claim transaction creates run, attempt, resource locks, event timeline and
     assert.equal(result.ok, true);
     if (!result.ok) return;
     assert.equal(result.lockKeys.includes('repo:legion-mind'), true);
+    assert.equal(result.lockKeys.includes('area:legion-mind/scheduler-core'), true);
     assert.equal(result.lockKeys.includes('mutex:db-migration'), true);
 
     const run = store.getRun(result.runId);
