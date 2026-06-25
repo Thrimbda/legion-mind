@@ -14,3 +14,4 @@
 - Generated reviewer-facing walkthrough and PR body from existing acceptance, test and review evidence.
 - Completed `legion-wiki` writeback: added `.legion/wiki/tasks/accept-linear-scheduler-overall.md`, updated wiki index, maintenance backlog and wiki log with local prototype PASS / production BLOCKED conclusion.
 - Final pre-commit scheduler regression rerun passed: `npm --prefix scheduler test` -> 57/57.
+- Committed report artifacts on branch `legion/accept-linear-scheduler-overall-acceptance`, rebased on `origin/master`, pushed, and opened PR: https://github.com/Thrimbda/legion-mind/pull/43.
