@@ -1,5 +1,8 @@
 # WI-05: PR tracking and Linear delivery writeback
 
+> **交付产物**: [`../delivery-pr-writeback.md`](../delivery-pr-writeback.md)<br>
+> **状态**: 已完成为 `scheduler/` 独立 npm project 中的 PR delivery tracker；后续 WI-06 可基于 `run_terminal_success` 增加并行调度。
+
 ## 目标
 
 让 scheduler 能跟踪 worker 产出的 PR 状态，并把运行进展、PR 链接、阻塞原因和最终摘要写回 Linear native layer 与 coarse labels/status。

@@ -1,6 +1,12 @@
 #!/usr/bin/env node --experimental-strip-types --experimental-sqlite
 
 import { readFileSync } from 'node:fs';
+import {
+  StaticPullRequestClient,
+  createGitHubRestPullRequestClient,
+  pullRequestSnapshotFromFixture,
+  trackPrDelivery,
+} from './pr-tracker.ts';
 import { createDebugService, openSchedulerStore } from './sqlite-store.ts';
 import { fetchLinearProjectSnapshot, scanLinearProject } from './scanner.ts';
 import { processOpenCodeWorkerDispatch } from './worker-runner.ts';
@@ -16,6 +22,7 @@ Usage:
   npm run debug -- scan project --project <linear-project-id> [--db <path|:memory:>] [--token-env LINEAR_API_KEY]
   npm run debug -- scan fixture --fixture <snapshot.json> [--db <path|:memory:>]
   npm run debug -- worker dispatch --run <run-id> --attempt <attempt-id> --repo <repo-path> [--db <path|:memory:>] [--timeout-ms <ms>]
+  npm run debug -- delivery track --run <run-id> --repo <repo-path> [--pr-url <url>] [--fixture <pr-snapshot.json>] [--db <path|:memory:>] [--token-env GITHUB_TOKEN]
 
 Commands:
   health        Apply migrations and print DB health as JSON
@@ -24,6 +31,7 @@ Commands:
   scan project  Fetch a Linear project snapshot, persist work_item_snapshots, print dry-run ready/skipped report
   scan fixture  Load a repo-local fixture snapshot and print the same scanner report without Linear API access
   worker dispatch  Launch one pending OpenCode worker dispatch outbox row; native startup outbox must already be sent
+  delivery track  Observe one PR snapshot, update run delivery state, and enqueue idempotent Linear native writeback rows
 `);
 }
 
@@ -116,6 +124,37 @@ async function runWorker(argv: string[], dbPath: string) {
   }
 }
 
+async function runDelivery(argv: string[], dbPath: string) {
+  const mode = argv[1];
+  if (mode !== 'track') {
+    throw new Error('delivery requires mode `track`.');
+  }
+  const runId = valueAfter(argv, '--run');
+  const repoPath = valueAfter(argv, '--repo');
+  if (!runId || !repoPath) {
+    throw new Error('delivery track requires --run <run-id> --repo <repo-path>.');
+  }
+
+  const fixturePath = valueAfter(argv, '--fixture');
+  const explicitPrUrl = valueAfter(argv, '--pr-url');
+  const store = openSchedulerStore(dbPath);
+  try {
+    const fixtureSnapshot = fixturePath ? pullRequestSnapshotFromFixture(JSON.parse(readFileSync(fixturePath, 'utf-8'))) : null;
+    const client = fixtureSnapshot
+      ? new StaticPullRequestClient(fixtureSnapshot)
+      : createGitHubRestPullRequestClient({ token: process.env[valueAfter(argv, '--token-env') ?? 'GITHUB_TOKEN'] });
+    const result = await trackPrDelivery(store, client, {
+      runId,
+      prUrl: explicitPrUrl ?? fixtureSnapshot?.url ?? null,
+      repoPath,
+      traceId: valueAfter(argv, '--trace-id'),
+    });
+    console.log(JSON.stringify(result, null, 2));
+  } finally {
+    store.close();
+  }
+}
+
 async function main(argv: string[]) {
   const command = argv[0] ?? 'help';
   if (command === 'help' || command === '--help' || command === '-h') {
@@ -130,6 +169,10 @@ async function main(argv: string[]) {
   }
   if (command === 'worker') {
     await runWorker(argv, dbPath);
+    return;
+  }
+  if (command === 'delivery') {
+    await runDelivery(argv, dbPath);
     return;
   }
 

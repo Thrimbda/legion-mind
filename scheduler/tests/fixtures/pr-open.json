@@ -1,0 +1,18 @@
+{
+  "url": "https://github.com/Thrimbda/legion-mind/pull/60",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergedAt": null,
+  "closedAt": null,
+  "headSha": "fixture-open-pr",
+  "checks": {
+    "status": "pending",
+    "summary": "Fixture checks are pending."
+  },
+  "review": {
+    "decision": "review_required",
+    "summary": "Fixture PR is waiting for review."
+  },
+  "closeReason": null
+}
