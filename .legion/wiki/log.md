@@ -1,5 +1,13 @@
 # Legion Wiki Log
 
+## [2026-06-25] writeback | linear-0xc-62-webhooks-retry-recovery
+
+- Added task summary for `linear-0xc-62-webhooks-retry-recovery` under `tasks/`.
+- Recorded the WI-07 webhook / retry / stale recovery artifact: `docs/linear-legion-scheduler/webhooks-retry-recovery.md`.
+- Updated Linear + Legion scheduler current truth and reusable pattern: webhook handlers verify raw body signature, persist dedupe and enqueue outbox only; retryable failures reuse the same active run/task/locks with backoff; stale recovery requires worker liveness proof before retry or release; native stop is terminal non-success and does not satisfy downstream.
+- Updated scheduler regression pattern to include WI-07 reliability coverage under `npm --prefix scheduler test`.
+- Recorded follow-ups for real Linear webhook/native app smoke and future production scheduler outbox / delayed retry processing.
+
 ## [2026-06-25] writeback | linear-0xc-61
 
 - Added task summary for `linear-0xc-61` under `tasks/`.

@@ -184,7 +184,10 @@ test('resource locks conflict until released', () => {
     assert.equal(conflict.reason, 'resource_conflict');
     assert.equal(conflict.lockConflicts[0].lockKey, 'mutex:db-migration');
 
-    store.releaseLocksForRun(first.runId, { reason: 'test release', actor: 'test' });
+    assert.throws(() => store.releaseLocksForRun(first.runId, { reason: 'unsafe test release', actor: 'test' }), /Unsafe lock release/);
+    store.transitionRun(first.runId, 'running', { actor: 'test' });
+    store.transitionRun(first.runId, 'failed', { actor: 'test', failureType: 'fixture_terminal_non_success' });
+    store.releaseLocksForRun(first.runId, { reason: 'test terminal release', actor: 'test' });
     const afterRelease = store.claimReadyWorkItem({
       readySnapshot: snapshot({ linearIssueId: 'issue-2', linearIdentifier: 'WI-03' }),
       currentSnapshot: snapshot({ linearIssueId: 'issue-2', linearIdentifier: 'WI-03' }),
@@ -262,6 +265,7 @@ test('native stop records cancel state and idempotent final response outbox', ()
     assert.equal(run?.failure_type, 'native_stop_requested');
     assert.equal(run?.native_state_observed, 'stop_requested');
     assert.deepEqual(store.isBlockerSatisfiedByRun(claim.runId), { satisfied: false, reason: 'run_terminal_non_success' });
+    assert.equal(store.listHeldLocks().length, 0);
 
     const finalResponses = store.pendingOutbox().filter((entry) => entry.side_effect === 'final_response');
     assert.equal(finalResponses.length, 1);

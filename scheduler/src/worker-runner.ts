@@ -2,7 +2,9 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
-import type { AttemptResultKind, OutboxRow, RunKind, RunRow, SchedulerStore } from './sqlite-store.ts';
+import { decideRetry, retryNotBeforeDue } from './retry-policy.ts';
+import type { RetryPolicyOptions } from './retry-policy.ts';
+import type { AttemptResultKind, OutboxRow, RunAttemptRow, RunKind, RunRow, SchedulerStore } from './sqlite-store.ts';
 import { stableHash, stableStringify } from './sqlite-store.ts';
 
 export const WORKER_RESULT_START = 'LEGION_WORKER_RESULT_START';
@@ -140,6 +142,12 @@ interface WorkerDispatchPayload {
   linearIdentifier: string;
   traceId?: string | null;
   linear?: Partial<LinearWorkerContext>;
+  retry?: {
+    attemptNumber?: number;
+    failureType?: string;
+    failureReason?: string;
+    notBefore?: string | null;
+  };
 }
 
 function parsePayload<T>(row: OutboxRow): T {
@@ -673,6 +681,57 @@ function transitionToInReview(store: SchedulerStore, run: RunRow, result: Worker
   store.updateRunMetadata(run.id, { prUrl: result.prUrl ?? null, evidenceStatus: 'pending' });
 }
 
+function terminalFailure(store: SchedulerStore, runId: string, nextState: 'failed' | 'cancelled' | 'abandoned', input: { failureType: string; failureReason: string; traceId?: string | null; now?: string }) {
+  const current = store.getRun(runId);
+  if (!current) return;
+  if (current.state !== nextState) {
+    store.transitionRun(runId, nextState, { actor: 'worker', traceId: input.traceId ?? undefined, failureType: input.failureType, failureReason: input.failureReason, now: input.now });
+  }
+  store.releaseLocksForRun(runId, { actor: 'worker', reason: input.failureType, traceId: input.traceId ?? undefined, now: input.now });
+}
+
+function scheduleRetryOrTerminalFailure(store: SchedulerStore, run: RunRow, attempt: RunAttemptRow, input: {
+  failureType: string;
+  failureReason: string;
+  traceId?: string | null;
+  now?: string;
+  retryPolicy?: RetryPolicyOptions;
+  scopeRepairable?: boolean;
+}): { retryScheduled: boolean; retryAttemptId?: string; notBefore?: string; reason: string } {
+  const decision = decideRetry({
+    failureType: input.failureType,
+    attemptNumber: attempt.attempt_number,
+    scopeRepairable: input.scopeRepairable,
+    maxAttempts: input.retryPolicy?.maxAttempts,
+    baseDelayMs: input.retryPolicy?.baseDelayMs,
+    maxDelayMs: input.retryPolicy?.maxDelayMs,
+    now: input.now,
+  });
+  if (!decision.retry) {
+    terminalFailure(store, run.id, 'failed', { failureType: input.failureType, failureReason: `${input.failureReason} ${decision.reason}`.trim(), traceId: input.traceId, now: input.now });
+    return { retryScheduled: false, reason: decision.reason };
+  }
+
+  const current = store.getRun(run.id) ?? run;
+  if (current.state !== 'blocked') {
+    store.transitionRun(run.id, 'blocked', {
+      actor: 'worker',
+      traceId: input.traceId ?? undefined,
+      failureType: input.failureType,
+      failureReason: `${input.failureReason} ${decision.reason} Next retry not before ${decision.notBefore}.`.trim(),
+      now: input.now,
+    });
+  }
+  const retry = store.createRetryAttempt(run.id, {
+    failureType: input.failureType,
+    failureReason: input.failureReason,
+    notBefore: decision.notBefore,
+    traceId: input.traceId,
+    now: input.now,
+  });
+  return { retryScheduled: true, retryAttemptId: retry.attemptId, notBefore: decision.notBefore, reason: decision.reason };
+}
+
 export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: OutboxRow, options: {
   repoPath: string;
   baseRef?: string;
@@ -680,6 +739,8 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
   launcher?: OpenCodeLauncher;
   timeoutMs?: number;
   stopSignalSource?: string;
+  now?: string;
+  retryPolicy?: RetryPolicyOptions;
 }): Promise<WorkerDispatchOutcome> {
   if (row.outbox_kind !== 'worker_dispatch' || row.side_effect !== 'dispatch_worker') {
     throw new Error(`Outbox row is not a worker dispatch: ${row.id}`);
@@ -693,6 +754,11 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
   const attempt = store.getAttempt(payload.attemptId);
   if (!attempt) {
     store.markOutboxFailed(row.idempotency_key, `Attempt not found: ${payload.attemptId}`);
+    return { result: 'launch_failed' };
+  }
+  const now = options.now ?? nowIso();
+  if (payload.retry?.notBefore && !retryNotBeforeDue(payload.retry.notBefore, now)) {
+    store.markOutboxFailed(row.idempotency_key, `Retry not due until ${payload.retry.notBefore}.`, { retry: true, now });
     return { result: 'launch_failed' };
   }
   const dispatchFailures = dispatchIdentityFailures(row, payload, run, attempt);
@@ -714,6 +780,7 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
     if (run.state !== 'cancelled') {
       store.transitionRun(run.id, 'cancelled', { actor: 'worker', traceId: payload.traceId ?? undefined, failureType: 'native_stop_requested', failureReason: 'Stop requested before worker dispatch.' });
     }
+    store.releaseLocksForRun(run.id, { actor: 'worker', reason: 'native_stop_requested', traceId: payload.traceId ?? undefined });
     store.markOutboxSent(row.idempotency_key);
     return { result: 'cancelled' };
   }
@@ -761,10 +828,21 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
   if (launch.kind !== 'success' || launch.exitCode !== 0) {
     const kind = launch.timedOut ? 'timeout' : launch.cancelled ? 'cancelled' : 'failed';
     store.markAttemptFinished(attempt.id, { exitCode: launch.exitCode, resultKind: kind as AttemptResultKind, logUri: launchLogPath });
-    const nextState = kind === 'cancelled' ? 'cancelled' : 'failed';
-    store.transitionRun(run.id, nextState, { actor: 'worker', traceId: payload.traceId ?? undefined, failureType: launch.timedOut ? 'worker_timeout' : kind === 'cancelled' ? 'native_stop_requested' : 'agent_failed', failureReason: launch.stderr || `OpenCode worker exited with ${launch.exitCode}` });
+    if (kind === 'cancelled') {
+      terminalFailure(store, run.id, 'cancelled', { failureType: 'native_stop_requested', failureReason: launch.stderr || 'OpenCode worker dispatch was cancelled.', traceId: payload.traceId, now });
+      store.markOutboxSent(row.idempotency_key);
+      return { result: 'cancelled', promptPath: artifact.path, logPath: launchLogPath };
+    }
+    const failureType = launch.timedOut ? 'worker_timeout' : 'agent_failed';
+    const retry = scheduleRetryOrTerminalFailure(store, run, attempt, {
+      failureType,
+      failureReason: launch.stderr || `OpenCode worker exited with ${launch.exitCode}`,
+      traceId: payload.traceId,
+      now,
+      retryPolicy: options.retryPolicy,
+    });
     store.markOutboxSent(row.idempotency_key);
-    return { result: nextState, promptPath: artifact.path, logPath: launchLogPath };
+    return { result: retry.retryScheduled ? 'blocked' : 'failed', promptPath: artifact.path, logPath: launchLogPath };
   }
 
   let parsed: WorkerResultBlock;
@@ -772,7 +850,7 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
     parsed = parseWorkerResultBlock(`${launch.stdout}\n${launch.stderr}`);
   } catch (error) {
     store.markAttemptFinished(attempt.id, { exitCode: launch.exitCode, resultKind: 'failed', logUri: launchLogPath });
-    store.transitionRun(run.id, 'failed', { actor: 'worker', traceId: payload.traceId ?? undefined, failureType: 'unknown_result', failureReason: error instanceof Error ? error.message : String(error) });
+    terminalFailure(store, run.id, 'failed', { failureType: 'unknown_result', failureReason: error instanceof Error ? error.message : String(error), traceId: payload.traceId, now });
     store.markOutboxSent(row.idempotency_key);
     return { result: 'malformed_result', promptPath: artifact.path, logPath: launchLogPath };
   }
@@ -780,7 +858,7 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
   const identityFailures = workerResultIdentityFailures(parsed, store.getRun(run.id) ?? run, attempt.id, run.task_id);
   if (identityFailures.length > 0) {
     store.markAttemptFinished(attempt.id, { exitCode: launch.exitCode, resultKind: 'failed', logUri: launchLogPath });
-    store.transitionRun(run.id, 'failed', { actor: 'worker', traceId: payload.traceId ?? undefined, failureType: 'result_identity_mismatch', failureReason: identityFailures.join('; ') });
+    terminalFailure(store, run.id, 'failed', { failureType: 'result_identity_mismatch', failureReason: identityFailures.join('; '), traceId: payload.traceId, now });
     store.markOutboxSent(row.idempotency_key);
     return { result: 'malformed_result', promptPath: artifact.path, logPath: launchLogPath };
   }
@@ -789,11 +867,11 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
   store.updateRunMetadata(run.id, { prUrl: parsed.prUrl ?? null });
 
   if (parsed.runResult === 'cancelled') {
-    store.transitionRun(run.id, 'cancelled', { actor: 'worker', traceId: payload.traceId ?? undefined, failureType: 'worker_cancelled', failureReason: safeBlockerReason(parsed) ?? 'Worker returned cancelled.' });
+    terminalFailure(store, run.id, 'cancelled', { failureType: 'worker_cancelled', failureReason: safeBlockerReason(parsed) ?? 'Worker returned cancelled.', traceId: payload.traceId, now });
   } else if (parsed.runResult === 'blocked') {
     store.transitionRun(run.id, 'blocked', { actor: 'worker', traceId: payload.traceId ?? undefined, failureType: 'worker_blocked', failureReason: safeBlockerReason(parsed) ?? parsed.nextStep ?? 'Worker returned blocked.' });
   } else if (parsed.runResult === 'failed' || parsed.runResult === 'abandoned') {
-    store.transitionRun(run.id, 'failed', { actor: 'worker', traceId: payload.traceId ?? undefined, failureType: parsed.runResult === 'abandoned' ? 'worker_abandoned' : 'worker_failed', failureReason: safeBlockerReason(parsed) ?? parsed.nextStep ?? `Worker returned ${parsed.runResult}.` });
+    terminalFailure(store, run.id, parsed.runResult === 'abandoned' ? 'abandoned' : 'failed', { failureType: parsed.runResult === 'abandoned' ? 'worker_abandoned' : 'worker_failed', failureReason: safeBlockerReason(parsed) ?? parsed.nextStep ?? `Worker returned ${parsed.runResult}.`, traceId: payload.traceId, now });
   } else if (parsed.runResult === 'in_review') {
     transitionToInReview(store, run, parsed, payload.traceId);
   } else if (parsed.runResult === 'done') {
