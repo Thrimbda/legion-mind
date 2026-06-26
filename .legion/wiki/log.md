@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-06-26] writeback | prepare-linear-scheduler-production-acceptance
+
+- Added task summary for `prepare-linear-scheduler-production-acceptance` under `tasks/`.
+- Recorded the new Linear scheduler production-like acceptance package: main runbook, scheduler checklist, sops/age secrets runbook, Linear/GitHub sandbox setup runbooks, evidence templates and fake fixtures.
+- Updated current scheduler truth: production-like acceptance is sandbox-first; secrets use sops YAML + age + `sops exec-env`; live-read commands write scheduler DB state; native writeback adapter, live project dispatch and packaged webhook server/outbox runner remain expected blockers.
+- Updated maintenance backlog to mark README fixture/test-list drift as handled by this task while preserving remaining production hardening items.
+
 ## [2026-06-25] writeback | accept-linear-scheduler-overall
 
 - Added task summary for `accept-linear-scheduler-overall` under `tasks/`.

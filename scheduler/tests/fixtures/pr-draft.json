@@ -1,0 +1,18 @@
+{
+  "url": "https://github.com/Thrimbda/linear-legion-scheduler-sandbox/pull/2",
+  "state": "open",
+  "draft": true,
+  "merged": false,
+  "mergedAt": null,
+  "closedAt": null,
+  "headSha": "fixture-draft-pr",
+  "checks": {
+    "status": "pending",
+    "summary": "Draft PR checks are pending."
+  },
+  "review": {
+    "decision": "review_required",
+    "summary": "Draft PR is not ready for review."
+  },
+  "closeReason": null
+}

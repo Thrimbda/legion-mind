@@ -1,0 +1,18 @@
+{
+  "url": "https://github.com/Thrimbda/linear-legion-scheduler-sandbox/pull/5",
+  "state": "closed",
+  "draft": false,
+  "merged": false,
+  "mergedAt": null,
+  "closedAt": "2026-06-26T12:00:00.000Z",
+  "headSha": "fixture-closed-unmerged-pr",
+  "checks": {
+    "status": "success",
+    "summary": "Fixture checks passed before close."
+  },
+  "review": {
+    "decision": "review_required",
+    "summary": "Fixture PR closed without merge."
+  },
+  "closeReason": "closed_unmerged"
+}

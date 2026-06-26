@@ -1,0 +1,18 @@
+{
+  "url": "https://github.com/Thrimbda/linear-legion-scheduler-sandbox/pull/4",
+  "state": "closed",
+  "draft": false,
+  "merged": true,
+  "mergedAt": "2026-06-26T12:00:00.000Z",
+  "closedAt": "2026-06-26T12:00:00.000Z",
+  "headSha": "fixture-merged-pr",
+  "checks": {
+    "status": "success",
+    "summary": "Fixture required checks passed."
+  },
+  "review": {
+    "decision": "approved",
+    "summary": "Fixture PR was approved."
+  },
+  "closeReason": null
+}
