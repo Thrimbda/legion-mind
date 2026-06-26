@@ -26,6 +26,9 @@ This directory is a standalone npm project for the Linear + Legion scheduler pro
 | `tests/linear-pr-tracker.test.ts` | PR state mapping, terminal gate, Linear writeback idempotency and fixture CLI tests |
 | `tests/linear-dispatcher.test.ts` | Resource lock parser, fair scheduling and parallel dispatcher regression tests |
 | `tests/linear-reliability.test.ts` | Webhook signature/dedupe, retry policy, native stop and stale recovery regression tests |
+| `tests/linear-admin-observability.test.ts` | Admin controls, project pause/security block, redaction, metrics and PermissionChange regression tests |
+| `tests/fixtures/project.json` | Fake Linear project snapshot for scan/dispatch fixture commands |
+| `docs/production-acceptance-checklist.md` | Sandbox-first production-like acceptance checklist |
 
 ## Commands
 
@@ -44,9 +47,9 @@ npm --prefix scheduler run debug -- locks release <lock-key> --run <run-id> --re
 npm --prefix scheduler run debug -- project pause <linear-project-id> --reason "maintenance window" --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- project resume <linear-project-id> --reason "maintenance complete" --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- project health <linear-project-id> --db .cache/linear-scheduler/dev.sqlite
-npm --prefix scheduler run debug -- scan fixture --fixture scheduler/tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite
+npm --prefix scheduler run debug -- scan fixture --fixture tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- scan project --project <linear-project-id> --db .cache/linear-scheduler/dev.sqlite
-npm --prefix scheduler run debug -- dispatch fixture --fixture scheduler/tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite --parallel-repos legion-mind --global-concurrency 4
+npm --prefix scheduler run debug -- dispatch fixture --fixture tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite --parallel-repos legion-mind --global-concurrency 4
 npm --prefix scheduler run debug -- worker dispatch --run <run-id> --attempt <attempt-id> --repo <repo-path> --db .cache/linear-scheduler/dev.sqlite
 npm --prefix scheduler run debug -- delivery track --run <run-id> --repo <repo-path> --pr-url <github-pr-url> --db .cache/linear-scheduler/dev.sqlite
 ```
@@ -63,7 +66,7 @@ npm run debug -- project health <linear-project-id> --db .cache/linear-scheduler
 npm run debug -- scan project --project <linear-project-id> --db .cache/linear-scheduler/dev.sqlite
 npm run debug -- dispatch fixture --fixture tests/fixtures/project.json --db .cache/linear-scheduler/dev.sqlite --parallel-repos legion-mind --global-concurrency 4
 npm run debug -- worker dispatch --run <run-id> --attempt <attempt-id> --repo <repo-path> --db .cache/linear-scheduler/dev.sqlite
-npm run debug -- delivery track --run <run-id> --repo <repo-path> --fixture scheduler/tests/fixtures/pr-open.json --db .cache/linear-scheduler/dev.sqlite
+npm run debug -- delivery track --run <run-id> --repo <repo-path> --fixture tests/fixtures/pr-open.json --db .cache/linear-scheduler/dev.sqlite
 ```
 
 `scan project` reads Linear through the official GraphQL API using `LINEAR_API_KEY` by default. It only persists `work_item_snapshots` and prints a dry-run report; it does not claim runs, start workers, set delegates, create AgentSessions or write Linear labels/comments.
@@ -81,6 +84,19 @@ CLI JSON output is redacted through `src/observability.ts` so token-like values,
 `delivery track` observes one GitHub PR snapshot through either a fixture or the GitHub REST adapter, updates the run delivery state, and enqueues idempotent Linear native writeback rows for PR external URL, AgentActivity, Agent Plan, coarse issue state/labels and final summary. It only marks `done` after PR merged + checks/review resolved + Legion evidence PASS + `git-worktree-pr` lifecycle complete.
 
 `dispatch fixture` plans and claims multiple ready WIs under global/project/repo capacity limits and resource locks. It only writes scheduler DB rows/events/outbox jobs; it does not launch OpenCode workers by itself. Waiting items are reported as `waiting_for_lock`, `waiting_for_capacity`, or `waiting_for_blocker` and are not marked running.
+
+## Production-like acceptance
+
+Production-like acceptance is sandbox-first. Use the main runbook at `docs/linear-legion-scheduler/production-acceptance-runbook.md` and the scheduler checklist at `scheduler/docs/production-acceptance-checklist.md` before touching any real project.
+
+Command safety notes:
+
+- `scan project` performs external Linear reads and writes scheduler DB snapshots; it does not write Linear or launch workers.
+- `delivery track` performs external GitHub reads, writes scheduler DB delivery state and enqueues native Linear writeback rows; it does not send Linear writeback by itself.
+- `dispatch fixture` mutates scheduler DB by creating runs, attempts, locks, events and outbox rows; it does not launch workers.
+- `worker dispatch` launches OpenCode and writes repo-local prompt/log artifacts; use it only for explicitly approved sandbox WIs.
+
+Current production blockers remain explicit: there is no production Linear native writeback adapter, no live `dispatch project` command and no packaged webhook server/outbox runner.
 
 ## Security readiness checklist
 

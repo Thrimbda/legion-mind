@@ -99,7 +99,7 @@ Fixture mode:
 npm --prefix scheduler run debug -- delivery track \
   --run <run-id> \
   --repo <repo-path> \
-  --fixture scheduler/tests/fixtures/pr-open.json \
+  --fixture tests/fixtures/pr-open.json \
   --db .cache/linear-scheduler/dev.sqlite
 ```
 

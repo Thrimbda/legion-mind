@@ -12,6 +12,7 @@
 - [WI-05 交付: PR tracking and Linear delivery writeback](delivery-pr-writeback.md)
 - [WI-06 交付: Parallel dispatch and resource locks](parallel-dispatch-locks.md)
 - [WI-07 交付: Webhooks, retry policy, and stale recovery](webhooks-retry-recovery.md)
+- [Production acceptance runbook](production-acceptance-runbook.md)
 
 ## Work Items
 
@@ -62,3 +63,7 @@ Linear ready WI
 `Done` 只代表成功终态。`abandoned`、`canceled`、`closed-unmerged`、native stop 等属于 terminal non-success，默认不释放 downstream。
 
 完成 WI-06 到 WI-08 后，系统才进入可长期运行的自动调度器形态：并行、可靠恢复、可观测、可运维、权限边界清晰。
+
+## 生产验收入口
+
+生产-like 验收必须 sandbox-first。先按 [`production-acceptance-runbook.md`](production-acceptance-runbook.md) 创建 Linear / GitHub sandbox、配置 sops/age secret 注入、执行 live read-path 验证并记录已知 blocker。当前 scheduler 仍缺 production Linear native writeback adapter、live `dispatch project` 和 packaged webhook server/outbox runner；这些缺口应在验收中显式记录，不能用 fixture 结果替代生产 ready 结论。

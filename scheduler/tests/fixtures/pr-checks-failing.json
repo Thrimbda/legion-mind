@@ -1,0 +1,18 @@
+{
+  "url": "https://github.com/Thrimbda/linear-legion-scheduler-sandbox/pull/3",
+  "state": "open",
+  "draft": false,
+  "merged": false,
+  "mergedAt": null,
+  "closedAt": null,
+  "headSha": "fixture-checks-failing-pr",
+  "checks": {
+    "status": "failure",
+    "summary": "Fixture required checks are failing."
+  },
+  "review": {
+    "decision": "approved",
+    "summary": "Fixture PR has approval but failing checks."
+  },
+  "closeReason": null
+}

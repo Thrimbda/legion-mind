@@ -74,7 +74,7 @@ Fixture mode claims ready work into a local SQLite DB and prints the dispatch re
 
 ```bash
 npm --prefix scheduler run debug -- dispatch fixture \
-  --fixture scheduler/tests/fixtures/project.json \
+  --fixture tests/fixtures/project.json \
   --db .cache/linear-scheduler/dev.sqlite \
   --parallel-repos legion-mind \
   --global-concurrency 4 \
