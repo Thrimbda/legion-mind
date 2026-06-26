@@ -13,3 +13,4 @@
 - Generated reviewer walkthrough and PR body from existing deliverables and verification evidence.
 - Completed `legion-wiki` writeback with task summary, index update, maintenance update and wiki log entry.
 - Final pre-commit scheduler regression rerun passed: `npm --prefix scheduler test` -> 57/57.
+- Committed, rebased on `origin/master`, pushed branch `legion/prepare-linear-scheduler-production-acceptance-runbook`, and opened PR: https://github.com/Thrimbda/legion-mind/pull/44.
