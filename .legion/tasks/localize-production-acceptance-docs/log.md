@@ -13,3 +13,4 @@
 - `review-change` 审查 PASS；安全视角已应用，未发现 blocker。
 - 生成中文 reviewer walkthrough 和 PR body。
 - 完成 wiki writeback：新增 task summary，并更新 wiki index / maintenance / log。
+- 提交并推送分支 `legion/localize-production-acceptance-docs-chinese`，创建 PR：https://github.com/Thrimbda/legion-mind/pull/45。
