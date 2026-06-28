@@ -1,38 +1,38 @@
 # Linear + Legion Scheduler
 
-This directory is a standalone npm project for the Linear + Legion scheduler prototype. It is intentionally separate from the root `lgmind` package so scheduler runtime code does not live under root `scripts/` and is not published as part of the root package.
+本目录是 Linear + Legion scheduler 原型的独立 npm project。它刻意与根 `lgmind` package 分离，避免 scheduler runtime code 放进根 `scripts/`，也不会随根 package 发布。
 
-## Layout
+## 目录结构
 
-| Path | Purpose |
+| 路径 | 用途 |
 |---|---|
-| `src/cli.ts` | Admin/debug command for health, reconcile, run inspection, retry/cancel, locks, project pause/resume and scheduler fixture flows |
-| `src/admin.ts` | Admin service for project controls, run inspection, audited retry/cancel/lock release, project health and security validation |
-| `src/observability.ts` | Structured log context, secret redaction and in-process metrics snapshots |
-| `src/scanner.ts` | Linear project snapshot adapter, dependency graph, ready/skipped scanner and dry-run report |
-| `src/state-machine.ts` | Central run state machine and terminal-state helpers |
-| `src/sqlite-store.ts` | SQLite migrations, repository APIs, claim transaction, locks, outbox and debug service |
-| `src/task-id.ts` | Deterministic Linear identifier to Legion task id mapping |
-| `src/worker-runner.ts` | OpenCode-only worker prompt, native startup processing, launcher, result parser and Legion evidence verifier |
-| `src/pr-tracker.ts` | GitHub PR snapshot adapter, PR delivery decision mapping and Linear native writeback outbox enqueueing |
-| `src/resource-locks.ts` | Resource lock parser, canonical key derivation and conflict matrix |
-| `src/dispatcher.ts` | Parallel dispatcher planning/execution with capacity limits, waiting visibility and stale lock hooks |
-| `src/retry-policy.ts` | Failure taxonomy, retry classification and deterministic bounded backoff |
-| `src/recovery.ts` | Stale active run detection, worker liveness probe boundary and retry/terminal recovery executor |
-| `src/webhook.ts` | Linear webhook raw-body signature verification, dedupe persistence, event routing and optional Node HTTP handler |
+| `src/cli.ts` | health、reconcile、run inspect、retry/cancel、locks、project pause/resume 和 fixture flows 的 admin/debug command |
+| `src/admin.ts` | project controls、run inspection、带 audit 的 retry/cancel/lock release、project health 和 security validation |
+| `src/observability.ts` | structured log context、secret redaction 和 in-process metrics snapshots |
+| `src/scanner.ts` | Linear project snapshot adapter、dependency graph、ready/skipped scanner 和 dry-run report |
+| `src/state-machine.ts` | 中央 run state machine 和 terminal-state helpers |
+| `src/sqlite-store.ts` | SQLite migrations、repository APIs、claim transaction、locks、outbox 和 debug service |
+| `src/task-id.ts` | Linear identifier 到 Legion task id 的 deterministic mapping |
+| `src/worker-runner.ts` | OpenCode-only worker prompt、native startup processing、launcher、result parser 和 Legion evidence verifier |
+| `src/pr-tracker.ts` | GitHub PR snapshot adapter、PR delivery decision mapping 和 Linear native writeback outbox enqueueing |
+| `src/resource-locks.ts` | Resource lock parser、canonical key derivation 和 conflict matrix |
+| `src/dispatcher.ts` | 带 capacity limits、waiting visibility 和 stale lock hooks 的 parallel dispatcher planning/execution |
+| `src/retry-policy.ts` | Failure taxonomy、retry classification 和 deterministic bounded backoff |
+| `src/recovery.ts` | Stale active run detection、worker liveness probe boundary 和 retry/terminal recovery executor |
+| `src/webhook.ts` | Linear webhook raw-body signature verification、dedupe persistence、event routing 和可选 Node HTTP handler |
 | `tests/linear-scheduler-core.test.ts` | Scheduler core regression tests |
-| `tests/linear-graph-scanner.test.ts` | Scanner graph, terminal blocker, skipped reason and dry-run CLI tests |
-| `tests/linear-worker-runner.test.ts` | Worker runner prompt, native outbox, fake OpenCode launch, cancel and evidence verifier tests |
-| `tests/linear-pr-tracker.test.ts` | PR state mapping, terminal gate, Linear writeback idempotency and fixture CLI tests |
-| `tests/linear-dispatcher.test.ts` | Resource lock parser, fair scheduling and parallel dispatcher regression tests |
-| `tests/linear-reliability.test.ts` | Webhook signature/dedupe, retry policy, native stop and stale recovery regression tests |
-| `tests/linear-admin-observability.test.ts` | Admin controls, project pause/security block, redaction, metrics and PermissionChange regression tests |
-| `tests/fixtures/project.json` | Fake Linear project snapshot for scan/dispatch fixture commands |
-| `docs/production-acceptance-checklist.md` | Sandbox-first production-like acceptance checklist |
+| `tests/linear-graph-scanner.test.ts` | Scanner graph、terminal blocker、skipped reason 和 dry-run CLI tests |
+| `tests/linear-worker-runner.test.ts` | Worker runner prompt、native outbox、fake OpenCode launch、cancel 和 evidence verifier tests |
+| `tests/linear-pr-tracker.test.ts` | PR state mapping、terminal gate、Linear writeback idempotency 和 fixture CLI tests |
+| `tests/linear-dispatcher.test.ts` | Resource lock parser、fair scheduling 和 parallel dispatcher regression tests |
+| `tests/linear-reliability.test.ts` | Webhook signature/dedupe、retry policy、native stop 和 stale recovery regression tests |
+| `tests/linear-admin-observability.test.ts` | Admin controls、project pause/security block、redaction、metrics 和 PermissionChange regression tests |
+| `tests/fixtures/project.json` | scan/dispatch fixture commands 使用的 fake Linear project snapshot |
+| `docs/production-acceptance-checklist.md` | sandbox-first production-like acceptance checklist |
 
-## Commands
+## 命令
 
-Run from the repository root with `--prefix`:
+从 repository root 使用 `--prefix` 运行：
 
 ```bash
 npm --prefix scheduler test
@@ -54,7 +54,7 @@ npm --prefix scheduler run debug -- worker dispatch --run <run-id> --attempt <at
 npm --prefix scheduler run debug -- delivery track --run <run-id> --repo <repo-path> --pr-url <github-pr-url> --db .cache/linear-scheduler/dev.sqlite
 ```
 
-Or run inside this directory:
+也可以在 `scheduler/` 目录内运行：
 
 ```bash
 npm test
@@ -69,46 +69,46 @@ npm run debug -- worker dispatch --run <run-id> --attempt <attempt-id> --repo <r
 npm run debug -- delivery track --run <run-id> --repo <repo-path> --fixture tests/fixtures/pr-open.json --db .cache/linear-scheduler/dev.sqlite
 ```
 
-`scan project` reads Linear through the official GraphQL API using `LINEAR_API_KEY` by default. It only persists `work_item_snapshots` and prints a dry-run report; it does not claim runs, start workers, set delegates, create AgentSessions or write Linear labels/comments.
+`scan project` 默认通过 `LINEAR_API_KEY` 使用 Linear GraphQL API 读取 Linear。它只持久化 `work_item_snapshots` 并打印 dry-run report；不会 claim runs、启动 workers、设置 delegates、创建 AgentSessions，也不会写 Linear labels/comments。
 
-`reconcile` is the admin spelling for project scan. It respects durable project controls stored in `project_controls`, so a paused or `security_blocked` project is reported as skipped before any new worker claim can happen.
+`reconcile` 是 project scan 的 admin spelling。它会尊重 `project_controls` 中的 durable project controls，因此 paused 或 `security_blocked` project 在任何新 worker claim 前会被报告为 skipped。
 
-`project pause` / `project resume` persist scheduler-local project controls and write `scheduler_events` audit entries. Pause blocks new claims/worker launch for the project but does not cancel active runs; use `run inspect` to keep tracking them or `run cancel --reason ...` for an explicit terminal non-success.
+`project pause` / `project resume` 会持久化 scheduler-local project controls，并写入 `scheduler_events` audit entries。Pause 会阻止该 project 的新 claims / worker launch，但不会取消 active runs；使用 `run inspect` 继续跟踪，或用 `run cancel --reason ...` 明确标记 terminal non-success。
 
-`run retry`, `run cancel`, and `locks release` require a non-empty `--reason` and write admin audit events before mutating run/attempt/lock state. `run inspect` shows the run row, evaluated snapshot, attempts, resource locks, event timeline, outbox rows, AgentSession id, last activity, native stop request and terminal success/non-success reason.
+`run retry`、`run cancel` 和 `locks release` 都要求非空 `--reason`，并会在修改 run/attempt/lock state 前写 admin audit events。`run inspect` 会展示 run row、evaluated snapshot、attempts、resource locks、event timeline、outbox rows、AgentSession id、last activity、native stop request 和 terminal success/non-success reason。
 
-CLI JSON output is redacted through `src/observability.ts` so token-like values, Authorization headers, signatures and signed URL query parameters are not printed by default.
+CLI JSON output 会通过 `src/observability.ts` 做 redaction，因此 token-like values、Authorization headers、signatures 和 signed URL query parameters 默认不会打印出来。
 
-`worker dispatch` consumes one pending `worker_dispatch` outbox row and launches OpenCode non-interactively with a generated prompt artifact. It refuses to launch until native startup outbox rows for the run are sent, passes only the prompt artifact path through argv, allowlists the child environment, records heartbeat / attempt exit data, captures stdout/stderr to a repo-local `.cache/linear-scheduler/worker-logs/` artifact, parses the worker result block, and runs the scheduler-side Legion evidence verifier. It is intentionally OpenCode-only. A worker-reported `done` result now waits in `in_review` until PR delivery tracking verifies GitHub terminal state.
+`worker dispatch` 会消费一个 pending `worker_dispatch` outbox row，并用生成的 prompt artifact 非交互式启动 OpenCode。它会拒绝在 native startup outbox rows sent 前启动，只通过 argv 传递 prompt artifact path，对 child environment 使用 allowlist，记录 heartbeat / attempt exit data，把 stdout/stderr 写到 repo-local `.cache/linear-scheduler/worker-logs/` artifact，解析 worker result block，并运行 scheduler-side Legion evidence verifier。它刻意只支持 OpenCode。Worker 报告 `done` 后会先停在 `in_review`，直到 PR delivery tracking 验证 GitHub terminal state。
 
-`delivery track` observes one GitHub PR snapshot through either a fixture or the GitHub REST adapter, updates the run delivery state, and enqueues idempotent Linear native writeback rows for PR external URL, AgentActivity, Agent Plan, coarse issue state/labels and final summary. It only marks `done` after PR merged + checks/review resolved + Legion evidence PASS + `git-worktree-pr` lifecycle complete.
+`delivery track` 会通过 fixture 或 GitHub REST adapter 观察一个 GitHub PR snapshot，更新 run delivery state，并为 PR external URL、AgentActivity、Agent Plan、coarse issue state/labels 和 final summary enqueue idempotent Linear native writeback rows。只有 PR merged + checks/review resolved + Legion evidence PASS + `git-worktree-pr` lifecycle complete 后，它才会标记 `done`。
 
-`dispatch fixture` plans and claims multiple ready WIs under global/project/repo capacity limits and resource locks. It only writes scheduler DB rows/events/outbox jobs; it does not launch OpenCode workers by itself. Waiting items are reported as `waiting_for_lock`, `waiting_for_capacity`, or `waiting_for_blocker` and are not marked running.
+`dispatch fixture` 会在 global/project/repo capacity limits 和 resource locks 下规划并 claim 多个 ready WI。它只写 scheduler DB rows/events/outbox jobs；不会自己启动 OpenCode workers。等待项会以 `waiting_for_lock`、`waiting_for_capacity` 或 `waiting_for_blocker` 报告，不会被标记为 running。
 
-## Production-like acceptance
+## Production-like 验收
 
-Production-like acceptance is sandbox-first. Use the main runbook at `docs/linear-legion-scheduler/production-acceptance-runbook.md` and the scheduler checklist at `scheduler/docs/production-acceptance-checklist.md` before touching any real project.
+Production-like 验收必须 sandbox-first。在触碰任何真实项目之前，先阅读主 runbook：`docs/linear-legion-scheduler/production-acceptance-runbook.md`，并使用 scheduler checklist：`scheduler/docs/production-acceptance-checklist.md`。
 
-Command safety notes:
+命令安全说明：
 
-- `scan project` performs external Linear reads and writes scheduler DB snapshots; it does not write Linear or launch workers.
-- `delivery track` performs external GitHub reads, writes scheduler DB delivery state and enqueues native Linear writeback rows; it does not send Linear writeback by itself.
-- `dispatch fixture` mutates scheduler DB by creating runs, attempts, locks, events and outbox rows; it does not launch workers.
-- `worker dispatch` launches OpenCode and writes repo-local prompt/log artifacts; use it only for explicitly approved sandbox WIs.
+- `scan project` 会读取外部 Linear，并写 scheduler DB snapshots；它不会写 Linear，也不会启动 workers。
+- `delivery track` 会读取外部 GitHub，写 scheduler DB delivery state，并 enqueue native Linear writeback rows；它本身不会发送 Linear writeback。
+- `dispatch fixture` 会创建 runs、attempts、locks、events 和 outbox rows，因此会修改 scheduler DB；它不会启动 workers。
+- `worker dispatch` 会启动 OpenCode，并写 repo-local prompt/log artifacts；只能用于明确批准的 sandbox WI。
 
-Current production blockers remain explicit: there is no production Linear native writeback adapter, no live `dispatch project` command and no packaged webhook server/outbox runner.
+当前 production blockers 必须保持显式可见：没有 production Linear native writeback adapter，没有 live `dispatch project` command，也没有 packaged webhook server/outbox runner。
 
-## Security readiness checklist
+## 安全 readiness checklist
 
-- Linear production auth should prefer OAuth/app actor or client credentials; personal API keys are prototype-only.
-- Production writeback should use `actor=app` where supported.
-- Request `app:assignable` only when the app is used as `Issue.delegate`; request `app:mentionable` only when users should mention the app in Linear editors.
-- `Issue.delegate` never replaces a human assignee/owner.
-- PermissionChange/app access revocation must pause or `security_blocked` affected projects until scopes are validated again.
-- Linear webhooks must verify signatures over the raw body.
-- GitHub tokens must be limited to required repo(s) and PR/check/review operations; do not bypass branch protection.
-- Workers should receive only WI context, repo path, prompt artifact path and least credentials needed for that WI; they must not receive scheduler DB superuser credentials.
-- Raw webhook payloads and worker logs should be sanitized or treated as sensitive; development artifacts under `.cache/linear-scheduler/` are repo-local and should not be published unreviewed.
-- Log retention and data retention policy must be explicit before production deployment.
+- Linear production auth 应优先使用 OAuth / app actor / client credentials；personal API keys 只适合 prototype。
+- Production writeback 应在支持时使用 `actor=app`。
+- 只有 app 用作 `Issue.delegate` 时才申请 `app:assignable`；只有需要用户在 Linear editor 中 mention app 时才申请 `app:mentionable`。
+- `Issue.delegate` 永远不替代 human assignee / owner。
+- PermissionChange / app access revocation 必须 pause 或 `security_blocked` affected projects，直到 scopes 重新验证通过。
+- Linear webhooks 必须对 raw body 验证 signatures。
+- GitHub tokens 必须限制到 required repo(s) 和 PR/check/review operations；不要绕过 branch protection。
+- Workers 只应接收 WI context、repo path、prompt artifact path 和该 WI 需要的最小 credentials；不得接收 scheduler DB superuser credentials。
+- Raw webhook payloads 和 worker logs 应 sanitizied，或被当作 sensitive data 处理；`.cache/linear-scheduler/` 下的 development artifacts 是 repo-local，不应未经审查发布。
+- 生产部署前必须明确 log retention 和 data retention policy。
 
-The scheduler remains a local prototype. It connects to Linear for dry-run project scanning, can claim parallel non-conflicting fixture WIs, has a single-worker OpenCode runner path, PR delivery tracking, webhook ingestion primitives, bounded retry policy, stale-run recovery, and an audited admin/security hardening layer. It still does not implement production native Linear API adapters or a metrics dashboard/exporter.
+Scheduler 仍是 local prototype。它能连接 Linear 做 dry-run project scanning，能 claim parallel non-conflicting fixture WIs，有 single-worker OpenCode runner path、PR delivery tracking、webhook ingestion primitives、bounded retry policy、stale-run recovery，以及带 audit 的 admin/security hardening layer。它仍未实现 production native Linear API adapters，也没有 metrics dashboard/exporter。

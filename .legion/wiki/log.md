@@ -2,10 +2,16 @@
 
 ## [2026-06-26] writeback | prepare-linear-scheduler-production-acceptance
 
-- Added task summary for `prepare-linear-scheduler-production-acceptance` under `tasks/`.
-- Recorded the new Linear scheduler production-like acceptance package: main runbook, scheduler checklist, sops/age secrets runbook, Linear/GitHub sandbox setup runbooks, evidence templates and fake fixtures.
-- Updated current scheduler truth: production-like acceptance is sandbox-first; secrets use sops YAML + age + `sops exec-env`; live-read commands write scheduler DB state; native writeback adapter, live project dispatch and packaged webhook server/outbox runner remain expected blockers.
-- Updated maintenance backlog to mark README fixture/test-list drift as handled by this task while preserving remaining production hardening items.
+- 在 `tasks/` 下新增 `prepare-linear-scheduler-production-acceptance` 任务摘要。
+- 记录新的 Linear scheduler production-like acceptance package：主 runbook、scheduler checklist、sops/age secrets runbook、Linear/GitHub sandbox setup runbooks、evidence templates 和 fake fixtures。
+- 更新 scheduler 当前真相：production-like acceptance 必须 sandbox-first；secrets 使用 sops YAML + age + `sops exec-env`；live-read commands 会写 scheduler DB state；native writeback adapter、live project dispatch、packaged webhook server/outbox runner 仍是预期 blockers。
+- 更新 maintenance backlog：README fixture/test-list drift 已由该任务处理，同时保留剩余 production hardening 事项。
+
+## [2026-06-26] writeback | localize-production-acceptance-docs
+
+- 新增 `tasks/localize-production-acceptance-docs.md`，记录生产验收准备包中文化修正。
+- 更新 index：面向用户 / reviewer 的 task 文档默认中文；命令、路径、env var、JSON/YAML key、状态枚举、labels、URL、代码符号、产品名和必要技术术语保留英文。
+- 更新 maintenance：全仓历史英文设计文档中文化若需要，应作为独立迁移任务处理。
 
 ## [2026-06-25] writeback | accept-linear-scheduler-overall
 

@@ -1,22 +1,22 @@
-# Linear Sandbox Setup Runbook
+# Linear Sandbox 设置运行手册
 
-## Goal
+## 目标
 
-Create a Linear sandbox project that exercises scheduler read-path decisions without affecting production work.
+创建一个 Linear sandbox project，用来验证 scheduler read-path 决策，不影响生产工作。
 
 ## Project
 
-Recommended project:
+推荐项目：
 
 - Name: `Legion Scheduler Sandbox`
-- Key or slug: `scheduler-sandbox`
-- Team key: `SBOX` or another clearly non-production team key
+- Key 或 slug: `scheduler-sandbox`
+- Team key: `SBOX`，或其他明确非生产的 team key
 
-Record the project ID in `LINEAR_PROJECT_ID` inside the encrypted secret file.
+创建后，把 project ID 记录到加密 secret 文件中的 `LINEAR_PROJECT_ID`。
 
-## Required Labels
+## 必需 Labels
 
-Scheduler policy labels:
+Scheduler policy labels：
 
 - `agent:ready`
 - `contract:stable`
@@ -31,84 +31,84 @@ Scheduler policy labels:
 - `area:ui`
 - `mutex:db-migration`
 
-Optional sandbox filter labels:
+可选 sandbox filter labels：
 
 - `scheduler:sandbox`
 - `scheduler:read-path`
 - `scheduler:dispatch-fixture`
 - `scheduler:github-linked`
 
-## Required Issue Scenarios
+## 必需 Issue Scenarios
 
-| Identifier | Purpose | Labels | Blockers | Expected scheduler interpretation |
+| Identifier | 用途 | Labels | Blockers | 预期 scheduler 判断 |
 |---|---|---|---|---|
-| `SBOX-READY` | Basic ready WI | `agent:ready`, `contract:stable`, `repo:legion-mind`, `risk:low`, `area:docs` | none | ready |
-| `SBOX-MANUAL-DONE` | Manual upstream completion | `contract:stable`, `repo:legion-mind`, `risk:low` | none | not candidate, can satisfy blocker if no active agent labels |
-| `SBOX-BLOCKED-BY-MANUAL` | Downstream of manual Done | `agent:ready`, `contract:stable`, `repo:legion-mind`, `risk:low`, `area:api` | `SBOX-MANUAL-DONE` | ready after manual blocker satisfaction policy |
-| `SBOX-UPSTREAM-ACTIVE` | Incomplete upstream | `agent:running`, `contract:stable`, `repo:legion-mind`, `risk:medium`, `area:api` | none | not candidate / not blocker-satisfied |
-| `SBOX-DEPENDENCY-BLOCKED` | Blocked downstream | `agent:ready`, `contract:stable`, `repo:legion-mind`, `risk:medium`, `area:ui` | `SBOX-UPSTREAM-ACTIVE` | skipped `dependency_blocked` |
-| `SBOX-NEEDS-HUMAN` | Human gate | `agent:ready`, `agent:needs-human`, `contract:stable`, `repo:legion-mind`, `risk:medium`, `area:docs` | none | skipped `human_gate` |
-| `SBOX-CONTRACT-MISSING` | Missing stable contract | `agent:ready`, `repo:legion-mind`, `risk:low`, `area:docs` | none | skipped `contract_not_stable` |
-| `SBOX-RISK-MISSING` | Missing risk | `agent:ready`, `contract:stable`, `repo:legion-mind`, `area:docs` | none | skipped `risk_missing` |
-| `SBOX-LOCK-A` | Lock conflict A | `agent:ready`, `contract:stable`, `repo:legion-mind`, `risk:medium`, `area:api` | none | ready / can be claimed in fixture dispatch |
-| `SBOX-LOCK-B` | Lock conflict B | `agent:ready`, `contract:stable`, `repo:legion-mind`, `risk:medium`, `area:api` | none | waiting for lock when A is planned/claimed |
+| `SBOX-READY` | 基础 ready WI | `agent:ready`, `contract:stable`, `repo:legion-mind`, `risk:low`, `area:docs` | none | ready |
+| `SBOX-MANUAL-DONE` | 人工完成的上游 | `contract:stable`, `repo:legion-mind`, `risk:low` | none | 非 candidate；无 active agent labels 时可满足 blocker |
+| `SBOX-BLOCKED-BY-MANUAL` | 依赖 manual Done 的下游 | `agent:ready`, `contract:stable`, `repo:legion-mind`, `risk:low`, `area:api` | `SBOX-MANUAL-DONE` | manual blocker satisfied 后 ready |
+| `SBOX-UPSTREAM-ACTIVE` | 未完成上游 | `agent:running`, `contract:stable`, `repo:legion-mind`, `risk:medium`, `area:api` | none | 非 candidate / blocker 未满足 |
+| `SBOX-DEPENDENCY-BLOCKED` | 被依赖阻塞的下游 | `agent:ready`, `contract:stable`, `repo:legion-mind`, `risk:medium`, `area:ui` | `SBOX-UPSTREAM-ACTIVE` | skipped `dependency_blocked` |
+| `SBOX-NEEDS-HUMAN` | 人工门禁 | `agent:ready`, `agent:needs-human`, `contract:stable`, `repo:legion-mind`, `risk:medium`, `area:docs` | none | skipped `human_gate` |
+| `SBOX-CONTRACT-MISSING` | 缺少 stable contract | `agent:ready`, `repo:legion-mind`, `risk:low`, `area:docs` | none | skipped `contract_not_stable` |
+| `SBOX-RISK-MISSING` | 缺少 risk | `agent:ready`, `contract:stable`, `repo:legion-mind`, `area:docs` | none | skipped `risk_missing` |
+| `SBOX-LOCK-A` | lock 冲突 A | `agent:ready`, `contract:stable`, `repo:legion-mind`, `risk:medium`, `area:api` | none | ready / fixture dispatch 中可 claim |
+| `SBOX-LOCK-B` | lock 冲突 B | `agent:ready`, `contract:stable`, `repo:legion-mind`, `risk:medium`, `area:api` | none | 当 `SBOX-LOCK-A` 已 planned / claimed 时等待 lock |
 
-## Issue Body Template
+## Issue Body 模板
 
-Use the WI-01 policy fields:
+使用 WI-01 policy 字段：
 
 ```md
-## Goal
+## 目标
 
-Sandbox-only scheduler acceptance case. This issue must not touch production code or production Linear work.
+仅用于 sandbox scheduler acceptance。这个 issue 不得触碰生产代码或生产 Linear 工作。
 
-## Acceptance Criteria
-- [ ] Scheduler read-path classifies this issue as expected.
-- [ ] Evidence is recorded in the acceptance report.
+## 验收标准
+- [ ] Scheduler read-path 按预期分类该 issue。
+- [ ] 证据已记录到 acceptance report。
 
-## Scope
-- Sandbox acceptance only.
+## 范围
+- 仅限 sandbox acceptance。
 
-## Out of Scope
-- Production code changes.
-- Production Linear writeback.
+## 非范围
+- Production code changes。
+- Production Linear writeback。
 
-## Dependencies / Blockers
-- Blocks: <fill if applicable>
-- Blocked by: <fill if applicable>
+## 依赖 / Blockers
+- Blocks: <按需填写>
+- Blocked by: <按需填写>
 
-## Repo / Package
+## 仓库 / Package
 - repo: legion-mind
 - area: <docs|api|ui>
 
-## Risk Level
+## 风险等级
 - risk: low
 - design gate hint: none
 
-## Verification
-- Run `scan project` against the sandbox project.
+## 验证
+- 针对 sandbox project 运行 `scan project`。
 
-## Delivery Notes
-- No worker should run unless a later stage explicitly approves it.
+## 交付说明
+- 除非后续阶段明确批准，否则不应运行 worker。
 ```
 
-## Live Read-Path Command
+## Live Read-Path 命令
 
 ```bash
 sops exec-env secrets/linear-scheduler.sops.yaml 'npm --prefix scheduler run debug -- scan project --project "$LINEAR_PROJECT_ID" --db "$SCHEDULER_DB" --delegate "$LINEAR_DELEGATE_APP_USER_ID" --scheduler-run-url-base "$SCHEDULER_RUN_URL_BASE"'
 ```
 
-## Evidence To Capture
+## 需要记录的证据
 
-- Linear project ID/name/key.
-- Issue identifiers and labels.
-- Blocker relations.
-- Ready count and identifiers.
-- Skipped count and reasons.
-- Any unexpected state/label mapping.
+- Linear project ID / name / key。
+- Issue identifiers 和 labels。
+- Blocker relations。
+- Ready count 和 identifiers。
+- Skipped count 和 reasons。
+- 任何异常 state / label mapping。
 
-## Stop Conditions
+## 停止条件
 
-- A production project appears in the scan.
-- A human-gated or contract-missing issue appears ready.
-- The scan output cannot be explained by the expected issue table.
+- scan 中出现 production project。
+- human-gated 或 contract-missing issue 被判为 ready。
+- scan output 无法用预期 issue table 解释。

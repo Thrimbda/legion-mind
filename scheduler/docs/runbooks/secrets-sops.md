@@ -1,18 +1,18 @@
-# Secrets Runbook: sops + age
+# Secret 管理运行手册：sops + age
 
-## Policy
+## 规则
 
-Production-like acceptance credentials must be encrypted with `sops` using `age`. Commands should inject credentials with `sops exec-env` so plaintext secrets do not land on disk.
+production-like acceptance 的 credentials 必须使用 `sops` 加密，并用 `age` 管理密钥。命令应通过 `sops exec-env` 注入 credentials，避免明文 secret 落盘。
 
-## Files
+## 文件
 
-- Real encrypted file, not committed: `secrets/linear-scheduler.sops.yaml`
-- Committed schema example: `scheduler/docs/templates/secrets.linear-scheduler.sops.yaml`
-- Age private key: outside repo, referenced through `SOPS_AGE_KEY_FILE` or an equivalent secure key store.
+- 真实加密文件，不提交：`secrets/linear-scheduler.sops.yaml`
+- 已提交的 schema example：`scheduler/docs/templates/secrets.linear-scheduler.sops.yaml`
+- Age private key：放在 repo 外，通过 `SOPS_AGE_KEY_FILE` 或等价安全 key store 引用。
 
-## Required Values
+## 必需值
 
-Minimum live read-path values:
+live read-path 的最小字段：
 
 - `LINEAR_API_KEY`
 - `LINEAR_PROJECT_ID`
@@ -20,7 +20,7 @@ Minimum live read-path values:
 - `GITHUB_OPEN_PR_URL`
 - `SCHEDULER_DB`
 
-Recommended metadata values:
+推荐 metadata 字段：
 
 - `LINEAR_PROJECT_NAME`
 - `LINEAR_TEAM_KEY`
@@ -33,11 +33,11 @@ Recommended metadata values:
 - `SCHEDULER_RUN_URL_BASE`
 - `LINEAR_WEBHOOK_SECRET`
 
-Worker-only model/provider values should use the runtime allowlist already enforced by `worker-runner.ts`, such as `OPENCODE_*`, `OPENAI_*`, `ANTHROPIC_*`, `GEMINI_*`, `GOOGLE_*`, `AZURE_OPENAI_*` or `AWS_*`.
+Worker-only model/provider values 应使用 `worker-runner.ts` 已允许的 runtime allowlist，例如 `OPENCODE_*`、`OPENAI_*`、`ANTHROPIC_*`、`GEMINI_*`、`GOOGLE_*`、`AZURE_OPENAI_*` 或 `AWS_*`。
 
-## How To Create The Encrypted File
+## 创建加密文件
 
-Example shape:
+示例流程：
 
 ```bash
 mkdir -p secrets
@@ -45,49 +45,49 @@ cp scheduler/docs/templates/secrets.linear-scheduler.sops.yaml secrets/linear-sc
 sops --encrypt --age <age-recipient> --in-place secrets/linear-scheduler.sops.yaml
 ```
 
-Before committing anything, confirm real secret files are ignored or intentionally excluded from git.
+提交前必须确认真实 secret 文件被忽略，或仓库策略明确允许提交加密后的 secret 文件。
 
-## Safe Command Pattern
+## 安全命令模式
 
-Linear read-path scan:
+Linear read-path scan：
 
 ```bash
 sops exec-env secrets/linear-scheduler.sops.yaml 'npm --prefix scheduler run debug -- scan project --project "$LINEAR_PROJECT_ID" --db "$SCHEDULER_DB" --delegate "$LINEAR_DELEGATE_APP_USER_ID" --scheduler-run-url-base "$SCHEDULER_RUN_URL_BASE"'
 ```
 
-GitHub PR read-path tracking:
+GitHub PR read-path tracking：
 
 ```bash
 sops exec-env secrets/linear-scheduler.sops.yaml 'npm --prefix scheduler run debug -- delivery track --run "$SCHEDULER_RUN_ID" --repo "$SCHEDULER_REPO_PATH" --pr-url "$GITHUB_OPEN_PR_URL" --db "$SCHEDULER_DB"'
 ```
 
-## Credential Guidance
+## Credential 获取建议
 
-Linear:
+Linear：
 
-- Prefer app/OAuth/client credentials for production; sandbox acceptance may use a limited test API key.
-- Token must be able to read the sandbox project issues, labels, states and relations.
-- Do not use a token with production workspace write privileges for read-path acceptance.
+- 生产应优先使用 app / OAuth / client credentials；sandbox acceptance 可以使用权限受限的 test API key。
+- Token 至少需要读取 sandbox project 的 issues、labels、states 和 relations。
+- read-path acceptance 不应使用拥有 production workspace 写权限的 token。
 
-GitHub:
+GitHub：
 
-- Prefer a fine-grained token scoped only to the sandbox repo.
-- Required for read-path tracking: PR metadata, check runs and reviews.
-- Do not bypass branch protection or use admin tokens for acceptance.
+- 优先使用只 scoped 到 sandbox repo 的 fine-grained token。
+- read-path tracking 需要读取 PR metadata、check runs 和 reviews。
+- 不要使用 admin token，不要绕过 branch protection。
 
-OpenCode/model provider:
+OpenCode / model provider：
 
-- Provide only worker runtime credentials required for the sandbox WI.
-- Do not expose `LINEAR_API_KEY` or `GITHUB_TOKEN` to the worker; `worker-runner.ts` strips those by default.
+- 只提供 sandbox WI 需要的 worker runtime credentials。
+- 不要把 `LINEAR_API_KEY` 或 `GITHUB_TOKEN` 暴露给 worker；`worker-runner.ts` 默认会剥离这些变量。
 
-Webhook:
+Webhook：
 
-- Store `LINEAR_WEBHOOK_SECRET` for future webhook validation.
-- Current repo does not include a packaged production webhook server command.
+- 为后续 webhook 验证保存 `LINEAR_WEBHOOK_SECRET`。
+- 当前仓库没有 packaged production webhook server command。
 
-## Never Do This
+## 禁止事项
 
-- Do not commit real `secrets/linear-scheduler.sops.yaml` unless the repository policy explicitly allows encrypted secret files.
-- Do not decrypt secrets to plaintext files.
-- Do not paste token values into shell history, issue comments, PR comments or evidence reports.
-- Do not put production credentials into sandbox acceptance unless explicitly approved.
+- 除非仓库策略明确允许，否则不要提交真实 `secrets/linear-scheduler.sops.yaml`。
+- 不要把 secret 解密到 plaintext files。
+- 不要把 token 值粘贴进 shell history、issue comments、PR comments 或 evidence reports。
+- 除非明确批准，不要把 production credentials 放入 sandbox acceptance。

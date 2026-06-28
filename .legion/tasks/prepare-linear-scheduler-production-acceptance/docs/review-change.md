@@ -1,40 +1,40 @@
-# Review Change: Prepare Linear Scheduler Production Acceptance
+# 变更审查：准备 Linear Scheduler 生产验收
 
-## Verdict
+## 结论
 
 PASS
 
-## Scope Review
+## 范围审查
 
-- Expected scope: production acceptance preparation package, docs, templates, fake fixtures, README/index links and Legion evidence.
-- Actual scope: matches expected scope.
-- No scheduler runtime code was changed.
-- No live acceptance commands were executed.
-- No real secrets or encrypted secret instance were committed.
+- 预期 scope：生产验收准备包、docs、templates、fake fixtures、README/index links 和 Legion evidence。
+- 实际 scope：符合预期。
+- 未修改 scheduler runtime code。
+- 未执行 live acceptance commands。
+- 未提交真实 secrets 或 encrypted secret instance。
 
 ## Correctness Review
 
-- The runbook explicitly separates sandbox production-like acceptance from production launch readiness.
-- Known current blockers are visible: no production Linear native writeback adapter, no live `dispatch project`, no packaged webhook server/outbox runner.
-- Command safety notes correctly distinguish external read + DB write from true read-only behavior.
-- `npm --prefix scheduler` fixture paths were corrected to `tests/fixtures/...` and verified.
-- Fake project fixture exercises ready, manual Done, dependency blocked, human gate, contract missing, risk missing and lock-conflict cases.
-- Secret handling uses placeholder-only schema, sops YAML, age and `sops exec-env` guidance.
+- Runbook 明确区分 sandbox production-like acceptance 和 production launch readiness。
+- 当前已知 blockers 保持可见：无 production Linear native writeback adapter、无 live `dispatch project`、无 packaged webhook server/outbox runner。
+- 命令安全说明正确区分 external read + DB write 与真正 read-only。
+- `npm --prefix scheduler` fixture paths 已修正为 `tests/fixtures/...` 并经过验证。
+- Fake project fixture 覆盖 ready、manual Done、dependency blocked、human gate、contract missing、risk missing 和 lock-conflict cases。
+- Secret handling 使用 placeholder-only schema，并说明 sops YAML、age 和 `sops exec-env`。
 
 ## Security Lens
 
-Security lens applied because the change documents credentials, tokens, webhook secrets, worker environment boundaries and production-like acceptance operations.
+已应用 security lens，因为本次变更涉及 credentials、tokens、webhook secrets、worker environment boundaries 和 production-like acceptance operations。
 
-No security blocker was introduced. The docs instruct operators not to decrypt secrets to disk, not to commit real secrets, to use sandbox-scoped credentials, and to keep known missing writeback/dispatch/webhook capabilities as blockers.
+未引入 security blocker。文档要求 operator 不把 secrets 解密到磁盘、不提交真实 secrets、使用 sandbox-scoped credentials，并把缺失的 writeback/dispatch/webhook capabilities 明确记录为 blockers。
 
-## Verification Evidence
+## 验证证据
 
-- `npm --prefix scheduler run debug -- scan fixture --fixture tests/fixtures/project.json --db :memory:` — PASS.
-- `npm --prefix scheduler run debug -- dispatch fixture --fixture tests/fixtures/project.json --db .cache/linear-scheduler/acceptance-fixture.sqlite --parallel-repos legion-mind --global-concurrency 4 --per-repo-concurrency 4` — PASS.
-- `npm --prefix scheduler run health -- --db :memory:` — PASS.
-- `npm --prefix scheduler test` — PASS, 57/57.
+- `npm --prefix scheduler run debug -- scan fixture --fixture tests/fixtures/project.json --db :memory:` — PASS。
+- `npm --prefix scheduler run debug -- dispatch fixture --fixture tests/fixtures/project.json --db .cache/linear-scheduler/acceptance-fixture.sqlite --parallel-repos legion-mind --global-concurrency 4 --per-repo-concurrency 4` — PASS。
+- `npm --prefix scheduler run health -- --db :memory:` — PASS。
+- `npm --prefix scheduler test` — PASS, 57/57。
 
-## Non-blocking Notes
+## 非阻塞说明
 
-- The runbook intentionally does not solve missing runtime capabilities; it tells operators to record them as blockers during live acceptance.
-- Live PR tracking still needs a real scheduler run row before `delivery track --pr-url` can be executed; this is documented in the GitHub sandbox runbook.
+- Runbook 刻意不解决缺失 runtime capabilities；它要求 operator 在 live acceptance 中把这些记录为 blockers。
+- Live PR tracking 仍需要真实 scheduler run row，才能执行 `delivery track --pr-url`；GitHub sandbox runbook 已说明这一点。

@@ -1,54 +1,54 @@
-# Scheduler Acceptance Evidence
+# Scheduler 验收证据模板
 
-## Metadata
+## 元信息
 
-| Field | Value |
+| 字段 | 值 |
 |---|---|
-| Date/time | |
-| Operator | |
+| 日期 / 时间 | |
+| 操作人 | |
 | Repo commit | |
-| Working directory | |
+| 工作目录 | |
 | Node version | |
 | Scheduler DB path | |
 | Secret file path | `secrets/linear-scheduler.sops.yaml` |
 | Secret injection method | `sops exec-env` |
 
-## Commands
+## 命令记录
 
-| Stage | Command | Result | Output artifact / notes |
+| 阶段 | 命令 | 结果 | 输出 artifact / 备注 |
 |---|---|---|---|
-| Local tests | | PASS / FAIL / BLOCKED | |
+| 本地测试 | | PASS / FAIL / BLOCKED | |
 | Fixture scan | | PASS / FAIL / BLOCKED | |
 | Fixture dispatch | | PASS / FAIL / BLOCKED | |
 | Linear live scan | | PASS / FAIL / BLOCKED | |
 | GitHub PR tracking | | PASS / FAIL / BLOCKED | |
 | Worker E2E | | PASS / FAIL / BLOCKED | |
 
-## Linear Evidence
+## Linear 证据
 
-| Field | Value |
+| 字段 | 值 |
 |---|---|
 | Project ID | |
 | Project name | |
 | Team key | |
-| Ready count | |
-| Skipped count | |
+| Ready 数量 | |
+| Skipped 数量 | |
 | Cycles | |
-| Unexpected classifications | |
+| 非预期分类 | |
 
-| Issue | Expected | Actual | Pass? | Notes |
+| Issue | 预期 | 实际 | 是否通过 | 备注 |
 |---|---|---|---|---|
 | | | | | |
 
-## GitHub Evidence
+## GitHub 证据
 
-| PR URL | Head SHA | Checks | Review | Merge/close state | Expected scheduler decision | Actual scheduler decision |
+| PR URL | Head SHA | Checks | Review | merge / close state | 预期 scheduler decision | 实际 scheduler decision |
 |---|---|---|---|---|---|---|
 | | | | | | | |
 
-## Scheduler Evidence
+## Scheduler 证据
 
-| Field | Value |
+| 字段 | 值 |
 |---|---|
 | Run ID | |
 | Attempt ID | |
@@ -56,27 +56,27 @@
 | Task ID | |
 | Lock keys | |
 | Outbox side effects | |
-| Final run state | |
-| Delivery gate status | |
-| Evidence status | |
-| Terminal kind | |
+| 最终 run state | |
+| Delivery gate 状态 | |
+| Evidence 状态 | |
+| Terminal 类型 | |
 
-## Blockers Found
+## 发现的 Blockers
 
-| Blocker | Severity | Owner | Next action |
+| Blocker | 严重程度 | Owner | 下一步 |
 |---|---|---|---|
 | | | | |
 
-## Decision
+## 决策
 
-- Decision: PASS / FAIL / BLOCKED
-- Reason:
-- Follow-up owner:
-- Next review date:
+- 决策：PASS / FAIL / BLOCKED
+- 原因：
+- 后续 owner：
+- 下次 review 日期：
 
-## Redaction Check
+## 脱敏检查
 
-- [ ] No token values included.
-- [ ] No private key material included.
-- [ ] No sensitive payload copied without redaction.
-- [ ] Artifact paths are repo-local.
+- [ ] 未包含 token values。
+- [ ] 未包含 private key material。
+- [ ] 未复制未脱敏的 sensitive payload。
+- [ ] Artifact paths 均为 repo-local。

@@ -1,12 +1,12 @@
-# Test Report: Prepare Linear Scheduler Production Acceptance
+# Test Report：准备 Linear Scheduler 生产验收
 
-## Verdict
+## 结论
 
-PASS for local no-secret validation.
+本地无 secret 验证通过。
 
-No live Linear, GitHub, OpenCode or secret-backed acceptance was executed in this task.
+本任务没有执行任何 live Linear、GitHub、OpenCode 或 secret-backed acceptance。
 
-## Commands Executed
+## 执行命令
 
 ### Fixture scanner smoke
 
@@ -14,13 +14,13 @@ No live Linear, GitHub, OpenCode or secret-backed acceptance was executed in thi
 npm --prefix scheduler run debug -- scan fixture --fixture tests/fixtures/project.json --db :memory:
 ```
 
-Result: PASS
+结果：PASS
 
-Key observed behavior:
+关键观察：
 
-- Ready: `SBOX-READY`, `SBOX-BLOCKED-BY-MANUAL`, `SBOX-LOCK-A`, `SBOX-LOCK-B`.
-- Skipped: `SBOX-CONTRACT-MISSING`, `SBOX-DEPENDENCY-BLOCKED`, `SBOX-MANUAL-DONE`, `SBOX-NEEDS-HUMAN`, `SBOX-RISK-MISSING`, `SBOX-UPSTREAM-ACTIVE`.
-- Cycles: none.
+- Ready: `SBOX-READY`, `SBOX-BLOCKED-BY-MANUAL`, `SBOX-LOCK-A`, `SBOX-LOCK-B`。
+- Skipped: `SBOX-CONTRACT-MISSING`, `SBOX-DEPENDENCY-BLOCKED`, `SBOX-MANUAL-DONE`, `SBOX-NEEDS-HUMAN`, `SBOX-RISK-MISSING`, `SBOX-UPSTREAM-ACTIVE`。
+- Cycles: none。
 
 ### Fixture dispatcher smoke
 
@@ -29,14 +29,14 @@ mkdir -p .cache/linear-scheduler
 npm --prefix scheduler run debug -- dispatch fixture --fixture tests/fixtures/project.json --db ../.cache/linear-scheduler/acceptance-fixture.sqlite --parallel-repos legion-mind --global-concurrency 4 --per-repo-concurrency 4
 ```
 
-Result: PASS
+结果：PASS
 
-Key observed behavior:
+关键观察：
 
-- Claimed: `SBOX-READY`, `SBOX-BLOCKED-BY-MANUAL`.
-- Waiting for lock: `SBOX-LOCK-A`, `SBOX-LOCK-B` on `area:legion-mind/api`.
-- Waiting for blocker: `SBOX-DEPENDENCY-BLOCKED`.
-- No workers were launched.
+- Claimed: `SBOX-READY`, `SBOX-BLOCKED-BY-MANUAL`。
+- Waiting for lock: `SBOX-LOCK-A`, `SBOX-LOCK-B` 等待 `area:legion-mind/api`。
+- Waiting for blocker: `SBOX-DEPENDENCY-BLOCKED`。
+- 没有启动 workers。
 
 ### Health smoke
 
@@ -44,9 +44,9 @@ Key observed behavior:
 npm --prefix scheduler run health -- --db :memory:
 ```
 
-Result: PASS
+结果：PASS
 
-Observed health included `ok: true`, core scheduler tables, `activeRuns: 0`, `pendingOutbox: 0` and `projectControls: 0`.
+输出包含 `ok: true`、核心 scheduler tables、`activeRuns: 0`、`pendingOutbox: 0` 和 `projectControls: 0`。
 
 ### Full scheduler regression
 
@@ -54,9 +54,9 @@ Observed health included `ok: true`, core scheduler tables, `activeRuns: 0`, `pe
 npm --prefix scheduler test
 ```
 
-Result: PASS
+结果：PASS
 
-Summary:
+摘要：
 
 ```text
 tests 57
@@ -65,7 +65,7 @@ fail 0
 duration_ms 908.886944
 ```
 
-Final pre-commit rerun:
+最终 pre-commit rerun：
 
 ```text
 tests 57
@@ -76,21 +76,19 @@ duration_ms 368.276162
 
 ### Path verification
 
-Initial scanner smoke using `scheduler/tests/fixtures/project.json` failed because `npm --prefix scheduler` executes the script with scheduler package path context. The current docs and README now use `tests/fixtures/project.json` for `npm --prefix scheduler` commands.
+首次使用 `scheduler/tests/fixtures/project.json` 的 scanner smoke 失败，因为 `npm --prefix scheduler` 会以 scheduler package path context 执行脚本。当前 docs 和 README 已改为在 `npm --prefix scheduler` 命令中使用 `tests/fixtures/project.json`。
 
-Current grep found no new README/runbook references to the old path; remaining matches are historical task evidence or wiki maintenance notes.
+## 未执行
 
-## Not Executed
+- 针对真实 Linear sandbox 的 `scan project`。
+- 针对真实 GitHub sandbox 的 `delivery track --pr-url`。
+- 针对真实 OpenCode 的 `worker dispatch`。
+- Native Linear writeback。
+- Webhook server / outbox runner。
 
-- `scan project` against real Linear sandbox.
-- `delivery track --pr-url` against real GitHub sandbox.
-- `worker dispatch` against real OpenCode.
-- Native Linear writeback.
-- Webhook server / outbox runner.
+这些仍属于未来 acceptance runbook 的 live/manual stages。
 
-These remain live/manual stages for the future acceptance runbook.
-
-## Artifacts Added
+## 新增 artifacts
 
 - `docs/linear-legion-scheduler/production-acceptance-runbook.md`
 - `scheduler/docs/production-acceptance-checklist.md`
@@ -101,4 +99,4 @@ These remain live/manual stages for the future acceptance runbook.
 - `scheduler/docs/templates/linear-sandbox-issues.md`
 - `scheduler/docs/templates/secrets.linear-scheduler.sops.yaml`
 - `scheduler/tests/fixtures/project.json`
-- PR scenario fixtures under `scheduler/tests/fixtures/`
+- `scheduler/tests/fixtures/` 下的 PR scenario fixtures

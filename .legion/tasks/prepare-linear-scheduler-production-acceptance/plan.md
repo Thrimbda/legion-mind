@@ -1,23 +1,23 @@
-# Prepare Linear Scheduler Production Acceptance
+# 准备 Linear Scheduler 生产验收
 
 ## Contract
 
-- **Name**: Prepare Linear Scheduler Production Acceptance
+- **Name**: 准备 Linear Scheduler 生产验收
 - **Task ID**: `prepare-linear-scheduler-production-acceptance`
-- **Goal**: Prepare a sandbox-first production-like acceptance package for the Linear + Legion Scheduler so operators can safely expose live-read / integration gaps without accidentally treating the local prototype as production ready.
-- **Problem**: The scheduler has passed local prototype acceptance, but production rollout remains blocked by unproven live Linear/GitHub/OpenCode behavior, missing native writeback adapter, missing live project dispatch and missing packaged webhook/server runner. The next step needs precise runbooks, templates, secrets handling and fixtures so the live acceptance can be run safely later.
+- **目标**: 准备一套 sandbox-first 的 production-like acceptance package，让操作者能安全暴露 live-read / integration 缺口，而不会误把本地原型当成 production ready。
+- **Problem**: scheduler 已通过本地原型验收，但生产 rollout 仍被真实 Linear/GitHub/OpenCode 行为未验证、native writeback adapter 缺失、live project dispatch 缺失、packaged webhook/server runner 缺失所阻塞。下一步需要精确的 runbook、templates、secrets handling 和 fixtures，供后续安全执行 live acceptance。
 
 ## Acceptance Criteria
 
-1. Add a production acceptance runbook that states sandbox-first policy, staged acceptance flow, stop/go criteria and known current blockers.
-2. Add scheduler-local checklist/runbooks/templates for sops/age secrets, Linear sandbox setup, GitHub sandbox setup and evidence capture.
-3. Add placeholder-only secret schema for `secrets/linear-scheduler.sops.yaml` using sops YAML + age + `sops exec-env`.
-4. Add or repair committed fixtures so README scan/dispatch fixture commands refer to real files.
-5. Update scheduler README and Linear scheduler docs index with links and accurate safety notes.
-6. Verify local no-secret paths: markdown/JSON sanity, scheduler regression, fixture scan/dispatch smoke where feasible.
-7. Do not implement missing production runtime capabilities, run live acceptance, or commit real secrets.
+1. 新增 production acceptance runbook，明确 sandbox-first policy、staged acceptance flow、stop/go criteria 和当前已知 blockers。
+2. 新增 scheduler-local checklist/runbooks/templates，覆盖 sops/age secrets、Linear sandbox setup、GitHub sandbox setup 和 evidence capture。
+3. 新增只含 placeholder 的 `secrets/linear-scheduler.sops.yaml` schema example，使用 sops YAML + age + `sops exec-env`。
+4. 新增或修复 committed fixtures，让 README 中的 scan/dispatch fixture commands 指向真实文件。
+5. 更新 scheduler README 和 Linear scheduler docs index，补充 links 和准确的安全说明。
+6. 验证本地无 secret 路径：markdown/JSON sanity、scheduler regression、fixture scan/dispatch smoke。
+7. 不实现缺失的生产 runtime 能力，不运行 live acceptance，不提交真实 secrets。
 
-## Scope
+## 范围
 
 - `docs/linear-legion-scheduler/production-acceptance-runbook.md`
 - `docs/linear-legion-scheduler/index.md`
@@ -31,49 +31,49 @@
 
 ## Non-goals
 
-- No live production or sandbox acceptance execution in this task.
-- No real Linear/GitHub/OpenCode credential creation or decryption.
-- No committed encrypted secret instance containing real credentials.
-- No Linear native writeback adapter implementation.
-- No live `dispatch project` implementation.
-- No webhook server/outbox daemon implementation.
-- No OpenCode worker dispatch behavior changes.
-- No claim that sandbox acceptance equals production readiness.
+- 不执行真实 production 或 sandbox acceptance。
+- 不创建或解密真实 Linear/GitHub/OpenCode credentials。
+- 不提交含真实 credentials 的 encrypted secret instance。
+- 不实现 Linear native writeback adapter。
+- 不实现 live `dispatch project`。
+- 不实现 webhook server / outbox daemon。
+- 不修改 OpenCode worker dispatch behavior。
+- 不宣称 sandbox acceptance 等于 production readiness。
 
 ## Assumptions
 
-- User confirmed sandbox-first acceptance.
-- User will manage real credentials under repo-local `secrets/` using sops YAML encrypted with age.
-- Acceptance commands should use `sops exec-env` so plaintext credentials do not land on disk.
-- Missing runtime capabilities should be documented as expected blockers rather than silently worked around.
+- 用户确认 sandbox-first acceptance。
+- 用户会在 repo-local `secrets/` 下管理真实 credentials，并用 sops YAML + age 加密。
+- Acceptance commands 应通过 `sops exec-env` 注入 credentials，避免 plaintext 落盘。
+- 缺失 runtime capabilities 应作为 expected blockers 记录，而不是绕过。
 
 ## Constraints
 
-- All implementation happens in `.worktrees/prepare-linear-scheduler-production-acceptance/`.
-- Persistent artifacts and temporary acceptance outputs must stay repo-local.
-- Secret templates must contain placeholders only.
-- Docs must distinguish external read + DB write from true read-only behavior.
+- 所有实现发生在 `.worktrees/prepare-linear-scheduler-production-acceptance/`。
+- Persistent artifacts 和 temporary acceptance outputs 必须留在 repo-local 路径。
+- Secret templates 只能包含 placeholders。
+- Docs 必须区分 external read + DB write 与真正的 read-only。
 
 ## Risks
 
-- Runbooks can become dangerous if they imply `scan project` or `delivery track` are pure read-only; both write scheduler DB state.
-- Operators may mistake fixture dispatch for live dispatch; docs must state live `dispatch project` is not implemented.
-- Native writeback and webhook packaging gaps are production blockers; they should be visible in the checklist.
-- README examples currently reference missing fixtures and path contexts; this task should fix that drift.
+- 如果 runbook 暗示 `scan project` 或 `delivery track` 是纯只读，会造成危险误解；两者都会写 scheduler DB state。
+- Operator 可能把 fixture dispatch 误当成 live dispatch；docs 必须明确 live `dispatch project` 未实现。
+- Native writeback 和 webhook packaging 是 production blockers，必须出现在 checklist 中。
+- README 示例曾引用缺失 fixture 和错误 path context，本任务需要修正该漂移。
 
-## Design Summary
+## 设计摘要
 
-- Build a documentation-first acceptance package, supported by committed fake fixtures.
-- Keep a single top-level production acceptance runbook as the reviewer/operator entry point.
-- Put operational details under `scheduler/docs/runbooks/` and reusable capture forms under `scheduler/docs/templates/`.
-- Keep `scheduler/README.md` concise and link to the deeper runbooks.
-- Validate with local tests and fixture commands only; leave live acceptance as a future operator action using encrypted secrets.
+- 交付 documentation-first acceptance package，并配套 fake fixtures。
+- 使用单一 top-level production acceptance runbook 作为 reviewer/operator 入口。
+- 操作细节放在 `scheduler/docs/runbooks/`，可复用记录表放在 `scheduler/docs/templates/`。
+- `scheduler/README.md` 保持简洁，链接到更深层 runbooks。
+- 只用 local tests 和 fixture commands 验证；live acceptance 留给后续 operator 使用 encrypted secrets 执行。
 
 ## Phases
 
-1. Materialize task docs and open worktree.
-2. Add production acceptance runbook, checklist, runbooks and templates.
-3. Add fake project fixture and optional PR fixtures; update README/docs links.
-4. Run local verification and fix documentation/fixture issues.
-5. Produce test report, review, walkthrough and wiki writeback.
-6. Complete PR lifecycle.
+1. 物化任务 docs 并打开 worktree。
+2. 添加 production acceptance runbook、checklist、runbooks 和 templates。
+3. 添加 fake project fixture 和 PR fixtures，更新 README/docs links。
+4. 运行本地验证并修正文档/fixture 问题。
+5. 产出 test report、review、walkthrough 和 wiki writeback。
+6. 完成 PR lifecycle。

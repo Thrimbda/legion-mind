@@ -2,15 +2,15 @@
 
 ## 2026-06-26
 
-- User approved plan `.opencode/plans/1782387078380-stellar-orchid.md` and requested execution.
-- Loaded `legion-workflow`, `brainstorm` and `git-worktree-pr` gates.
-- Task contract is stable from the approved plan and user confirmations: sandbox-first, sops YAML, age, `sops exec-env`, preparation package only, no production execution and no missing runtime implementation.
-- Created worktree `.worktrees/prepare-linear-scheduler-production-acceptance/` on branch `legion/prepare-linear-scheduler-production-acceptance-runbook` from `origin/master`.
-- Added production acceptance runbook, scheduler checklist, secrets/Linear/GitHub runbooks, acceptance evidence and sandbox issue templates, placeholder-only sops YAML schema, fake project fixture and PR scenario fixtures.
-- Updated scheduler README and Linear scheduler index with production acceptance links, command safety notes, fixture path fixes and current production blockers.
-- Local no-secret verification passed: fixture scan, fixture dispatch, health smoke and full `npm --prefix scheduler test` (57/57). Initial old fixture path failed, confirming the README/runbook path correction.
-- Completed `review-change` self-review with PASS. Scope remains docs/templates/fixtures only; no runtime code, real secrets or live acceptance execution.
-- Generated reviewer walkthrough and PR body from existing deliverables and verification evidence.
-- Completed `legion-wiki` writeback with task summary, index update, maintenance update and wiki log entry.
-- Final pre-commit scheduler regression rerun passed: `npm --prefix scheduler test` -> 57/57.
-- Committed, rebased on `origin/master`, pushed branch `legion/prepare-linear-scheduler-production-acceptance-runbook`, and opened PR: https://github.com/Thrimbda/legion-mind/pull/44.
+- 用户批准 `.opencode/plans/1782387078380-stellar-orchid.md` 并要求执行。
+- 加载 `legion-workflow`、`brainstorm` 和 `git-worktree-pr` gate。
+- 任务 contract 来自已批准计划与用户确认：sandbox-first、sops YAML、age、`sops exec-env`、只准备验收包、不执行 production、不实现缺失 runtime 能力。
+- 创建 worktree `.worktrees/prepare-linear-scheduler-production-acceptance/`，分支 `legion/prepare-linear-scheduler-production-acceptance-runbook`，base 为 `origin/master`。
+- 添加 production acceptance runbook、scheduler checklist、secrets/Linear/GitHub runbooks、acceptance evidence template、sandbox issue template、placeholder-only sops YAML schema、fake project fixture 和 PR scenario fixtures。
+- 更新 scheduler README 和 Linear scheduler index，补充 production acceptance links、command safety notes、fixture path fixes 和当前 production blockers。
+- 本地无 secret 验证通过：fixture scan、fixture dispatch、health smoke、`npm --prefix scheduler test` 57/57。首次旧 fixture path 失败，验证了 README/runbook path correction 的必要性。
+- `review-change` 自审 PASS。Scope 仍是 docs/templates/fixtures；未改 runtime code、未加入真实 secrets、未执行 live acceptance。
+- 基于现有 deliverables 和 verification evidence 生成 reviewer walkthrough 与 PR body。
+- 完成 `legion-wiki` writeback：task summary、index update、maintenance update、wiki log entry。
+- 最终 pre-commit scheduler regression rerun 通过：`npm --prefix scheduler test` -> 57/57。
+- 提交、rebase 到 `origin/master`、推送分支 `legion/prepare-linear-scheduler-production-acceptance-runbook`，并创建 PR：https://github.com/Thrimbda/legion-mind/pull/44。

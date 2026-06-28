@@ -1,51 +1,51 @@
-# PR Tracking and Linear Delivery Writeback
+# PR Tracking 与 Linear Delivery Writeback
 
-> **WI**: [WI-05 PR tracking and Linear delivery writeback](work-items/WI-05-delivery-pr-writeback.md)<br>
-> **Status**: WI-05 delivery artifact<br>
-> **Runtime**: standalone `scheduler/` npm project<br>
-> **Design source**: [RFC](rfc.md), [WI-04 worker runner](worker-runner.md)
+> **WI**: [WI-05 PR tracking 与 Linear delivery writeback](work-items/WI-05-delivery-pr-writeback.md)<br>
+> **状态**: WI-05 交付物<br>
+> **运行时**: 独立 `scheduler/` npm project<br>
+> **设计来源**: [RFC](rfc.md), [WI-04 worker runner](worker-runner.md)
 
-## 1. What WI-05 delivers
+## 1. WI-05 交付内容
 
-WI-05 adds the scheduler-side delivery layer that observes GitHub PR state after a worker has produced a PR. The worker runner can still parse PR URLs and verify Legion evidence, but it no longer treats a worker-reported `done` result as terminal success by itself. Terminal success now requires the PR tracker to combine:
+WI-05 增加 scheduler-side delivery layer，用来在 worker 产出 PR 后观察 GitHub PR state。Worker runner 仍能解析 PR URL 并验证 Legion evidence，但不再把 worker 自报的 `done` 结果单独视为 terminal success。现在 terminal success 必须由 PR tracker 组合判断：
 
-1. persisted scheduler run identity and PR URL;
-2. GitHub PR snapshot: open/draft, checks, review, merged/closed state;
-3. scheduler-side Legion evidence verifier result;
-4. `git-worktree-pr` lifecycle evidence: PR merged, checks/review complete, worktree removed, main refreshed;
-5. final Linear native writeback queued idempotently.
+1. 持久化的 scheduler run identity 和 PR URL；
+2. GitHub PR snapshot：open/draft、checks、review、merged/closed state；
+3. scheduler-side Legion evidence verifier result；
+4. `git-worktree-pr` lifecycle evidence：PR merged、checks/review complete、worktree removed、main refreshed；
+5. 最终 Linear native writeback 被幂等排队。
 
-Delivered source:
+交付源码：
 
-| Path | Purpose |
+| 路径 | 用途 |
 |---|---|
-| `scheduler/src/pr-tracker.ts` | PR snapshot model, GitHub adapter boundary, PR delivery decision mapping, terminal success/non-success gate and Linear writeback outbox enqueueing |
-| `scheduler/src/sqlite-store.ts` | Adds WI-05 native writeback side effects and migration guard; exposes evaluated snapshot lookup for risk-aware evidence verification |
-| `scheduler/src/worker-runner.ts` | Changes worker `done` handling to wait in `in_review` until PR tracker verifies GitHub terminal state; extends native adapter payloads for comments, labels and state mapping |
-| `scheduler/src/cli.ts` | Adds `delivery track` debug command with fixture or GitHub REST mode |
-| `scheduler/tests/linear-pr-tracker.test.ts` | PR state mapping, terminal gate, writeback idempotency, evidence/lifecycle negative cases and CLI fixture coverage |
+| `scheduler/src/pr-tracker.ts` | PR snapshot model、GitHub adapter boundary、PR delivery decision mapping、terminal success/non-success gate 和 Linear writeback outbox enqueueing |
+| `scheduler/src/sqlite-store.ts` | 增加 WI-05 native writeback side effects 和 migration guard；暴露 evaluated snapshot lookup 供 risk-aware evidence verification 使用 |
+| `scheduler/src/worker-runner.ts` | 把 worker `done` handling 改为停在 `in_review`，直到 PR tracker 验证 GitHub terminal state；扩展 comments、labels 和 state mapping 的 native adapter payloads |
+| `scheduler/src/cli.ts` | 增加支持 fixture 或 GitHub REST mode 的 `delivery track` debug command |
+| `scheduler/tests/linear-pr-tracker.test.ts` | 覆盖 PR state mapping、terminal gate、writeback idempotency、evidence/lifecycle negative cases 和 CLI fixture |
 
 ## 2. PR delivery decision model
 
-`trackPrDelivery(store, client, options)` is the scheduler entry point. It reads the run from DB, resolves the PR URL from explicit input or `runs.pr_url`, fetches a `PullRequestSnapshot` through the adapter, records `pr_snapshot_observed`, and applies the centralized decision table:
+`trackPrDelivery(store, client, options)` 是 scheduler entry point。它从 DB 读取 run，从显式输入或 `runs.pr_url` 解析 PR URL，通过 adapter 获取 `PullRequestSnapshot`，记录 `pr_snapshot_observed`，并应用集中 decision table：
 
 | PR snapshot | Run effect | Downstream unlock |
 |---|---|---|
-| open / draft / pending checks / review required | `queued/running/blocked -> in_review`; `delivery_gate_status = pending`; PR external URL and in-review activity/plan/state/labels enqueued | no |
+| open / draft / pending checks / review required | `queued/running/blocked -> in_review`；`delivery_gate_status = pending`；enqueue PR external URL 和 in-review activity/plan/state/labels | no |
 | checks failing | `blocked`, `failure_type = pr_blocked` | no |
 | review changes requested | `blocked`, `failure_type = pr_blocked` | no |
-| merged + checks/review resolved + Legion evidence PASS + lifecycle complete | `done`, `delivery_gate_status = passed`, `evidence_status = passed`, locks released, downstream reconcile event recorded, final response/comment/state/labels enqueued | yes |
+| merged + checks/review resolved + Legion evidence PASS + lifecycle complete | `done`, `delivery_gate_status = passed`, `evidence_status = passed`, locks released, downstream reconcile event recorded, enqueue final response/comment/state/labels | yes |
 | merged + missing Legion evidence | `blocked`, `failure_type = legion_evidence_missing` | no |
 | merged + lifecycle evidence incomplete | `blocked`, `failure_type = lifecycle_blocked` | no |
-| closed-unmerged / rejected / duplicate | terminal non-success (`failed`), delivery gate failed, locks released, final non-success writeback enqueued | no |
-| cancelled | terminal non-success (`cancelled`) | no |
-| abandoned / superseded | terminal non-success (`abandoned`) | no |
+| closed-unmerged / rejected / duplicate | terminal non-success（`failed`），delivery gate failed，locks released，enqueue final non-success writeback | no |
+| cancelled | terminal non-success（`cancelled`） | no |
+| abandoned / superseded | terminal non-success（`abandoned`） | no |
 
-`done` is still not sufficient by name alone. Downstream only unlocks through `SchedulerStore.isBlockerSatisfiedByRun()` when `state = done`, `delivery_gate_status = passed` and `evidence_status = passed`.
+仅凭名称 `done` 仍然不够。Downstream 只会在 `state = done`、`delivery_gate_status = passed`、`evidence_status = passed` 同时成立时，通过 `SchedulerStore.isBlockerSatisfiedByRun()` unlock。
 
 ## 3. GitHub adapter boundary
 
-The tracker uses a small adapter interface:
+Tracker 使用一个小 adapter interface：
 
 ```ts
 interface GitHubPrClient {
@@ -53,47 +53,47 @@ interface GitHubPrClient {
 }
 ```
 
-Two adapters exist:
+当前有两个 adapters：
 
-- `StaticPullRequestClient` for fixtures and unit/integration tests.
-- `createGitHubRestPullRequestClient()` for debug/prototype use with GitHub REST. It fetches the PR, check-runs for the head SHA, and PR reviews. A token can be supplied through `GITHUB_TOKEN` or the CLI `--token-env` override.
+- `StaticPullRequestClient`：用于 fixtures 和 unit/integration tests。
+- `createGitHubRestPullRequestClient()`：用于 GitHub REST debug/prototype。它会读取 PR、head SHA 的 check-runs，以及 PR reviews。Token 可通过 `GITHUB_TOKEN` 或 CLI `--token-env` override 提供。
 
-The unit tests do not require network access. Production policy should still provide least-privilege GitHub token scope and rate-limit handling before long-running operation.
+Unit tests 不需要 network access。Production policy 仍应在 long-running operation 前提供 least-privilege GitHub token scope 和 rate-limit handling。
 
 ## 4. Linear native writeback outbox
 
-WI-05 keeps Linear as presentation/control plane. All writeback is queued through `native_outbox` with deterministic idempotency keys so repeated reconcile does not spam activities/comments.
+WI-05 保持 Linear 只是 presentation/control plane。所有 writeback 都通过 `native_outbox` 排队，并使用 deterministic idempotency keys，避免 repeated reconcile 刷屏 activities/comments。
 
-New side-effect payloads added to the native outbox contract:
+新增到 native outbox contract 的 side-effect payloads：
 
-| Side effect | Intended adapter behavior |
+| Side effect | 预期 adapter 行为 |
 |---|---|
-| `update_issue_state` | Map scheduler state (`in_review`, `blocked`, `done`, terminal non-success) to configured Linear workflow state, e.g. In Review / Done |
-| `update_issue_labels` | Add/remove coarse labels such as `agent:running`, `agent:blocked`, `agent:needs-human`, `agent:done` |
-| `create_comment` | Create final summary or compatibility comment when a durable comment is required |
+| `update_issue_state` | 把 scheduler state（`in_review`, `blocked`, `done`, terminal non-success）映射到配置好的 Linear workflow state，例如 In Review / Done |
+| `update_issue_labels` | 添加 / 移除 coarse labels，例如 `agent:running`, `agent:blocked`, `agent:needs-human`, `agent:done` |
+| `create_comment` | 当需要 durable comment 时，创建 final summary 或 compatibility comment |
 
-Existing side effects remain in use:
+既有 side effects 仍继续使用：
 
-- `create_activity` for PR created / blocked / error / final progress;
-- `update_external_urls` for GitHub PR URL;
-- `update_plan` for session checklist;
-- `final_response` for terminal native agent response.
+- `create_activity`：用于 PR created / blocked / error / final progress；
+- `update_external_urls`：用于 GitHub PR URL；
+- `update_plan`：用于 session checklist；
+- `final_response`：用于 terminal native agent response。
 
-Final summary payloads include PR URL, Legion task path, result, checks/review summary, `git-worktree-pr` lifecycle summary, downstream reconcile status and terminal kind.
+Final summary payloads 包含 PR URL、Legion task path、result、checks/review summary、`git-worktree-pr` lifecycle summary、downstream reconcile status 和 terminal kind。
 
 ## 5. Worker runner integration
 
-Before WI-05, `processOpenCodeWorkerDispatch()` could transition a worker-reported `done` result to `done` after evidence verification. WI-05 changes that boundary:
+WI-05 之前，`processOpenCodeWorkerDispatch()` 可以在 evidence verification 后，把 worker 自报的 `done` 结果转为 `done`。WI-05 改变了这个边界：
 
-1. Worker `done` + evidence PASS now becomes `in_review` with `evidence_status = passed`.
-2. The worker dispatch outbox row is marked sent, and a `pr_tracking_required` event is recorded.
-3. The PR tracker must later verify GitHub merged/checks/review state before terminal success.
+1. Worker `done` + evidence PASS 现在变成 `in_review`，并设置 `evidence_status = passed`。
+2. Worker dispatch outbox row 标记为 sent，并记录 `pr_tracking_required` event。
+3. PR tracker 后续必须验证 GitHub merged/checks/review state，才能给出 terminal success。
 
-This prevents worker self-attestation or lifecycle evidence alone from unlocking downstream WIs.
+这可以防止 worker self-attestation 或 lifecycle evidence 单独 unlock downstream WIs。
 
-## 6. Debug command
+## 6. Debug 命令
 
-Fixture mode:
+Fixture mode：
 
 ```bash
 npm --prefix scheduler run debug -- delivery track \
@@ -103,7 +103,7 @@ npm --prefix scheduler run debug -- delivery track \
   --db .cache/linear-scheduler/dev.sqlite
 ```
 
-GitHub REST mode:
+GitHub REST mode：
 
 ```bash
 GITHUB_TOKEN=... npm --prefix scheduler run debug -- delivery track \
@@ -113,10 +113,10 @@ GITHUB_TOKEN=... npm --prefix scheduler run debug -- delivery track \
   --db .cache/linear-scheduler/dev.sqlite
 ```
 
-The command updates scheduler DB state and enqueues native writeback rows. It does not directly call Linear; native outbox processing remains adapter-driven.
+该命令会更新 scheduler DB state，并 enqueue native writeback rows。它不会直接调用 Linear；native outbox processing 仍由 adapter 驱动。
 
-## 7. Boundaries for later WIs
+## 7. 后续 WI 边界
 
-- WI-06 can now rely on `run_terminal_success` as the default downstream unlock signal when adding parallel dispatch and resource locks.
-- WI-07 still owns webhook ingestion, retry/backoff, stale recovery and long-running native outbox workers.
-- WI-08 still owns production-grade GitHub/Linear token policy, metrics, admin UX and security hardening.
+- WI-06 添加 parallel dispatch 和 resource locks 时，可以把 `run_terminal_success` 作为默认 downstream unlock signal。
+- WI-07 仍负责 webhook ingestion、retry/backoff、stale recovery 和 long-running native outbox workers。
+- WI-08 仍负责 production-grade GitHub/Linear token policy、metrics、admin UX 和 security hardening。
