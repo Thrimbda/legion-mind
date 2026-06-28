@@ -1,13 +1,13 @@
-# Report Walkthrough: Prepare Linear Scheduler Production Acceptance
+# 交付说明：准备 Linear Scheduler 生产验收
 
-## Mode
+## 模式
 
-Documentation / fixture delivery with implementation-chain verification evidence. No scheduler runtime code changed.
+文档 / fixture 交付，带实现链路验证证据。未修改 scheduler runtime code。
 
-## What Changed
+## 改了什么
 
-- Added a top-level production acceptance runbook: `docs/linear-legion-scheduler/production-acceptance-runbook.md`.
-- Added scheduler-local acceptance assets:
+- 新增 top-level production acceptance runbook：`docs/linear-legion-scheduler/production-acceptance-runbook.md`。
+- 新增 scheduler-local acceptance assets：
   - `scheduler/docs/production-acceptance-checklist.md`
   - `scheduler/docs/runbooks/secrets-sops.md`
   - `scheduler/docs/runbooks/linear-sandbox-setup.md`
@@ -15,32 +15,32 @@ Documentation / fixture delivery with implementation-chain verification evidence
   - `scheduler/docs/templates/acceptance-evidence.md`
   - `scheduler/docs/templates/linear-sandbox-issues.md`
   - `scheduler/docs/templates/secrets.linear-scheduler.sops.yaml`
-- Added fake fixture coverage: `scheduler/tests/fixtures/project.json` plus draft/failing/merged/closed PR fixtures.
-- Updated `scheduler/README.md` and `docs/linear-legion-scheduler/index.md` to point operators at the acceptance package and current blockers.
-- Fixed fixture path examples for `npm --prefix scheduler` command context.
+- 新增 fake fixture coverage：`scheduler/tests/fixtures/project.json`，以及 draft/failing/merged/closed PR fixtures。
+- 更新 `scheduler/README.md` 和 `docs/linear-legion-scheduler/index.md`，引导 operator 使用 acceptance package，并看见当前 blockers。
+- 修正 `npm --prefix scheduler` command context 下的 fixture path examples。
 
-## Main Reviewer Takeaway
+## Reviewer 重点
 
-This prepares acceptance execution; it does not run production acceptance and does not implement missing production capabilities.
+这次只是准备 acceptance execution，不执行 production acceptance，也不实现缺失的 production capabilities。
 
-The package keeps these blockers visible:
+Package 明确保留这些 blockers：
 
-- Missing production Linear native writeback adapter.
-- Missing live `dispatch project` command.
-- Missing packaged webhook server/outbox runner.
-- Real OpenCode worker E2E remains a later sandbox-only stage.
+- 缺 production Linear native writeback adapter。
+- 缺 live `dispatch project` command。
+- 缺 packaged webhook server/outbox runner。
+- 真实 OpenCode worker E2E 仍是后续 sandbox-only stage。
 
-## Verification
+## 验证
 
-- `scan fixture` with `tests/fixtures/project.json` — PASS.
-- `dispatch fixture` with `tests/fixtures/project.json` — PASS.
-- `health --db :memory:` — PASS.
-- `npm --prefix scheduler test` — PASS, 57/57.
-- `review-change` verdict — PASS.
+- `scan fixture` + `tests/fixtures/project.json` — PASS。
+- `dispatch fixture` + `tests/fixtures/project.json` — PASS。
+- `health --db :memory:` — PASS。
+- `npm --prefix scheduler test` — PASS, 57/57。
+- `review-change` verdict — PASS。
 
-## Suggested Review Focus
+## 建议 review 重点
 
-1. Confirm the runbook does not imply production readiness.
-2. Confirm commands match existing CLI capabilities and mark DB-mutating behavior clearly.
-3. Confirm secret templates contain placeholders only.
-4. Confirm fake fixtures exercise the intended sandbox cases.
+1. 确认 runbook 没有暗示 production readiness。
+2. 确认 commands 与现有 CLI capabilities 一致，并清楚标注 DB-mutating behavior。
+3. 确认 secret templates 只含 placeholders。
+4. 确认 fake fixtures 覆盖预期 sandbox cases。

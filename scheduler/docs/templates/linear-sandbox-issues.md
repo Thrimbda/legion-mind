@@ -1,6 +1,6 @@
-# Linear Sandbox Issues Template
+# Linear Sandbox Issues 模板
 
-Create these issues in the Linear sandbox project. Replace identifiers with your workspace's actual generated issue keys after creation.
+在 Linear sandbox project 中创建这些 issues。创建后，用 workspace 实际生成的 issue keys 替换示例 identifiers。
 
 ## SBOX-READY
 
@@ -13,7 +13,7 @@ Labels:
 - `risk:low`
 - `area:docs`
 
-Expected: ready.
+预期：ready。
 
 ## SBOX-MANUAL-DONE
 
@@ -26,7 +26,7 @@ Labels:
 - `repo:legion-mind`
 - `risk:low`
 
-Expected: not candidate; can satisfy a blocker only through the manual Done policy when no active agent labels are present.
+预期：不是 candidate；只有没有 active agent labels 时，才可通过 manual Done policy 满足 blocker。
 
 ## SBOX-BLOCKED-BY-MANUAL
 
@@ -41,7 +41,7 @@ Labels:
 - `risk:low`
 - `area:api`
 
-Expected: ready after manual blocker satisfaction policy.
+预期：manual blocker satisfied 后 ready。
 
 ## SBOX-UPSTREAM-ACTIVE
 
@@ -56,7 +56,7 @@ Labels:
 - `risk:medium`
 - `area:api`
 
-Expected: not candidate and not blocker-satisfied.
+预期：不是 candidate，且 blocker 未满足。
 
 ## SBOX-DEPENDENCY-BLOCKED
 
@@ -71,7 +71,7 @@ Labels:
 - `risk:medium`
 - `area:ui`
 
-Expected: skipped `dependency_blocked`.
+预期：skipped `dependency_blocked`。
 
 ## SBOX-NEEDS-HUMAN
 
@@ -85,7 +85,7 @@ Labels:
 - `risk:medium`
 - `area:docs`
 
-Expected: skipped `human_gate`.
+预期：skipped `human_gate`。
 
 ## SBOX-CONTRACT-MISSING
 
@@ -97,7 +97,7 @@ Labels:
 - `risk:low`
 - `area:docs`
 
-Expected: skipped `contract_not_stable`.
+预期：skipped `contract_not_stable`。
 
 ## SBOX-RISK-MISSING
 
@@ -109,7 +109,7 @@ Labels:
 - `repo:legion-mind`
 - `area:docs`
 
-Expected: skipped `risk_missing`.
+预期：skipped `risk_missing`。
 
 ## SBOX-LOCK-A
 
@@ -122,7 +122,7 @@ Labels:
 - `risk:medium`
 - `area:api`
 
-Expected: ready; can be claimed in fixture dispatch.
+预期：ready；可在 fixture dispatch 中被 claim。
 
 ## SBOX-LOCK-B
 
@@ -135,41 +135,41 @@ Labels:
 - `risk:medium`
 - `area:api`
 
-Expected: waits for `area:legion-mind/api` when `SBOX-LOCK-A` is planned/claimed.
+预期：当 `SBOX-LOCK-A` 已 planned / claimed 时，等待 `area:legion-mind/api`。
 
-## Copyable Body
+## 可复制 Body
 
 ```md
-## Goal
+## 目标
 
-Sandbox-only scheduler acceptance case. This issue must not touch production code or production Linear work.
+仅用于 sandbox scheduler acceptance。这个 issue 不得触碰生产代码或生产 Linear 工作。
 
-## Acceptance Criteria
-- [ ] Scheduler read-path classifies this issue as expected.
-- [ ] Evidence is recorded in the acceptance report.
+## 验收标准
+- [ ] Scheduler read-path 按预期分类该 issue。
+- [ ] 证据已记录到 acceptance report。
 
-## Scope
-- Sandbox acceptance only.
+## 范围
+- 仅限 sandbox acceptance。
 
-## Out of Scope
-- Production code changes.
-- Production Linear writeback.
+## 非范围
+- Production code changes。
+- Production Linear writeback。
 
-## Dependencies / Blockers
-- Blocks: <fill if applicable>
-- Blocked by: <fill if applicable>
+## 依赖 / Blockers
+- Blocks: <按需填写>
+- Blocked by: <按需填写>
 
-## Repo / Package
+## 仓库 / Package
 - repo: legion-mind
 - area: <docs|api|ui>
 
-## Risk Level
+## 风险等级
 - risk: low
 - design gate hint: none
 
-## Verification
-- Run `scan project` against the sandbox project.
+## 验证
+- 针对 sandbox project 运行 `scan project`。
 
-## Delivery Notes
-- No worker should run unless a later stage explicitly approves it.
+## 交付说明
+- 除非后续阶段明确批准，否则不应运行 worker。
 ```
