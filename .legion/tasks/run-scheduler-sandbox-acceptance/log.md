@@ -16,3 +16,4 @@
 - `review-change` PASS for evidence delivery；acceptance result remains `BLOCKED`。
 - 生成 reviewer walkthrough 和 PR body。
 - 完成 wiki writeback：新增 task summary，并更新 wiki index / maintenance / log。
+- 提交并推送分支 `legion/run-scheduler-sandbox-acceptance-evidence`，创建 PR：https://github.com/Thrimbda/legion-mind/pull/46。
