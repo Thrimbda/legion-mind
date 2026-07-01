@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-07-01] writeback | run-scheduler-sandbox-acceptance
+
+- 新增 `tasks/run-scheduler-sandbox-acceptance.md`，记录 Linear + Legion Scheduler sandbox-first 验收执行结果。
+- 更新 index：本地 regression/health/fixture scan/fixture dispatch 均 PASS；live Linear/GitHub/worker stages 因 secret/run row/worker approval 前置条件缺失而 BLOCKED。
+- 更新 maintenance：继续 live 验收前需要 encrypted sandbox-only secret、age/sops key access、live `SCHEDULER_RUN_ID`，以及 Stage 5 worker E2E 的 explicit approval 和 run/attempt/outbox 状态。
+
 ## [2026-06-26] writeback | prepare-linear-scheduler-production-acceptance
 
 - 在 `tasks/` 下新增 `prepare-linear-scheduler-production-acceptance` 任务摘要。
