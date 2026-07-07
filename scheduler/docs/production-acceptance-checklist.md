@@ -2,6 +2,8 @@
 
 在 sandbox-first production-like acceptance 之前和过程中使用这份 checklist。
 
+如果需要逐步执行版 checklist，使用 [`sandbox-acceptance-checklist.md`](sandbox-acceptance-checklist.md)。
+
 ## 1. 前置检查
 
 - [ ] 已指定 acceptance owner。

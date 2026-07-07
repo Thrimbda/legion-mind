@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-07-07] writeback | add-sandbox-acceptance-checklist
+
+- 新增 `tasks/add-sandbox-acceptance-checklist.md`，记录 sandbox 验收逐步 checkbox 文档。
+- 更新 index：operator-facing 执行版文档为 `scheduler/docs/sandbox-acceptance-checklist.md`，现有 `production-acceptance-checklist.md` 已加入入口链接。
+- 记录该文档保持 sandbox-only、Stage 5 worker gating、stop conditions 与 production blockers。
+
 ## [2026-07-01] writeback | run-scheduler-sandbox-acceptance
 
 - 新增 `tasks/run-scheduler-sandbox-acceptance.md`，记录 Linear + Legion Scheduler sandbox-first 验收执行结果。
