@@ -11,3 +11,4 @@
 - `review-change` PASS；security lens 已应用，无 blocker。
 - 生成 reviewer walkthrough 和 PR body。
 - 完成 wiki writeback：新增 task summary，并更新 wiki index / log。
+- 提交并推送分支 `legion/add-sandbox-acceptance-checklist`，创建 PR：https://github.com/Thrimbda/legion-mind/pull/47。
