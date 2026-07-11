@@ -51,14 +51,16 @@ description: 适用于在由 Legion 管理的仓库中开始或恢复任何非�
 - 只有 `legion-workflow` 和 `SUBAGENT_DISPATCH_MATRIX.md` 可以定义运行模式与阶段顺序。
 - 阶段工作必须真实加载对应 skill 或派生对应阶段子代理；不得凭记忆模拟 `brainstorm`、`spec-rfc`、`review-rfc`、`engineer`、`verify-change`、`review-change`、`report-walkthrough` 或 `legion-wiki`。
 - 对非 bypass 且会修改仓库文件的开发任务，稳定 contract 后必须进入 `git-worktree-pr` envelope；主工作区只允许准备、只读检查与最终刷新。
+- `review-rfc`、`verify-change`、`review-change` 完成后，orchestrator 必须在派生下一阶段或执行普通回退前投影其会话注意力摘要，并执行 `references/REF_HUMAN_ATTENTION.md` 的 attention 门禁。
 
 ## 真源
 
 1. `skills/legion-workflow/SKILL.md`
 2. `references/SUBAGENT_DISPATCH_MATRIX.md`
-3. 阶段技能：`brainstorm`、`spec-rfc`、`review-rfc`、`engineer`、`verify-change`、`review-change`、`report-walkthrough`、`legion-wiki`
-4. `git-worktree-pr` 是修改型开发任务的仓库 lifecycle envelope，可以包裹这些模式，但绝不能定义第四种模式或另一套阶段链
-5. 运行时入口包装层可以映射这些模式，但绝不能再定义另一套流程
+3. `references/REF_HUMAN_ATTENTION.md`：会话注意力摘要、四级 attention、噪音控制与 lifecycle 门禁的单一真源
+4. 阶段技能：`brainstorm`、`spec-rfc`、`review-rfc`、`engineer`、`verify-change`、`review-change`、`report-walkthrough`、`legion-wiki`
+5. `git-worktree-pr` 是修改型开发任务的仓库 lifecycle envelope，可以包裹这些模式，但绝不能定义第四种模式或另一套阶段链
+6. 运行时入口包装层可以映射这些模式，但绝不能再定义另一套流程
 
 ## 适用时机
 
@@ -89,6 +91,7 @@ description: 适用于在由 Legion 管理的仓库中开始或恢复任何非�
 7. contract 稳定后，才选择三种执行模式之一；若任务会修改仓库文件，先打开 `git-worktree-pr` envelope，再在 worktree 中按 `SUBAGENT_DISPATCH_MATRIX.md` 真实加载阶段 skill 或派生阶段子代理。
 8. 实现链和设计链收口时，按适用阶段真实执行 `report-walkthrough` 与 `legion-wiki`；不要因为测试通过或上下文成本高而省略。
 9. PR-backed 开发任务的 done 还要求 PR merged，或 closed / confirmed abandoned 且原因和下一步已记录；后续 review/checks 已处理、worktree 已删除、主工作区已刷新。PR 创建、blocked handoff、保留 worktree 或跳过刷新都不是完成。
+10. 每次收到 `review-rfc`、`verify-change` 或 `review-change` handoff，先核对摘要已内嵌于阶段证据，再按 `REF_HUMAN_ATTENTION.md` 投影并执行 `none / skim / review / decide` 门禁；投影未发生时不得派生下一阶段。
 
 ### 入口状态机
 
@@ -170,6 +173,8 @@ flowchart TD
 
 阻塞完成的情况包括：`review-rfc` FAIL、`verify-change` FAIL、实现缺口、`review-change` FAIL、设计/实现不一致、跳过 `report-walkthrough` 或跳过 `legion-wiki`。对应回退点分别是 `spec-rfc`、`engineer`、`spec-rfc -> review-rfc`，或返回缺失的 closing stage。
 
+上述普通回退受 attention 硬门约束。`decide` 优先于阶段 `FAIL`：立即停止阶段转换、自动重试和普通回退，等待决定按要求写入 `log.md`、状态同步到 `tasks.md` 后，再从声明的恢复阶段重跑。`review` 允许继续准备后续证据、walkthrough、wiki 与 PR 审阅材料，但不得启用 auto-merge、执行 merge、cleanup 或宣告完成。完整 matrix 与恢复规则只认 `references/REF_HUMAN_ATTENTION.md`。
+
 ## 阶段规则
 
 - `brainstorm` 负责任务契约的创建与重写。
@@ -181,6 +186,7 @@ flowchart TD
 - `legion-wiki` 是强制性的收口写回阶段。
 - 运行模式只决定允许的阶段链；阶段顺序仍由真源定义。
 - 每个阶段都必须真实加载对应 skill 或派生对应子代理；“我记得这个 skill 怎么做”不是合规执行。
+- `review-rfc`、`verify-change`、`review-change` 必须把统一的 `## 会话注意力摘要` 内嵌到各自既有证据并在 handoff 原样返回；这不是新增阶段或新文档。
 
 ## 运行状态
 
@@ -197,6 +203,8 @@ flowchart TD
 - 恢复任务状态
 - 写入 `.legion` 核心文件
 - 选择下一阶段
+- 在适用阶段结束后投影低噪音会话注意力摘要
+- 把 `review` 复核或 `decide` 决定持久化到 `log.md`，并同步 `tasks.md` 的等待与恢复状态
 - 加载 `legion-wiki` 完成收口写回
 
 编排器不可以：
@@ -205,6 +213,8 @@ flowchart TD
 - 代替 `engineer` 直接实现
 - 代替 `verify-change` 宣告验证完成
 - 代替 `review-change` 自行批准交付
+- 在摘要投影前派生下一阶段，或用“详见文件”隐藏 `FAIL`、`review`、`decide`
+- 用普通 `FAIL` 回退覆盖 `decide`，或让 `review` 越过 auto-merge / merge 门
 
 ## 红旗信号
 
@@ -215,6 +225,8 @@ flowchart TD
 - "重型仅设计模式也一定要先跑 verify-change/review-change"
 - "PR 已开，可以不用跟 checks/review/cleanup"
 - "为了快，在主工作区直接改完再说"
+- "阶段报告在文件里，等最终 walkthrough 再告诉用户"
+- "Verdict 是 FAIL，所以可以忽略 decide 直接回退"
 
 这些都意味着：回到入口门重新判断。
 
@@ -232,6 +244,8 @@ flowchart TD
 | “我是 engineer 子代理，也应该重新跑入口门。” | 阶段子代理触发 `SUBAGENT-STOP`：遵循收到的 contract/scope，缺失或不稳则升级给 orchestrator。 |
 | “PR 已创建，所以任务完成。” | PR 创建只是 lifecycle 中段；开发任务还要终态、checks/review、cleanup 和主工作区 refresh。 |
 | “worktree envelope 会新增一种模式。” | envelope 包裹既有三种模式，不定义第四种执行模式。 |
+| “阶段详情已经落盘，对话只给路径就够了。” | 适用阶段必须在下一阶段前投影低噪音摘要；文件是证据真源，不是隐藏关键判断的理由。 |
+| “阶段 FAIL 应该立即按旧链回退。” | 先执行 attention 门禁；`decide` 高于普通 `FAIL` 回退，决定持久化前受影响路径停止。 |
 
 ## 技能质量门
 
@@ -243,6 +257,7 @@ flowchart TD
 ## 参考
 
 - 派生真源：`references/SUBAGENT_DISPATCH_MATRIX.md`
+- 会话注意力与 lifecycle 门禁：`references/REF_HUMAN_ATTENTION.md`
 - design gate：`references/GUIDE_DESIGN_GATE.md`
 - CLI：`references/REF_TOOLS.md`
 - closing writeback：`legion-wiki`

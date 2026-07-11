@@ -73,6 +73,19 @@ flowchart TD
 - `nonGoals[]`
 - `designSummary[]`
 - `phases[]`
+- `claims[]`：仅登记非显然、会影响验收或风险判断的关键 claim；没有时明确写“无”
+
+## 关键 Claim 登记
+
+在 contract 稳定前，先识别“完成这项工作”真正依赖哪些关键主张。只登记会改变验收、风险接受或人类决定的 claim，不把每条实现细节都变成验证矩阵。
+
+每个关键 claim 至少要有稳定的 `claim-id`、主张文本、对应验收/风险、三轴分类、`domain-id`、`required-capability`、`required-method`、所需证据、`criticality`、`risk-if-wrong`、`blocking-policy` 和 `owner`。三轴与字段语义必须完整读取并遵循 `../verify-change/references/REF_COGNITIVE_VERIFICATION.md`，不要在本 skill 中另造枚举。
+
+- 能在 contract 阶段确定的字段直接预注册。
+- 只有具体领域方法确实要由设计阶段比较时，才可明确标记“由 `spec-rfc` 确认”；不得用空值或模糊的“找专家看看”假装已登记。
+- 进入 verifier 选择前，上述字段必须在 contract 或 RFC 中全部确定。
+- 低风险、常规且可由直接测试证明的 claim 可以留给 `verify-change` 自动生成合理默认值，不把填写负担前移给用户。
+- 判断性主张也要登记，但验收应围绕决策过程与事实依据，不得要求后续 verifier 把偏好证明成客观事实。
 
 ## Materialization Rule
 
@@ -90,6 +103,7 @@ flowchart TD
 - 明确写出 non-goals / out-of-scope，让读者知道这次**不会**解决什么
 - 用摘要级语言说明为什么这样做、边界在哪里、后续如何推进
 - 让读者不看实现细节，也能判断这项工作是否值得做、范围是否合理、风险是否可接受
+- 对真实影响验收或风险的关键 claim 做摘要级预注册，让后续设计知道“要证明什么、错了会怎样”，但不在 `plan.md` 展开 verifier 实现手册
 
 **Do Not:**
 
@@ -108,6 +122,7 @@ flowchart TD
    - 验收标准：如何判断完成，哪些结果必须可验证
    - 范围与非范围：这次明确会做什么，不做什么
    - 假设、约束、风险：哪些前提成立，哪些条件限制方案，哪里最可能出问题
+   - 关键 claim：哪些非显然主张决定验收或风险，分别需要什么性质、时机和专业门槛的验证
    - 推荐的技术方向：采用什么路线、为什么、边界在哪里、关键 trade-off 是什么
    - 阶段拆分：后续会按什么阶段推进
 5. 只有在确实存在设计分叉时，才给 2-3 个方案；否则直接给推荐方案。每个方案都要说明适用前提、主要取舍和风险，不要为了形式化而发明弱选项。
@@ -117,9 +132,10 @@ flowchart TD
    - 上游 workflow 明确允许延迟批准，且稳定假设、边界、non-goals、推荐路径、阶段拆分已经显式写入 contract，足以支持后续阶段继续推进。
    不能把“我觉得已经差不多了”当成 confirmed。
 8. 当上述概要设计已经足以支撑后续设计门或实现链时，先由上游 LLM 产出一个人类可读、ASCII-safe 的 `taskId`，再创建或改写 `.legion/tasks/<task-id>/plan.md` 与 `tasks.md`。`plan.md` 应承载这份技术概要设计的摘要版真源，`tasks.md` 承载阶段与 checklist 初稿；它们不能只是初始化骨架。尤其要控制 `plan.md` 的密度：保留技术 leader 需要的判断信息，去掉会制造噪音的实现细节。
-9. 本地对话可走显式批准；若上游 workflow 明确允许延迟批准，也必须把稳定假设、边界、non-goals、推荐路径和阶段拆分显式写入 contract，不能只停留在聊天记录里。
-10. 物化后必须立刻回读 `plan.md` 与 `tasks.md`，检查它们是否已经形成清晰、可读、面向技术 leader 的任务契约，而不是只剩字段清单或摘要骨架。
-11. 完成后交回 `legion-workflow`：由它决定 Low / Medium / High、design-lite / RFC、以及后续 subagent 调度。
+9. 对关键 claim 使用认知验证 reference 做预注册。若领域、能力、方法或阻塞策略需要设计取舍，明确交给 `spec-rfc` 补全；若这些字段会改变目标、验收或风险接受，则 contract 尚未稳定，不能提前离开。
+10. 本地对话可走显式批准；若上游 workflow 明确允许延迟批准，也必须把稳定假设、边界、non-goals、推荐路径和阶段拆分显式写入 contract，不能只停留在聊天记录里。
+11. 物化后必须立刻回读 `plan.md` 与 `tasks.md`，检查它们是否已经形成清晰、可读、面向技术 leader 的任务契约，而不是只剩字段清单或摘要骨架。
+12. 完成后交回 `legion-workflow`：由它决定 Low / Medium / High、design-lite / RFC、以及后续 subagent 调度。
 
 ## Must Not
 
@@ -130,6 +146,8 @@ flowchart TD
 - 不要把 `plan.md` 写得细到让人需要穿过实现噪音才能看清任务边界
 - 不要遗漏 non-goals，让后续阶段在隐式 scope 上自行扩张
 - 不要把 `taskId` 留给 CLI 临时生成；命名属于上游 LLM/编排层职责
+- 不要把“需要领域知识”写成笼统风险；关键 claim 必须说明所需领域、能力、方法与错误代价
+- 不要让 verifier 在验证阶段自行降低 `criticality` 或 `blocking-policy`
 
 ## Return Conditions
 
@@ -156,9 +174,11 @@ flowchart TD
 - 一次问多个问题，导致问题空间继续发散
 - `plan.md` 开始出现实现手册、测试矩阵或大段迁移步骤
 - `plan.md` 没写 non-goals / out-of-scope
+- 核心验收依赖专业判断，却没有预注册关键 claim 或只写“之后找专家确认”
 
 ## References
 
 - 主干路由：`legion-workflow`
 - 文档落点：`legion-docs`
 - 设计阶段：`spec-rfc`
+- 认知验证与关键 claim：`../verify-change/references/REF_COGNITIVE_VERIFICATION.md`

@@ -1,5 +1,14 @@
 # Legion Patterns
 
+## 模式：把审计结果投影为注意力门，并按认知边界路由验证
+
+- 来源任务：`human-attention-verification-routing`
+- 背景：reviewer 与 verifier 的完整意见适合保留为 raw evidence，但如果会话只返回文件路径，人类仍需自行检索；同时，把所有“验证不了”混为一类，会掩盖延期可验证、缺少领域知识与观点性判断之间的差异。
+- 做法：每个审查或验证阶段先保留完整证据，再生成最多三个关键发现的会话注意力摘要。`none` 允许静默继续，`skim` 只要求知悉，`review` 在人类复核前阻止自动合并与合并，`decide` 在人类决策前阻止阶段转换。摘要必须说明当前结论、影响、证据入口和人类动作，不复制完整审计正文。
+- 验证路由：先按结论性质、验证时机、所需专长三轴识别声明，再赋予五种声明状态。领域或权威路径只有在能力被真实加载且 provenance 可复查时才能给出确定结论；否则使用 `INCONCLUSIVE`。观点性声明可以形成 `RECOMMENDATION`，不得伪装成客观 `PASS`。
+- 机器边界：声明状态负责表达认知不确定性，阶段级 `Verdict: PASS | FAIL` 仍独立负责调度。不要从单个声明状态直接推导阶段终态，也不要为了维持二值阶段门而抹去 `DEFERRED` 或 `INCONCLUSIVE`。
+- 适用边界：本模式描述跨阶段的协作方法，不复制字段 schema；精确字段、回退矩阵与 verifier provenance 约束以 `skills/legion-workflow`、`skills/verify-change`、`skills/review-rfc`、`skills/review-change` 和 `skills/report-walkthrough` 为真源。
+
 ## 模式：仓库 skill 默认中文回答与中文文档产物
 
 - 来源任务：`localize-skill-outputs`

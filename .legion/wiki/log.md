@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-07-11] writeback | human-attention-verification-routing
+
+- 新增 `tasks/human-attention-verification-routing.md`，收敛注意力投影、三轴五状态验证路由、独立阶段 `Verdict` 与 verifier provenance 的当前结论。
+- 更新 `index.md` 与 `patterns.md`，增加面向会话的人类注意力门和认知边界验证模式，并保持 schema 真源在 `skills/**`。
+- 更新 `maintenance.md`，记录真实领域 verifier、权威 adapter、生产注意力指标与 `DEFERRED` 自动唤醒仍是非阻塞后续；未虚构 PR 或合并状态。
+
 ## [2026-07-07] writeback | add-sandbox-acceptance-checklist
 
 - 新增 `tasks/add-sandbox-acceptance-checklist.md`，记录 sandbox 验收逐步 checkbox 文档。
