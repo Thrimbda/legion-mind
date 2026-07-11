@@ -2,6 +2,7 @@
 
 ## Open follow-ups
 
+- `human-attention-verification-routing` 已交付注意力投影与认知验证路由协议，但尚未实现真实外部领域 verifier、权威来源 adapter、生产注意力负担指标及 `DEFERRED` 自动唤醒机制；这些属于独立集成与运行时观测任务，不影响当前 schema、回退规则和回归证据的交付结论。
 - `publish-lgmind-npm` 已完成首次手动 npm publish：`lgmind@0.1.0`，`latest` -> `0.1.0`。后续应新增独立任务，为未来 npm releases 配置 GitHub CI trusted publishing，减少手动 OTP 发布路径。
 - `harden-strict-verify-integrity` 留下一个非阻塞审计增强点：未来若需要更强 manifest 自一致性，可要求 `managed-files.v1.json` 中 `record.targetPath === manifest key`；当前实现不让该字段驱动路径访问，因此不影响本次安全边界。
 - `build-vibeharnessbench-mvp` 的“升级 contract verifier”事项已由 `complete-vibeharnessbench-v01` 在 local-first semantic scope 内完成；剩余高保真边界见下一条。

@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>人类注意力交接与认知验证路由 | 交付审阅</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96% 0.014 92);
+      --surface: oklch(99% 0.006 92);
+      --ink: oklch(24% 0.025 145);
+      --muted: oklch(49% 0.028 145);
+      --line: oklch(83% 0.023 105);
+      --accent: oklch(45% 0.125 154);
+      --accent-soft: oklch(91% 0.055 151);
+      --ok: oklch(88% 0.075 144);
+      --warn: oklch(91% 0.07 83);
+      --code: oklch(94% 0.018 120);
+      --shadow: 0 18px 45px oklch(26% 0.02 140 / 0.08);
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "PingFang SC", "Noto Sans CJK SC", system-ui, sans-serif;
+      line-height: 1.68;
+    }
+    main { width: min(1180px, calc(100vw - 36px)); margin: 0 auto; padding: 48px 0 72px; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(290px, 380px); gap: 32px; align-items: end; margin-bottom: 34px; }
+    .kicker { color: var(--accent); font-weight: 760; letter-spacing: 0.08em; }
+    h1 { font-size: clamp(2.15rem, 5vw, 4.6rem); line-height: 1.04; letter-spacing: -0.045em; margin: 0.2rem 0 1.2rem; max-width: 12ch; }
+    h2 { font-size: clamp(1.35rem, 2vw, 1.85rem); margin: 0 0 1rem; }
+    h3 { margin: 1.2rem 0 0.45rem; }
+    p, li { max-width: 72ch; }
+    a { color: var(--accent); text-underline-offset: 0.2em; }
+    code { background: var(--code); border-radius: 0.4rem; padding: 0.08rem 0.32rem; font-family: ui-monospace, monospace; font-size: 0.92em; overflow-wrap: anywhere; }
+    .lead { color: var(--muted); font-size: 1.12rem; max-width: 67ch; }
+    .status, section { border: 1px solid var(--line); border-radius: 22px; background: var(--surface); box-shadow: var(--shadow); }
+    .status { padding: 23px; }
+    .status-grid { display: grid; gap: 0.7rem; }
+    .status-row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--line); padding-bottom: 0.55rem; }
+    .status-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .label { color: var(--muted); font-size: 0.88rem; }
+    .pill { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--ok); padding: 0.12rem 0.65rem; font-weight: 760; }
+    .pill.warn { background: var(--warn); }
+    .action { margin-top: 1rem; padding: 1rem; border-radius: 16px; background: var(--accent-soft); }
+    .action strong { display: block; margin-bottom: 0.35rem; }
+    .layout { display: grid; grid-template-columns: 228px minmax(0, 1fr); gap: 28px; align-items: start; }
+    nav { position: sticky; top: 18px; display: grid; gap: 0.35rem; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+    nav a { color: var(--muted); text-decoration: none; padding: 0.25rem 0.4rem; border-radius: 0.45rem; }
+    nav a:hover, nav a:focus-visible { background: var(--accent-soft); color: var(--ink); }
+    section { padding: clamp(22px, 4vw, 32px); margin-bottom: 22px; }
+    .summary-list { display: grid; gap: 0.8rem; padding: 0; list-style: none; }
+    .summary-list li { padding: 0.85rem 1rem; border: 1px solid var(--line); border-radius: 14px; }
+    .two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .panel { padding: 1rem; border: 1px solid var(--line); border-radius: 15px; background: var(--paper); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.94rem; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 0.75rem 0.65rem; }
+    th { color: var(--muted); font-weight: 720; }
+    tr:last-child td { border-bottom: 0; }
+    .table-wrap { overflow-x: auto; }
+    .path { display: flex; flex-wrap: wrap; align-items: center; gap: 0.55rem; }
+    .path span { border: 1px solid var(--line); border-radius: 999px; padding: 0.28rem 0.68rem; background: var(--paper); }
+    .path b { color: var(--accent); }
+    .quiet { color: var(--muted); }
+    @media (max-width: 900px) {
+      .hero, .layout, .two-col { grid-template-columns: 1fr; }
+      nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      h1 { max-width: 16ch; }
+    }
+    @media (max-width: 560px) {
+      main { width: min(100% - 22px, 1180px); padding-top: 24px; }
+      nav { grid-template-columns: 1fr; }
+      .status-row { align-items: flex-start; flex-direction: column; gap: 0.25rem; }
+      section { border-radius: 17px; }
+    }
+    @media print {
+      body { background: var(--surface); }
+      main { width: 100%; padding: 0; }
+      nav { display: none; }
+      .layout, .hero { display: block; }
+      .status, section { box-shadow: none; break-inside: avoid; margin-bottom: 12px; }
+      a { color: var(--ink); text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">LEGIONMIND · 实现交付</p>
+        <h1>把关键判断送回人的视野</h1>
+        <p class="lead">本次交付让阶段审计以低噪音中文摘要主动回到 chat session，并让验证根据主张性质、时机和专业门槛选择诚实的结论与升级路径。</p>
+      </div>
+      <aside class="status" aria-label="当前结论与动作">
+        <div class="status-grid">
+          <div class="status-row"><span class="label">RFC 审查</span><span class="pill">PASS</span></div>
+          <div class="status-row"><span class="label">验证</span><span class="pill">PASS</span></div>
+          <div class="status-row"><span class="label">变更审查</span><span class="pill">PASS</span></div>
+          <div class="status-row"><span class="label">聚合注意力</span><span class="pill">skim</span></div>
+          <div class="status-row"><span class="label">PR</span><span class="pill warn">待进入 lifecycle</span></div>
+          <div class="status-row"><span class="label">渲染</span><span class="pill warn">artifact-only / local</span></div>
+        </div>
+        <div class="action">
+          <strong>当前唯一人类动作</strong>
+          快速浏览本页或 PR 摘要，确认两个核心目标。无需打开原始证据，也不阻塞自动合并。
+        </div>
+        <p class="quiet"><strong>动作边界：</strong>没有 <code>review</code> 或 <code>decide</code> 级硬门禁。</p>
+      </aside>
+    </header>
+
+    <div class="layout">
+      <nav aria-label="交付审阅导航">
+        <a href="#summary">审阅结论</a>
+        <a href="#attention">当前动作</a>
+        <a href="#claims">认知状态</a>
+        <a href="#verifiers">领域验证</a>
+        <a href="#scope">范围</a>
+        <a href="#evidence">证据地图</a>
+        <a href="#path">交付路径</a>
+        <a href="#decisions">变更与决定</a>
+        <a href="#verification">验证与审查</a>
+        <a href="#risks">风险与限制</a>
+        <a href="#render">渲染交接</a>
+        <a href="#final">最终状态</a>
+      </nav>
+
+      <div>
+        <section id="summary">
+          <h2>审阅结论</h2>
+          <p>本次变更建立两层协议。第一层把 RFC 审查、验证和变更审查的关键结论压缩成中文 <code>会话注意力摘要</code>，由 orchestrator 在阶段切换前主动投影到 chat session。第二层把验证拆为主张性质、验证时机和专业门槛三个正交维度，并用五种 claim 状态诚实表达结论。</p>
+          <ul class="summary-list">
+            <li><strong>会话交接：</strong>最多三条关键发现，当前动作与 lifecycle 边界直接可见。</li>
+            <li><strong>验证路由：</strong>当前不可验证、知识不足和判断性观点不再混成同一种失败。</li>
+            <li><strong>兼容门禁：</strong>阶段级 <code>Verdict: PASS / FAIL</code> 继续独立服务 scheduler。</li>
+          </ul>
+        </section>
+
+        <section id="attention">
+          <h2>人类注意力与当前动作</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>阶段</th><th>结论</th><th>注意力</th><th>最重要的信息</th></tr></thead>
+              <tbody>
+                <tr><td><code>review-rfc</code></td><td>PASS</td><td><code>skim</code></td><td>设计门禁、主张字段、provenance 与 authority 正向路径已经闭合。</td></tr>
+                <tr><td><code>verify-change</code></td><td>PASS</td><td><code>skim</code></td><td>协议单测 7/7、根回归 25/25、scheduler 回归 57/57。</td></tr>
+                <tr><td><code>review-change</code></td><td>PASS</td><td><code>skim</code></td><td>正负 fixture 会实际重开证据、重算摘要并导出规定状态。</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p><strong>当前唯一人类动作：</strong>快速浏览本页或 PR 摘要。</p>
+          <p><strong>lifecycle 边界：</strong>没有 <code>review</code> 或 <code>decide</code> 级硬门禁，允许继续 checks、auto-merge、cleanup 与主工作区刷新。</p>
+          <p class="quiet">摘要证据：<code>docs/review-rfc.md</code>、<code>docs/test-report.md</code>、<code>docs/review-change.md</code>。</p>
+        </section>
+
+        <section id="claims">
+          <h2>未解决的认知状态</h2>
+          <p><span class="pill">无</span></p>
+          <p>三个登记主张 <code>HAVR-FORMAL-001</code>、<code>HAVR-OBJECTIVE-002</code>、<code>HAVR-OBJECTIVE-003</code> 均为 <code>PASS</code>。没有 <code>INCONCLUSIVE</code>、<code>DEFERRED</code> 或 <code>RECOMMENDATION</code> 主张需要人类接管。</p>
+        </section>
+
+        <section id="verifiers">
+          <h2>领域验证摘要</h2>
+          <p><strong>结论：不适用。</strong>本任务的三个主张均为 <code>routine</code>，可通过静态约束、文件读取和现有回归直接验证，因此没有加载领域 verifier，也不需要 authority evidence。</p>
+          <p>测试中的 provenance 与 authority fixture 只证明协议判定语义，不冒充真实专家服务、生产 verifier registry 或现实世界权威证据。</p>
+        </section>
+
+        <section id="scope">
+          <h2>范围</h2>
+          <div class="two-col">
+            <div class="panel">
+              <h3>范围内</h3>
+              <ul>
+                <li>三个审查阶段的低噪音中文摘要。</li>
+                <li>四级注意力、三轴验证分类与五种 claim 状态。</li>
+                <li>领域 verifier provenance、authority、延后与判断性主张协议。</li>
+                <li>walkthrough、PR body 模板和协议回归。</li>
+              </ul>
+            </div>
+            <div class="panel">
+              <h3>范围外</h3>
+              <ul>
+                <li>新的 scheduler 运行时注意力队列。</li>
+                <li>真实外部专家服务或权威机构接口。</li>
+                <li>生产注意力节省指标。</li>
+                <li>本仓库 GitHub Pages 预览 workflow。</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <section id="evidence">
+          <h2>证据地图</h2>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>交付主张</th><th>直接证据</th><th>状态</th></tr></thead>
+              <tbody>
+                <tr><td>协议完整且可解析</td><td><code>docs/rfc.md</code>、<code>docs/review-rfc.md</code>、协议测试</td><td>PASS</td></tr>
+                <tr><td>保持根仓库与 scheduler 兼容</td><td><code>docs/test-report.md</code>、<code>docs/review-change.md</code></td><td>PASS</td></tr>
+                <tr><td>人类可读改动使用中文</td><td>当前 diff、中文测试名称与本报告</td><td>PASS</td></tr>
+                <tr><td>专业证据失败路径不伪造通过</td><td>provenance 与 authority 正例及各七个负例</td><td>PASS</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="path">
+          <h2>交付路径</h2>
+          <div class="path" aria-label="交付路径">
+            <span>任务契约</span><b>›</b><span>RFC</span><b>›</b><span>RFC 审查</span><b>›</b><span>实现</span><b>›</b><span>验证</span><b>›</b><span>变更审查</span><b>›</b><span>Walkthrough</span><b>›</b><span>Wiki</span><b>›</b><span>PR lifecycle</span>
+          </div>
+        </section>
+
+        <section id="decisions">
+          <h2>变更与决定</h2>
+          <ul>
+            <li><code>REF_HUMAN_ATTENTION.md</code> 是注意力摘要与 lifecycle 边界的单一协议来源。</li>
+            <li><code>REF_COGNITIVE_VERIFICATION.md</code> 是三轴、五状态和领域证据协议的单一来源。</li>
+            <li>orchestrator 必须在下一阶段或回滚前把摘要直接呈现给用户，不能只返回文件路径。</li>
+            <li><code>review</code> 阻止自动合并和合并，<code>decide</code> 还阻止普通阶段切换。</li>
+            <li>claim 状态不能替代独立的阶段级 <code>Verdict</code>。</li>
+          </ul>
+        </section>
+
+        <section id="verification">
+          <h2>验证与审查状态</h2>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr><th>新增协议单测</th><td>7/7 通过</td></tr>
+                <tr><th>根仓库 regression</th><td>25/25 通过</td></tr>
+                <tr><th>scheduler regression</th><td>57/57 通过</td></tr>
+                <tr><th>静态检查</th><td><code>git diff --check</code> 通过，12/12 相对 locator 可读取</td></tr>
+                <tr><th>最终变更审查</th><td>PASS，无阻塞项</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="risks">
+          <h2>风险与限制</h2>
+          <ul>
+            <li>fixture 证明协议判定语义，不等同于真实领域 verifier、外部权威服务或生产 registry。</li>
+            <li>当前验证不度量真实生产会话中的人工介入次数、审阅耗时或协议遵循率。</li>
+            <li>未来引入真实 <code>domain</code> 或 <code>authority</code> claim 时，仍需按协议加载对应证据。</li>
+          </ul>
+        </section>
+
+        <section id="render">
+          <h2>渲染交接</h2>
+          <p><strong>Artifact：</strong><code>.legion/tasks/human-attention-verification-routing/docs/report-walkthrough.html</code></p>
+          <p><strong>入口文件：</strong><code>report-walkthrough.html</code></p>
+          <p><strong>状态：</strong>artifact-only / local fallback。</p>
+          <p>当前仓库没有启用 PR Pages preview workflow，本任务也不扩大到仓库托管设置。Reviewer 可从 PR 文件视图下载，或在本地浏览器直接打开这个 standalone HTML。</p>
+          <p class="quiet">若后续需要稳定 rendered URL，由仓库维护者另开任务确认 Pages 可见性、environment、同仓库 PR 信任边界和敏感信息策略后，再启用 <code>pr-html-render</code> workflow。</p>
+        </section>
+
+        <section id="checklist">
+          <h2>审阅清单</h2>
+          <ul>
+            <li>会话摘要是否真正减少了打开原始文件的需要？</li>
+            <li><code>review</code> 与 <code>decide</code> 的 lifecycle 边界是否符合预期？</li>
+            <li>三轴和五状态是否足以区分当前不可验证、知识不足和判断性观点？</li>
+            <li>provenance 与 authority 的负例是否都保持 <code>INCONCLUSIVE</code>？</li>
+            <li>阶段 <code>Verdict</code> 是否继续独立于 claim 状态？</li>
+          </ul>
+        </section>
+
+        <section id="final">
+          <h2>最终状态与下一阶段</h2>
+          <p><span class="pill">实现、验证与审查完成</span></p>
+          <p>下一阶段是 wiki writeback 与 PR lifecycle。当前没有需要人类先行决定的硬门禁。</p>
+        </section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

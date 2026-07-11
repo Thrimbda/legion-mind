@@ -14,6 +14,7 @@
 
 ## 当前重点
 
+- 人类注意力交接与认知验证路由的当前结论见 `patterns.md` 与 `tasks/human-attention-verification-routing.md`：RFC 审查、变更验证和实现审查会把最多三个关键发现投影到会话，并用 `none | skim | review | decide` 管理人类介入；声明级验证按结论性质、验证时机、所需专长三轴分类并使用五状态，阶段级 `Verdict: PASS | FAIL` 保持独立。精确 schema 真源仍在相关 `skills/**`。
 - 仓库内所有 `skills/*/SKILL.md` 当前都显式约束：默认用中文回答；若产出人类阅读型文档产物，也默认使用中文；代码、命令、路径、机器可读字段、错误原文和平台术语保持原文。见 `patterns.md` 与 `tasks/localize-skill-outputs.md`；schema 真源仍是各 `SKILL.md`。
 - CLI 相关的 durable 约定见 `patterns.md`。
 - Legion-managed 多步骤工程工作的入口门禁与执行模式分类见 `patterns.md` 与 `tasks/harden-legion-workflow-gate.md`；schema 真源仍是 `skills/legion-workflow/SKILL.md`。

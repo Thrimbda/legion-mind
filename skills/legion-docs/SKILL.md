@@ -7,7 +7,7 @@ description: Use when creating, updating, or validating `.legion` task documents
 
 ## Overview
 
-`.legion/tasks/**` 是 raw evidence，不是跨任务 wiki。核心约束是：`plan.md` 管契约，`log.md` 管过程，`tasks.md` 管状态，`docs/*.md` 管设计与验证产物；跨任务可复用知识统一进入 `.legion/wiki/**`，不再单列 playbook。
+`.legion/tasks/**` 是 raw evidence，不是跨任务 wiki。核心约束是：`plan.md` 管契约，`log.md` 管过程与决定，`tasks.md` 管状态，`docs/*.md` 管设计与验证产物；跨任务可复用知识统一进入 `.legion/wiki/**`，不再单列 playbook。会话注意力摘要内嵌于既有阶段证据，不创建平行 attention 文档。
 
 ## 输出语言与文档产物
 
@@ -55,6 +55,25 @@ flowchart TD
 | rollback 细节、测试输出、review 证据、PR 摘要 | `docs/*.md`                                   |
 | 跨任务复用规则 / 当前结论                     | `.legion/wiki/decisions.md` / `patterns.md` |
 
+## 会话注意力与决定的落点
+
+摘要 schema、四级 attention、噪音规则与恢复门禁只认 `../legion-workflow/references/REF_HUMAN_ATTENTION.md`。本 skill 只定义文档归属：
+
+| 信息 | 唯一落点 |
+|---|---|
+| `review-rfc` 会话注意力摘要 | 内嵌于 `docs/review-rfc.md` 的 `## 会话注意力摘要` |
+| `verify-change` 会话注意力摘要 | 内嵌于 `docs/test-report.md` 的 `## 会话注意力摘要` |
+| `review-change` 会话注意力摘要 | 内嵌于 `docs/review-change.md` 的 `## 会话注意力摘要` |
+| `review` 复核结果或 `decide` 决定 | 追加到 `log.md`；不得覆盖历史决定 |
+| 等待复核、等待决定与恢复阶段 | 同步到 `tasks.md` 的当前状态 |
+| 最终聚合 | 写入既有 `docs/report-walkthrough.md`，只引用原始证据入口 |
+
+禁止新增 `attention.md`、独立注意力台账或平行决策文件。阶段摘要先写入对应证据，再由 sub-agent handoff 原样返回；chat session 只是同一摘要的低噪音投影。
+
+`review` 复核结果与 `decide` 决定写入 `log.md` 时，至少记录 `decision-id`、涉及的 `claim-id` 或阶段发现、唯一问题与选项、决定人、决定时间、选择或复核结论、风险接受范围和恢复阶段。`tasks.md` 同步“等待复核 / 等待决定”或“已决定，待从 `<阶段>` 恢复”。不得仅凭 chat 中一句“继续”清除持久门禁。
+
+如果决定改变目标、验收或 scope，先更新 `plan.md` 并重新收敛 contract；如果只改变设计、验证策略或补充专业证据，保留 contract 真源边界，按注意力协议声明的阶段恢复。
+
 Within `docs/*.md`:
 
 - rollback / migration / alternatives / verification design → `docs/rfc.md` 或附录
@@ -69,9 +88,12 @@ Within `docs/*.md`:
 - 把进度、设计、验证证据混写到同一层
 - 把 rollback 细节或测试输出塞进 `log.md`，而不是写入 `docs/*.md`
 - 把 task-local 决策直接提升进 wiki，导致跨任务知识被污染
+- 为会话摘要新建 `attention.md`，造成阶段证据与投影结论漂移
+- 只在 chat 中接受 `review` / `decide`，没有把决定与恢复点写入 `log.md` 和 `tasks.md`
 
 ## References
 
 - 需要看 `.legion` 三文件与目录结构时，读 [references/REF_SCHEMAS.md](./references/REF_SCHEMAS.md)
 - 需要看日志同步与 handoff 归档时，读 [references/REF_LOG_SYNC.md](./references/REF_LOG_SYNC.md)
 - 需要看写作节奏与质量检查时，读 [references/REF_BEST_PRACTICES.md](./references/REF_BEST_PRACTICES.md)
+- 需要看会话注意力摘要、噪音控制与 lifecycle 门禁时，读 [REF_HUMAN_ATTENTION.md](../legion-workflow/references/REF_HUMAN_ATTENTION.md)
