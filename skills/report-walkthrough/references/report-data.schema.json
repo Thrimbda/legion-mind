@@ -1,0 +1,305 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://legionmind.local/schemas/report-data.schema.json",
+  "title": "Legion 交付报告数据",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "task",
+    "profile",
+    "stageConclusion",
+    "reviewStatus",
+    "summary",
+    "attention",
+    "claims",
+    "scope",
+    "evidence",
+    "deliveryPath",
+    "changes",
+    "verification",
+    "risks",
+    "checklist",
+    "final",
+    "render"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "1.0" },
+    "task": { "$ref": "#/$defs/task" },
+    "profile": { "enum": ["implementation", "rfc-only"] },
+    "stageConclusion": { "const": "PASS" },
+    "reviewStatus": { "const": "PASS" },
+    "summary": { "$ref": "#/$defs/nonEmptyString" },
+    "attention": { "$ref": "#/$defs/attention" },
+    "claims": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/claim" }
+    },
+    "scope": { "$ref": "#/$defs/scope" },
+    "evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/evidence" }
+    },
+    "deliveryPath": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "changes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "verification": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/verification" }
+    },
+    "risks": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/risk" }
+    },
+    "checklist": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/nonEmptyString" }
+    },
+    "final": { "$ref": "#/$defs/final" },
+    "render": { "$ref": "#/$defs/render" }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "profile": { "const": "implementation" } }, "required": ["profile"] },
+      "then": {
+        "properties": {
+          "evidence": {
+            "allOf": [
+              { "contains": { "properties": { "kind": { "const": "test-report" } }, "required": ["kind"] } },
+              { "contains": { "properties": { "kind": { "const": "review-change" } }, "required": ["kind"] } }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "profile": { "const": "rfc-only" } }, "required": ["profile"] },
+      "then": {
+        "properties": {
+          "evidence": {
+            "allOf": [
+              { "contains": { "properties": { "kind": { "const": "rfc" } }, "required": ["kind"] } },
+              { "contains": { "properties": { "kind": { "const": "review-rfc" } }, "required": ["kind"] } }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "repoLocator": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(^|/)\\.\\.(/|$))(?!.*\\\\).+$"
+    },
+    "httpsUrl": { "type": "string", "pattern": "^https://[^\\s]+$" },
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "purpose", "reviewer"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+        "title": { "$ref": "#/$defs/nonEmptyString" },
+        "purpose": { "$ref": "#/$defs/nonEmptyString" },
+        "reviewer": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "attention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["level", "summary", "humanAction", "lifecycleBoundary", "evidence"],
+      "properties": {
+        "level": { "enum": ["none", "skim", "review", "decide"] },
+        "summary": { "$ref": "#/$defs/nonEmptyString" },
+        "humanAction": { "$ref": "#/$defs/nonEmptyString" },
+        "lifecycleBoundary": { "$ref": "#/$defs/nonEmptyString" },
+        "stopPoint": { "$ref": "#/$defs/nonEmptyString" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/repoLocator" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "level": { "enum": ["review", "decide"] } }, "required": ["level"] },
+          "then": { "required": ["stopPoint"] }
+        }
+      ]
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claimId", "statement", "status", "expertise", "impact", "owner", "mitigation", "evidence"],
+      "properties": {
+        "claimId": { "type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
+        "statement": { "$ref": "#/$defs/nonEmptyString" },
+        "status": { "enum": ["INCONCLUSIVE", "DEFERRED", "RECOMMENDATION"] },
+        "expertise": { "enum": ["routine", "domain", "authority"] },
+        "impact": { "$ref": "#/$defs/nonEmptyString" },
+        "owner": { "$ref": "#/$defs/nonEmptyString" },
+        "mitigation": { "$ref": "#/$defs/nonEmptyString" },
+        "evidence": { "$ref": "#/$defs/repoLocator" },
+        "evidenceGap": { "$ref": "#/$defs/nonEmptyString" },
+        "escalation": { "$ref": "#/$defs/nonEmptyString" },
+        "trigger": { "$ref": "#/$defs/nonEmptyString" },
+        "method": { "$ref": "#/$defs/nonEmptyString" },
+        "stopCondition": { "$ref": "#/$defs/nonEmptyString" },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "recommendation": { "$ref": "#/$defs/nonEmptyString" },
+        "tradeoff": { "$ref": "#/$defs/nonEmptyString" },
+        "decisionStatus": { "$ref": "#/$defs/nonEmptyString" },
+        "decisionOwner": { "$ref": "#/$defs/nonEmptyString" },
+        "verifier": { "$ref": "#/$defs/verifier" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "const": "INCONCLUSIVE" } }, "required": ["status"] },
+          "then": { "required": ["evidenceGap", "escalation"] }
+        },
+        {
+          "if": { "properties": { "status": { "const": "DEFERRED" } }, "required": ["status"] },
+          "then": { "required": ["trigger", "method", "stopCondition"] }
+        },
+        {
+          "if": { "properties": { "status": { "const": "RECOMMENDATION" } }, "required": ["status"] },
+          "then": { "required": ["options", "recommendation", "tradeoff", "decisionStatus", "decisionOwner"] }
+        },
+        {
+          "if": { "properties": { "expertise": { "enum": ["domain", "authority"] } }, "required": ["expertise"] },
+          "then": { "required": ["verifier"] }
+        }
+      ]
+    },
+    "verifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "source", "version", "method", "independence", "independenceReason", "confidence", "conclusion", "unproven", "residualUncertainty", "failureConditions", "rawEvidence", "resources", "executions"],
+      "properties": {
+        "kind": { "enum": ["domain", "authority"] },
+        "source": { "$ref": "#/$defs/repoLocator" },
+        "version": { "$ref": "#/$defs/nonEmptyString" },
+        "method": { "$ref": "#/$defs/nonEmptyString" },
+        "independence": { "enum": ["low", "medium", "high"] },
+        "independenceReason": { "$ref": "#/$defs/nonEmptyString" },
+        "confidence": { "$ref": "#/$defs/nonEmptyString" },
+        "conclusion": { "$ref": "#/$defs/nonEmptyString" },
+        "unproven": { "$ref": "#/$defs/nonEmptyString" },
+        "residualUncertainty": { "$ref": "#/$defs/nonEmptyString" },
+        "failureConditions": { "$ref": "#/$defs/nonEmptyString" },
+        "rawEvidence": { "$ref": "#/$defs/repoLocator" },
+        "resources": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/repoLocator" }
+        },
+        "executions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/nonEmptyString" }
+        },
+        "authority": { "$ref": "#/$defs/authority" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "authority" } }, "required": ["kind"] },
+          "then": { "required": ["authority"] }
+        }
+      ]
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "issuer", "credential", "scope", "validUntil"],
+      "properties": {
+        "subject": { "$ref": "#/$defs/nonEmptyString" },
+        "issuer": { "$ref": "#/$defs/nonEmptyString" },
+        "credential": { "$ref": "#/$defs/nonEmptyString" },
+        "scope": { "$ref": "#/$defs/nonEmptyString" },
+        "validUntil": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["included", "excluded"],
+      "properties": {
+        "included": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmptyString" } },
+        "excluded": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nonEmptyString" } }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "label", "locator", "status"],
+      "properties": {
+        "kind": { "enum": ["plan", "rfc", "review-rfc", "test-report", "review-change", "attention", "other"] },
+        "label": { "$ref": "#/$defs/nonEmptyString" },
+        "locator": { "$ref": "#/$defs/repoLocator" },
+        "status": { "enum": ["PASS", "FAIL", "INFO", "INCONCLUSIVE", "DEFERRED", "RECOMMENDATION"] }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["label", "status", "evidence"],
+      "properties": {
+        "label": { "$ref": "#/$defs/nonEmptyString" },
+        "status": { "enum": ["PASS", "FAIL", "BLOCKED", "INFO"] },
+        "evidence": { "$ref": "#/$defs/repoLocator" }
+      }
+    },
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["risk", "mitigation"],
+      "properties": {
+        "risk": { "$ref": "#/$defs/nonEmptyString" },
+        "mitigation": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "final": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "nextStage", "lifecycleDisclaimer"],
+      "properties": {
+        "state": { "$ref": "#/$defs/nonEmptyString" },
+        "nextStage": { "$ref": "#/$defs/nonEmptyString" },
+        "lifecycleDisclaimer": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "render": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prBacked", "state", "note"],
+      "properties": {
+        "prBacked": { "type": "boolean" },
+        "state": { "enum": ["pending", "rendered", "artifact-only", "local", "internal", "bypassed", "blocked"] },
+        "url": { "$ref": "#/$defs/httpsUrl" },
+        "note": { "$ref": "#/$defs/nonEmptyString" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "state": { "const": "rendered" } }, "required": ["state"] },
+          "then": { "required": ["url"] },
+          "else": { "not": { "required": ["url"] } }
+        }
+      ]
+    }
+  }
+}

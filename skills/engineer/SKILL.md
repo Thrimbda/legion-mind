@@ -1,74 +1,26 @@
 ---
 name: engineer
-description: Use when an approved task contract and required design gate already exist, and bounded implementation work must begin within a defined scope.
+description: 当已存在批准的 task contract 和必要设计门，需要在明确范围内开始有界实现时使用。
 ---
 
 # engineer
 
-## Overview
+只在已批准范围内实现核心路径。默认中文交接；代码、命令、日志和标识符保持原样。
 
-`engineer` 只负责在已批准范围内完成实现。它要优先把核心路径做对，而不是顺手扩边、重写 contract、或代替后续验证/审查阶段。
+## 硬门
 
-## 输出语言与文档产物
+- 必须先读稳定 `plan.md`。
+- 存在 RFC/design source 时必须先读，且设计门已通过。
+- contract 漂移或设计前提失效时不得编码。
 
-- 默认用中文回答、交接实现结果、说明阻塞或范围问题。
-- 若本阶段需要输出 implementation handoff、补充说明或其他人类阅读型文档产物，默认使用中文。
-- 代码、命令、配置字段、日志片段、测试输出、错误原文和技术标识符保持原样，必要时用中文解释。
+## 流程
 
-## Hard Gate
+1. 从 contract 与设计确认授权 scope、验收和边界。
+2. 实现满足验收的最小完整改动；scope 外问题停止并升级。
+3. 运行与改动直接相关的最小本地检查，不在此阶段展开正式验证。
+4. 用五字段短 handoff 返回：`结果 / 变化 / 风险 / 下一步 / 证据`；变化最多三条、证据最多三个 locator，不复制 contract、diff 或长日志。
 
-- 必须已有稳定 `plan.md`
-- 若存在 RFC 或 design source，必须先读
-- contract 未稳定或设计门未过，不得编码
+## 禁止与退出
 
-## When to Use
-
-- 已有批准 contract
-- 所需设计门已通过
-- 需要在明确 scope 内实现代码
-
-不要用在：
-
-- 还在收敛问题定义时
-- 需要先出 RFC 时
-
-## Core Loop
-
-```mermaid
-flowchart TD
-    A[Need code change] --> B[Read plan.md]
-    B --> C{Design source exists?}
-    C -- yes --> D[Read it]
-    C -- no --> E[Check scope]
-    D --> E
-    E -- in scope --> F[Implement smallest viable change]
-    E -- out of scope --> G[Stop and escalate]
-    F --> H[Run smallest useful local check]
-    H --> I[Return implementation handoff]
-```
-
-## Must Not
-
-- 不要顺手改 scope 外文件
-- 不要在这里重写 contract
-- 不要把验证阶段的大工作偷渡进来
-
-## Return Conditions
-
-- scope 不够：退回 `brainstorm` / `spec-rfc`
-- 设计前提不成立：退回 `spec-rfc`
-- 实现完成：交给 `verify-change`
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|---|---|
-| "顺手把旁边也改了更干净" | scope 外改动先升级，不要偷渡。 |
-| "RFC 大概知道，不用读" | 设计真源存在时必须先读。 |
-| "测试我这里一并做完就行" | `engineer` 只做最小本地检查，正式验证属于 `verify-change`。 |
-
-## Red Flags
-
-- 没读 `plan.md` 就开工
-- 发现设计文档存在却没读
-- 用大重构替代最小增量
+- 不顺手扩 scope、不重写 contract、不用大重构替代有界实现、不补做 `verify-change` 的证据工作。
+- scope 不稳：`brainstorm`；设计有缺口：`spec-rfc`；实现完成：`verify-change`。

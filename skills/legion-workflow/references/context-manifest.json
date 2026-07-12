@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "encoding": "utf-8",
+  "counter": "unicode-code-points",
+  "baseline": {
+    "revision": "5359115",
+    "hotCharacters": 70581,
+    "mediumClosureCharacters": 96146
+  },
+  "budgets": {
+    "hotCharacters": 42000,
+    "mediumClosureCharacters": 59000
+  },
+  "hot": [
+    { "path": "AGENTS.md", "maxCharacters": 650 },
+    { "path": ".opencode/agents/legion.md", "maxCharacters": 900 },
+    { "path": "skills/legion-workflow/SKILL.md", "maxCharacters": 5500 },
+    { "path": "skills/brainstorm/SKILL.md", "maxCharacters": 3700 },
+    { "path": "skills/spec-rfc/SKILL.md", "maxCharacters": 2300 },
+    { "path": "skills/review-rfc/SKILL.md", "maxCharacters": 2200 },
+    { "path": "skills/engineer/SKILL.md", "maxCharacters": 1400 },
+    { "path": "skills/verify-change/SKILL.md", "maxCharacters": 3600 },
+    { "path": "skills/review-change/SKILL.md", "maxCharacters": 3800 },
+    { "path": "skills/report-walkthrough/SKILL.md", "maxCharacters": 4500 },
+    { "path": "skills/legion-wiki/SKILL.md", "maxCharacters": 2200 },
+    { "path": "skills/git-worktree-pr/SKILL.md", "maxCharacters": 3800 },
+    { "path": "skills/legion-docs/SKILL.md", "maxCharacters": 2700 },
+    { "path": "skills/pr-html-render/SKILL.md", "maxCharacters": 3000 }
+  ],
+  "mediumAdditional": [
+    { "path": "skills/legion-workflow/references/SUBAGENT_DISPATCH_MATRIX.md", "maxCharacters": 1600 },
+    { "path": "skills/legion-workflow/references/GUIDE_DESIGN_GATE.md", "maxCharacters": 2100 },
+    { "path": "skills/legion-workflow/references/REF_HUMAN_ATTENTION.md", "maxCharacters": 3200 },
+    { "path": "skills/verify-change/references/REF_COGNITIVE_VERIFICATION.md", "maxCharacters": 4800 },
+    { "path": "skills/legion-docs/references/REF_SCHEMAS.md", "maxCharacters": 3400 },
+    { "path": "skills/legion-docs/references/REF_LOG_SYNC.md", "maxCharacters": 1200 }
+  ],
+  "closures": {
+    "ordinary": [
+      "AGENTS.md",
+      ".opencode/agents/legion.md"
+    ],
+    "legionEntry": [
+      "AGENTS.md",
+      ".opencode/agents/legion.md",
+      "skills/legion-workflow/SKILL.md"
+    ],
+    "mediumImplementation": "hot+mediumAdditional"
+  }
+}

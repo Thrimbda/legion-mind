@@ -54,6 +54,7 @@
     "openclaw:verify": "node --experimental-strip-types scripts/setup-openclaw.ts verify --strict",
     "openclaw:rollback": "node --experimental-strip-types scripts/setup-openclaw.ts rollback",
     "openclaw:uninstall": "node --experimental-strip-types scripts/setup-openclaw.ts uninstall",
+    "audit:context": "node skills/legion-workflow/scripts/audit-context.mjs --check",
     "pack:dry-run": "npm pack --dry-run --json",
     "test:regression": "node --test --experimental-strip-types --experimental-sqlite tests/regression/*.test.ts"
   },

@@ -237,7 +237,7 @@ test('两份协议 reference 是单一真源，关键阶段正确引用而不另
   const attention = readRepoFile(attentionReferencePath);
   const cognitive = readRepoFile(cognitiveReferencePath);
 
-  assert.match(attention, /本协议是.+单一真源/s, '注意力 reference 应声明自己是摘要与门禁的单一真源');
+  assert.match(attention, /本(?:协议|文件)是.+单一真源/s, '注意力 reference 应声明自己是摘要与门禁的单一真源');
   assert.match(cognitive, /它是.+单一真源/s, '认知验证 reference 应声明自己是验证分类与证据规则的单一真源');
 
   const stages = [
@@ -259,16 +259,16 @@ test('注意力协议固定摘要字段、四级等级、噪音上限与 lifecyc
   const autopilot = readRepoFile('skills/legion-workflow/references/REF_AUTOPILOT.md');
 
   assertContainsAll(attention, [
-    '| 阶段 |',
-    '| 阶段结论 |',
-    '| 注意力等级 |',
-    '| 判断变化 |',
-    '| 关键发现 |',
-    '| 阻塞项 |',
-    '| 残余风险 |',
-    '| 人类动作 |',
-    '| 自动下一步 |',
-    '| 完整证据 |',
+    '- `阶段`',
+    '- `阶段结论`',
+    '- `注意力等级`',
+    '- `判断变化`',
+    '- `关键发现`',
+    '- `阻塞项`',
+    '`残余风险`',
+    '- `人类动作`',
+    '- `自动下一步`',
+    '- `完整证据`',
   ], '注意力摘要 schema');
 
   assertContains(attention, 'decide > review > skim > none', '四级注意力应具有固定优先级');
@@ -277,16 +277,16 @@ test('注意力协议固定摘要字段、四级等级、噪音上限与 lifecyc
   }
   assert.match(attention, /关键发现[^\n]*最多三项|关键发现最多三项/, '关键发现应限制为最多三项');
   assertContainsAll(attention, [
-    '阶段链允许动作',
-    'PR lifecycle 允许动作',
-    '停止点与恢复条件',
-    '不得启用 auto-merge、执行 merge、cleanup 或宣告完成',
-    '`decide` 优先于阶段 `FAIL` 的普通回退',
+    '禁止 auto-merge、merge、cleanup 和完成声明',
+    '停止阶段转换、自动重试和普通 FAIL 回退',
+    '`decide` 高于阶段 `FAIL`',
     '等待人类决定',
   ], 'attention/lifecycle matrix');
-  assert.match(attention, /在派生下一阶段.+之前.+摘要直接呈现给用户/s, '摘要必须在派生下一阶段前投影');
-  assert.match(workflow, /投影未发生时不得派生下一阶段/, 'orchestrator 应把投影前置为硬门');
+  assertContainsAll(attention, ['结果:', '变化:', '风险:', '下一步:', '证据:'], '五字段 handoff');
+  assert.match(attention, /变化[^\n]*最多三条|合计最多三条/, '变化与发现应限制为最多三条');
+  assert.match(workflow, /在下一阶段、普通回退或 PR 动作前先向用户投影 handoff/, 'orchestrator 应把投影前置为硬门');
   assert.doesNotMatch(autopilot, /对话只贴路径\s*\+\s*一句话摘要|路径\s*\+\s*一句话摘要/, '旧“路径 + 一句话摘要”规则必须移除');
+  assert.doesNotMatch(attention, /handoff[^\n]*原样返回|原样回传完整/, 'handoff 不应复制完整持久摘要');
 });
 
 test('认知验证协议完整定义三轴、预注册字段、五种状态与专业证据边界', () => {
@@ -359,7 +359,8 @@ test('三个审查阶段都要求中文摘要 handoff，并保留独立精确 Ve
     const source = readRepoFile(path);
     assertContains(source, evidencePath, `${name} 应把摘要内嵌到既有证据 ${evidencePath}`);
     assertContains(source, '## 会话注意力摘要', `${name} 应产出中文会话注意力摘要`);
-    assert.match(source, /handoff[^\n]*原样返回|最终 handoff 原样返回/, `${name} 应原样返回已落盘摘要`);
+    assertContainsAll(source, ['结果 / 变化 / 风险 / 下一步 / 证据', '五字段'], `${name} 应使用五字段摘要投影`);
+    assert.doesNotMatch(source, /handoff[^\n]*原样返回|最终 handoff 原样返回/, `${name} 不应复制完整摘要`);
     assertContains(source, '## Verdict', `${name} 应保留独立阶段 Verdict`);
     assert.match(source, /下一有效内容只能是 `PASS` 或 `FAIL`|值为 `PASS` 或 `FAIL`/, `${name} 的 Verdict 应保持 scheduler 可识别的精确语义`);
   }

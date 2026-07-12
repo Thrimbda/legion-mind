@@ -1,10 +1,24 @@
 # Legion Patterns
 
+## 模式：按任务成本分层，并用预算守住默认上下文
+
+- 来源任务：`optimize-token-cognitive-efficiency`
+- 做法：回答、解释、状态检查、只读审阅、不改变行为的文档整理走普通路径；目标和位置明确、无设计分叉、低风险且一个有界检查可验收的修改走明确微操作；不确定、多步骤、中高风险、跨模块或 workflow/schema 变更才由 Legion 接管。用户显式要求使用或 bypass 始终优先。
+- 成本门：固定 14 个 hot 文件和中风险强制加载闭包以 Unicode code point 计数，设置单文件与总预算，并扫描 hot 文件中的强制 reference。字符数只作为 tokenizer 无关代理指标，不冒充精确 token。
+- 适用边界：安全、数据、外部合约和跨模块变更不得借“文档”或“单步”降级；精确入口与预算清单以 `AGENTS.md`、`skills/legion-workflow/SKILL.md` 和 `context-manifest.json` 为真源。
+
+## 模式：把权限职责、实例显示名与 transport 标识分离
+
+- 来源任务：`optimize-token-cognitive-efficiency`
+- 做法：派生前由脚本生成固定 `agentType`、`<role>-<adjective>-<noun>` 形式的随机 `displayName` 和 transport-safe `transportId`。固定职责独占权限选择，随机名称只进入 prompt、日志和 handoff；只有 API 提供独立实例字段时才传 `transportId`。
+- 兼容边界：OpenCode 继续用已注册 role/subagent type，不能把随机实例名当 agent type；Codex 可在实例标识字段使用下划线形式。实例命名不得扩大阶段权限。
+- 适用边界：名称用于让并行意见可追踪，不替代 task contract、阶段证据或 attention 门；精确规则以命名脚本和派生矩阵为真源。
+
 ## 模式：把审计结果投影为注意力门，并按认知边界路由验证
 
 - 来源任务：`human-attention-verification-routing`
 - 背景：reviewer 与 verifier 的完整意见适合保留为 raw evidence，但如果会话只返回文件路径，人类仍需自行检索；同时，把所有“验证不了”混为一类，会掩盖延期可验证、缺少领域知识与观点性判断之间的差异。
-- 做法：每个审查或验证阶段先保留完整证据，再生成最多三个关键发现的会话注意力摘要。`none` 允许静默继续，`skim` 只要求知悉，`review` 在人类复核前阻止自动合并与合并，`decide` 在人类决策前阻止阶段转换。摘要必须说明当前结论、影响、证据入口和人类动作，不复制完整审计正文。
+- 做法：每个审查或验证阶段先把完整注意力摘要留在证据文件，再投影为 `结果 / 变化 / 风险 / 下一步 / 证据` 五个字段；判断变化与关键发现合计最多三条，证据最多三个 locator。`none` 正常继续，`skim` 只要求知悉，`review` 在复核前阻止 merge，`decide` 在人类决定前阻止阶段转换；不得复制 contract、长日志或完整证据正文。
 - 验证路由：先按结论性质、验证时机、所需专长三轴识别声明，再赋予五种声明状态。领域或权威路径只有在能力被真实加载且 provenance 可复查时才能给出确定结论；否则使用 `INCONCLUSIVE`。观点性声明可以形成 `RECOMMENDATION`，不得伪装成客观 `PASS`。
 - 机器边界：声明状态负责表达认知不确定性，阶段级 `Verdict: PASS | FAIL` 仍独立负责调度。不要从单个声明状态直接推导阶段终态，也不要为了维持二值阶段门而抹去 `DEFERRED` 或 `INCONCLUSIVE`。
 - 适用边界：本模式描述跨阶段的协作方法，不复制字段 schema；精确字段、回退矩阵与 verifier provenance 约束以 `skills/legion-workflow`、`skills/verify-change`、`skills/review-rfc`、`skills/review-change` 和 `skills/report-walkthrough` 为真源。
@@ -22,10 +36,10 @@
 - 来源任务：`harden-report-walkthrough`、`html-first-report-walkthrough`、`pr-html-render-skill`
 - 背景：旧版 `report-walkthrough` 虽然要求“已有证据”，但用 `implementation mode` / `rfc-only mode` 容易和 `legion-workflow` execution mode 混淆，并用 production code 是否变化判断分支，导致 docs/config/test/script-only implementation、失败证据或 stale evidence 可能被错误包装成交付摘要。
 - 做法：`report-walkthrough` 使用 walkthrough profile，而不是 execution mode。Profile 由当前阶段链和前置证据决定：有实现结果、`test-report` 与 `review-change` 时使用 implementation profile；仅有 RFC 与 `review-rfc` 的设计交付使用 rfc-only profile。进入输出前必须执行 evidence health check：证据属于当前 task、对应当前交付状态、非 FAIL / blocked / stale，且每个完成性 claim 都能指向证据。
-- 输出：`docs/report-walkthrough.html` 是主 reviewer-facing artifact；`docs/report-walkthrough.md` 是 compact source / fallback；`docs/pr-body.md` 使用 implementation 或 RFC-only 模板作为 PR 创建/更新输入。HTML artifact 必须包含 profile、reviewer summary、scope、evidence map、delivery path、render handoff、changed/decided、verification/review status、risks、reviewer checklist 与 final state / next stage。
+- 输出：Agent 只维护 `docs/report-data.json`；`render-report.mjs` 按 schema 与固定模板一次、事务式生成 `report-walkthrough.html`、`report-walkthrough.md` 和 `pr-body.md`。三个生成产物禁止手写或局部修补；内容变化回到 JSON，布局变化回到共享模板。HTML 仍是主 reviewer artifact，Markdown 是 fallback，PR body 只是 PR 输入。
 - HTML 质量门：先做 clean-doc 信息选择，明确 reader、decision task、main path、evidence selection 与 certainty levels；再做 impeccable 式 product evidence interface，要求 standalone semantic HTML、OKLCH、响应式、print-friendly、无外部资源、无 gradient text、无 side-stripe accent、无默认 glassmorphism、无 hero-metric cliché、无 em dash。
 - 边界：`report-walkthrough` 不补设计、不补验证、不补 review、不替代 `legion-wiki`，也不替代 `git-worktree-pr` PR lifecycle。它也不发布 preview、不写 CI workflow、不创建 PR comment；PR-backed HTML artifact 的 rendered preview path 交给 `pr-html-render`。`pr-body.md` 只是 PR 创建/更新输入，不代表 checks/review/merge、worktree cleanup 或主工作区 refresh 已完成。
-- 常见陷阱：不要因为没有 production code 变化就自动选 rfc-only；不要把 FAIL / blocked / stale evidence 写成 ready-to-merge；不要只生成 Markdown 而跳过 HTML；不要把 PR body 当成 PR lifecycle 终态；不要让 PR-backed HTML artifact 缺 rendered preview path 且没有 explicit render bypass / blocker。
+- 常见陷阱：不要因为没有 production code 变化就自动选 rfc-only；不要把 FAIL / blocked / stale evidence 写成 ready-to-merge；不要手写 HTML/Markdown/PR body；不要把 PR body 当成 PR lifecycle 终态；不要让 PR-backed HTML 缺 preview 路径且没有 artifact-only、bypass 或 blocker。
 
 ## 模式：pr-html-render 渲染已有 HTML reviewer artifact
 
