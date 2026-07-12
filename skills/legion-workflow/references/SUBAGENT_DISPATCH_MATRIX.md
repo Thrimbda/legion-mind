@@ -1,62 +1,35 @@
 # 子代理派生矩阵
 
-> 唯一运行时真源。运行模式与场景可以映射到不同入口，但不能复制另一套顺序。
->
-> 本矩阵只适用于 `legion-workflow` 已完成入口判断、任务 contract 已稳定之后。`bypass`、`restore`、`brainstorm` 是入口运行状态，不是执行模式，也不在本矩阵中新增阶段链。
->
-> 对会修改仓库文件的开发任务，`git-worktree-pr` envelope 包裹下列既有模式与阶段链；它不新增模式、不改变派生顺序。PR follow-up / cleanup / main refresh 属于任务完成 lifecycle，不是本矩阵的第四种执行模式。
+仅用于 `legion-workflow` 已接管且 contract 稳定之后。三种模式和阶段顺序以此为运行时真源；worktree/PR 只是 lifecycle envelope。
 
-## 核心规则
+## 派生前置
 
-- 编排器只负责门禁判断、状态恢复、模式选择、`.legion` 写回与收口写回
-- 阶段性工作必须交给对应阶段的技能 / 子代理
-- `legion-wiki` 是固定收口阶段，不是可选优化
-- 阶段技能 / 子代理必须真实加载或派生；不要凭记忆模拟阶段结果
-- 修改型开发任务在 `git-worktree-pr` worktree 内运行下列阶段链；主工作区只用于准备、只读检查和最终刷新
-- `review-rfc`、`verify-change`、`review-change` 必须在既有阶段证据内嵌 `## 会话注意力摘要`，并由 handoff 原样返回
-- orchestrator 必须在收到上述 handoff 后、派生下一阶段或执行普通回退前，按 `REF_HUMAN_ATTENTION.md` 投影摘要并执行 attention 门禁
+每次派生任何子代理（含只读探索）都先运行：
 
-## 默认实现模式
+```sh
+node skills/legion-workflow/scripts/subagent-name.mjs <role> --json --transport <codex|opencode|raw>
+```
 
-| 场景 | 必须派生 | 条件派生 | 阻塞门禁 |
-|---|---|---|---|
-| 低风险 | `engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki` | 无 | `review-change` 未通过前不得结束 |
-| 中风险 | `spec-rfc -> review-rfc -> engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki` | 无 | `review-rfc` 通过前不得编码 |
-| 高风险 | `spec-rfc -> review-rfc -> engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki` | `review-change` 必须展开安全视角 | `review-rfc` 通过前不得编码；安全阻塞项修复前不得结束 |
+- `agentType` 只选择已注册职责；OpenCode 等固定类型 API 仍用它作为 subagent type。仅当 API 另有实例标识字段时才传 `transportId`；prompt 首行、日志与最终 `结果` 回显 `displayName`。
+- 批量同角色用 `--count <n>`；不得手写、复用或在命名失败后降级为无实例名派生。
+- `role/agentType` 表示职责，`displayName` 只区分实例，不改变阶段权限。
 
-## 已批准设计后的续跑模式
+## 阶段链
 
-| 场景 | 必须派生 | 阻塞门禁 |
+| 模式/风险 | 必须顺序 | 门禁 |
 |---|---|---|
-| 已有批准设计 | `engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki` | `review-change` 未通过时回到 `engineer` |
+| default implementation / low | `engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki` | review 通过前不交付 |
+| default implementation / medium-high | `spec-rfc -> review-rfc -> engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki` | RFC review PASS 前不编码；high 的 change review 加安全视角 |
+| approved-design continuation | `engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki` | 设计不一致回 RFC |
+| heavy design-only | `spec-rfc -> review-rfc -> report-walkthrough -> legion-wiki` | RFC review PASS 前不交付 |
 
-## 重型仅设计模式
+`bypass/restore/brainstorm` 是入口状态，不是模式。所有阶段必须真实加载相应 skill；`legion-wiki` 不可省略。
 
-| 场景 | 必须派生 | 阻塞门禁 |
-|---|---|---|
-| 仅设计重型 RFC | `spec-rfc -> review-rfc -> report-walkthrough -> legion-wiki` | `review-rfc` 通过前不得交付设计 handoff |
+## Attention 与短交接
 
-## 注意力侧带门禁
+审查阶段先写完整阶段证据，再按 `REF_HUMAN_ATTENTION.md` 映射为五字段 handoff。编排器必须先投影再推进：`none/skim` 正常；`review` 卡 auto-merge/merge；`decide` 卡阶段转换与普通回退。不得改写阶段顺序。
 
-会话注意力是上述三条阶段链的统一返回协议，不是第四种模式，也不新增阶段。摘要字段、`none / skim / review / decide` 语义、噪音规则和完整阶段/PR lifecycle matrix 只认 `REF_HUMAN_ATTENTION.md`。
+## 归属与安全
 
-- `none` / `skim`：摘要投影后按表中既有阶段结论正常前进或回退。
-- `review`：允许继续派生后续验证、review、walkthrough、wiki 与 PR 审阅材料；不得启用 auto-merge、执行 merge、cleanup 或宣告完成，直到复核结果持久化。
-- `decide`：优先于阶段 `FAIL` 的普通回退；立即停止阶段转换、自动重试和受影响 PR lifecycle，等待决定持久化后从声明的恢复阶段重跑。
-- attention 等级不得改写本矩阵的阶段顺序；解除门禁后只能回到已声明的既有阶段，不得临时派生新阶段。
-
-## 安全视角触发条件
-
-`review-change` 命中以下任一条件时，必须展开安全视角：
-
-- 鉴权 / 权限 / 身份 / 令牌 / 会话
-- 信任边界或协议边界变更
-- 密钥 / 签名 / 加密 / webhook 校验
-- 数据暴露 / 隐私 / 租户隔离
-- 用户可控输入进入高权限路径
-
-## 写入归属
-
-- orchestrator 写：`plan.md`、`log.md`、`tasks.md`
-- 子代理写：`<taskRoot>/docs/*.md`
-- `legion-wiki` 写：`.legion/wiki/**`
+- 编排器写 `plan.md/log.md/tasks.md`；阶段代理写 task `docs/`；wiki 阶段写 `.legion/wiki/**`。
+- `review-change` 遇到鉴权、身份/令牌、信任/协议边界、密钥/签名/加密、隐私/租户隔离或用户输入进入高权限路径时展开安全视角。

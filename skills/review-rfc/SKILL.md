@@ -1,94 +1,37 @@
 ---
 name: review-rfc
-description: Use when a design artifact already exists and it is still unclear whether implementation can safely begin without hidden complexity, weak assumptions, rollback gaps, or unverifiable claims.
+description: 当已有设计需要在实现前检查隐藏复杂度、弱假设、回滚缺口或不可验证主张时使用。
 ---
 
 # review-rfc
 
-## Overview
+只判断设计能否过门，不重写 RFC。完整结论写 `docs/review-rfc.md`；默认中文，协议标识与技术原文保持不变。
 
-`review-rfc` 的职责是决定设计现在能不能过门，而不是把 RFC 重写一遍。完整结论写入 `docs/review-rfc.md`，同时形成面向人类的低噪音会话注意力摘要。
+## 硬门
 
-## 输出语言与文档产物
+- 必须先有 RFC 或 design source。
+- blocking finding 必须说明定位、为何导致不可实现/不可验证/不可回滚、影响与最小修复方向。
+- 文档必须含独立 `## Verdict`，下一有效内容只能是 `PASS` 或 `FAIL`。
+- 按 `../legion-workflow/references/REF_HUMAN_ATTENTION.md` 在文档内写完整 `## 会话注意力摘要`；handoff 只投影五字段，不复制完整摘要。
 
-- 默认用中文回答设计审查结论、blocking findings、建议和实现准入判断。
-- `docs/review-rfc.md` 等审查文档产物默认使用中文；PASS / FAIL 标记可以保留英文以保持阶段协议清晰。
-- RFC 标题、路径、技术术语、命令、错误原文和外部接口名称保持原文，必要时用中文解释风险。
+## 审查
 
-## Hard Gate
+检查：不必要复杂度、弱假设、scope 歧义、真实取舍是否缺 alternatives、verification/rollback 缺口；对关键 claim 检查预注册与验收/风险/阻塞策略的连接，以及 verifier 发现、真实加载、provenance、authority 正负路径、claim 状态到 Verdict/attention/停止点的映射。认知验证语义以 `../verify-change/references/REF_COGNITIVE_VERIFICATION.md` 为准。
 
-- 必须先有 RFC 或 design source
-- 输出必须是 PASS / FAIL
-- blocking finding 必须说明为什么它会让实现不可行、不可验证、或不可回滚
-- 必须完整读取 `../legion-workflow/references/REF_HUMAN_ATTENTION.md` 与 `../verify-change/references/REF_COGNITIVE_VERIFICATION.md`
-- `docs/review-rfc.md` 必须保留独立的精确 `## Verdict` 区块，其下一有效内容只能是 `PASS` 或 `FAIL`
-- `docs/review-rfc.md` 必须内嵌 `## 会话注意力摘要`，最终 handoff 必须原样返回该小节
+只有会让设计不可实施、不可验证或不可回滚的问题才判 `FAIL`；清晰度或后续优化建议不得伪装成 blocker。
 
-## When to Use
+## 输出与 handoff
 
-- 实现前的设计对抗审查
-- 需要确认 RFC 是否足够小、足够清楚、可验证、可回滚
+1. 写 blocking findings、非阻塞建议、精确 Verdict 和完整注意力摘要。
+2. 摘要只记录相对 RFC 的判断变化，关键发现最多三项；`FAIL`、风险升级、验收变化和专业证据缺口必须可见。
+3. 最终 handoff 使用统一五字段投影：`结果 / 变化 / 风险 / 下一步 / 证据`。变化与关键发现合计最多三条；证据最多三个 repo-relative locator。若文件与投影冲突、证据缺失、风险无法无损收敛，或 `review/decide` 缺唯一人类动作和停止点，则 handoff 失败。
 
-## Decision Flow
+## 退出
 
-```mermaid
-flowchart TD
-    A[Finding] --> B{Makes design unimplementable,
-    unverifiable, or not rollbackable?}
-    B -- yes --> C[FAIL]
-    B -- no --> D{Raises complexity or clarity concern only?}
-    D -- yes --> E[PASS with suggestions]
-    D -- no --> F[Omit]
-```
+- `FAIL`：通常退回 `spec-rfc`；attention 为 `decide` 时先等待决定持久化。
+- `PASS`：交回 `legion-workflow`；`none/skim` 可实现，`review` 不得越过 merge 门，`decide` 停止阶段转换。
 
-## Review Lenses
+## 引用
 
-- unnecessary complexity
-- weak assumptions
-- missing rollback
-- weak verification
-- scope ambiguity
-- missing alternatives for meaningful trade-offs
-- 关键 claim 是否在 verifier 选择前完成认知验证真源要求的预注册，且与验收、风险和阻塞策略相连
-- verifier 发现、真实加载、provenance 重查与 authority evidence 是否具有可执行的正负路径
-- claim 状态到阶段 `Verdict`、attention 和 lifecycle 停止点的映射是否明确，是否把延后验证或判断性主张伪装成客观通过
-
-## 输出与会话交接
-
-1. 把 blocking findings、非阻塞建议、独立 `## Verdict` 与 `## 会话注意力摘要` 写入当前 task 的 `docs/review-rfc.md`。
-2. 摘要字段、四级 attention、三项上限和 noise policy 只按 `REF_HUMAN_ATTENTION.md` 生成，不在本 skill 复制另一套 schema。
-3. 摘要只写相对 RFC 的判断变化；完整论证留在审查文档。`FAIL`、风险升级、验收变化和专业证据缺口不得只留在文件里。
-4. 最终 handoff 原样返回已落盘的 `## 会话注意力摘要`，并提醒 orchestrator 在派生下一阶段或执行普通回退前直接投影。
-5. 阶段 sub-agent 不自行压缩、改写或隐藏 attention；投影和 lifecycle 门禁由 orchestrator 执行。
-
-## Must Not
-
-- 不要给抽象哲学意见
-- 不要替作者重写整份 RFC
-- 不要把可以后续优化的小建议写成 blocking
-
-## Return Conditions
-
-- FAIL：通常退回 `spec-rfc`；若摘要为 `decide`，先等待决定持久化，不能执行普通回退
-- PASS：交回 `legion-workflow`；`none` / `skim` 可进入实现，`review` 只能在对应 merge 门前继续准备材料，`decide` 停止阶段转换
-
-## Common Rationalizations
-
-| Excuse | Reality |
-|---|---|
-| "大方向没问题，细节实现时再补" | verification / rollback / boundary gaps 会直接阻塞实现。 |
-| "我已经懂作者想法，不必写 FAIL" | review-rfc 的职责是判断设计是否过门，不是心领神会。 |
-| "把 blocking 说成 suggestion 更温和" | 会让未过门的设计混进实现阶段。 |
-
-## Red Flags
-
-- 没解释为什么某项是 blocking
-- 明显缺 rollback/verification 仍给 PASS
-- 用重写 RFC 代替审查结论
-- 只返回审查文件路径，没有把会话注意力摘要原样交给 orchestrator
-- 用阶段 `FAIL` 覆盖 `decide`，或把多个未解决 claim 的最高 attention 临场降级
-
-## 参考
-
-- 会话注意力摘要与 lifecycle 门禁：`../legion-workflow/references/REF_HUMAN_ATTENTION.md`
-- 三轴验证、claim 状态与领域 verifier 协议：`../verify-change/references/REF_COGNITIVE_VERIFICATION.md`
+- attention：`../legion-workflow/references/REF_HUMAN_ATTENTION.md`
+- 三轴、状态、verifier：`../verify-change/references/REF_COGNITIVE_VERIFICATION.md`

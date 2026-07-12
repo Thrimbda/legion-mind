@@ -14,7 +14,8 @@
 
 ## 当前重点
 
-- 人类注意力交接与认知验证路由的当前结论见 `patterns.md` 与 `tasks/human-attention-verification-routing.md`：RFC 审查、变更验证和实现审查会把最多三个关键发现投影到会话，并用 `none | skim | review | decide` 管理人类介入；声明级验证按结论性质、验证时机、所需专长三轴分类并使用五状态，阶段级 `Verdict: PASS | FAIL` 保持独立。精确 schema 真源仍在相关 `skills/**`。
+- LegionMind token 与认知效率的当前结论见 `patterns.md` 与 `tasks/optimize-token-cognitive-efficiency.md`：普通只读和明确低风险微操作不启动 Legion；复杂或高风险工作保留完整阶段链；会话只传五字段判断增量；子代理固定权限职责与随机实例名分离；热路径和中风险加载闭包由字符预算回归守住；walkthrough 从单一 JSON 数据生成三份 artifact。精确 schema 真源仍在 `skills/**`。
+- 人类注意力交接与认知验证路由的当前结论见 `patterns.md` 与 `tasks/human-attention-verification-routing.md`：RFC 审查、变更验证和实现审查先把完整摘要落盘，再把判断变化与最多三个关键发现压缩为五字段投影，并用 `none | skim | review | decide` 管理人类介入；声明级验证按三轴分类并使用五状态，阶段级 `Verdict: PASS | FAIL` 保持独立。精确 schema 真源仍在相关 `skills/**`。
 - 仓库内所有 `skills/*/SKILL.md` 当前都显式约束：默认用中文回答；若产出人类阅读型文档产物，也默认使用中文；代码、命令、路径、机器可读字段、错误原文和平台术语保持原文。见 `patterns.md` 与 `tasks/localize-skill-outputs.md`；schema 真源仍是各 `SKILL.md`。
 - CLI 相关的 durable 约定见 `patterns.md`。
 - Legion-managed 多步骤工程工作的入口门禁与执行模式分类见 `patterns.md` 与 `tasks/harden-legion-workflow-gate.md`；schema 真源仍是 `skills/legion-workflow/SKILL.md`。
@@ -26,7 +27,7 @@
 - Linear + Legion scheduler sandbox 验收执行见 `tasks/run-scheduler-sandbox-acceptance.md`：本地 regression、health、fixture scan 和 fixture dispatch 全部 PASS；live Linear/GitHub/worker stages 因 `secrets/linear-scheduler.sops.yaml` 缺失、`age` CLI 不可用、缺少 `SCHEDULER_RUN_ID` 和 worker 前置批准/状态而 `BLOCKED`。该结果不是 production-ready 证明。
 - Linear + Legion scheduler sandbox 验收逐步 checkbox 文档见 `tasks/add-sandbox-acceptance-checklist.md` 与 `scheduler/docs/sandbox-acceptance-checklist.md`；它是 operator-facing 执行版，保留 sandbox-only、secret handling、Stage 5 worker gating、stop conditions 和 production blockers。
 - 生产验收准备文档已通过 `tasks/localize-production-acceptance-docs.md` 中文化；面向用户 / reviewer 的 task 文档默认中文，命令、路径、env var、JSON/YAML key、状态枚举、labels、URL、代码符号、产品名和必要技术术语保留英文。
-- `report-walkthrough` 当前模式是 HTML-first、基于有效证据的 reviewer handoff 协议：`docs/report-walkthrough.html` 是主 reviewer artifact，Markdown 是 compact source / fallback，PR body 是 PR 输入；PR-backed HTML artifact 完成后默认交给 `pr-html-render` 形成 rendered preview path，或记录 explicit render bypass / blocker。`pr-html-render` skill 说明当前为中文为主，同时保留英文触发 token 与 GitHub 安全边界。见 `patterns.md`、`tasks/harden-report-walkthrough.md`、`tasks/html-first-report-walkthrough.md`、`tasks/pr-html-render-skill.md` 与 `tasks/localize-pr-html-render-skill.md`；schema 真源仍是 `skills/report-walkthrough/SKILL.md` 与 `skills/pr-html-render/SKILL.md`。
+- `report-walkthrough` 当前模式是 schema 驱动的 HTML-first reviewer handoff：Agent 只维护 `report-data.json`，脚本从固定模板一次生成 HTML、Markdown 与 PR body，禁止手写生成产物；PR-backed HTML 随后交给 `pr-html-render` 获取预览或记录 artifact-only/bypass。见 `patterns.md`、`tasks/optimize-token-cognitive-efficiency.md` 及既有 report/render 任务摘要；schema 真源仍是 `skills/report-walkthrough/**` 与 `skills/pr-html-render/SKILL.md`。
 - `task create` 现在采用 staging + rename 物化模式，见 `patterns.md`。
 - `setup-opencode verify --strict` 现在必须校验安装资产内容与 managed ownership，见 `patterns.md` 与 `tasks/harden-strict-verify-integrity.md`。
 - `setup-opencode` 默认仍管理 OpenCode config/agents，但核心 Legion skills 现在安装到 `~/.agents/skills`，见 `patterns.md` 与 `tasks/setup-opencode-agents-skills.md`。

@@ -1,13 +1,11 @@
 # LegionMind 入口规则
 
-本仓库使用 Legion。
+先按请求本身分类：
 
-在任何由 Legion 管理的非简单多步骤工程工作开始代码、git、文件探索，或开始实现、追问、派生子代理之前：
+1. **普通路径**：不修改代码、运行时配置、协议/schema 或持久状态的工作，包括回答、解释、总结、状态检查、只读审阅/诊断、给命令及不改变行为的文档整理，直接完成，不加载 `legion-workflow`。
+2. **明确微操作**：目标和位置明确、无设计分叉、低风险、不涉及安全/数据/外部合约/跨模块，且一个有界检查即可验收，直接修改并验证；任一条件失效就停止并升级。
+3. **Legion 路径**：多步骤、范围或验收不稳、中高风险、跨模块，或用户明确要求 Legion。探索文件/git、追问、写入或派生前必须先加载 `legion-workflow`；用户显式 bypass 优先。
 
-1. 先加载 `legion-workflow`。它是由 Legion 管理工作的 mandatory first gate。
-2. 严格遵循它的入口门规则。
-3. 用户指令始终优先。
+任何路径派生子代理前都必须运行 `skills/legion-workflow/scripts/subagent-name.mjs`；权限选择使用 `agentType`，实例回显使用 `displayName`，支持实例标识的 API 才使用 `transportId`。
 
-不要绕过这条入口序列。不要先打补丁再补规则，不要忽略 `.legion/`，不要在当前请求没有明确恢复任务时跳过 `brainstorm`，也不要在任务契约尚未稳定前启动 `engineer`。
-
-对会修改仓库文件的 Legion 开发任务，`legion-workflow` 完成入口/恢复并确认非 bypass 后，必须使用 `git-worktree-pr` lifecycle envelope：在 `.worktrees/<task-id>/` 中开发并通过 PR 跟进 checks/review/cleanup/主工作区刷新。进入该 envelope 后，commit、push PR branch、创建或更新 PR、跟进 checks/review/auto-merge、cleanup 和主工作区刷新都是默认生命周期动作，不需要用户逐项显式授权；用户沉默不是跳过 commit / push / PR 的理由。只有用户明确要求不提交、不 push、不开 PR、不继续 PR lifecycle，或明确 bypass 时，才改变默认闭环，并必须记录为 explicit bypass/blocker。主工作区只允许准备、只读检查和最终基线刷新；不得在主工作区实现、提交或推进 PR 分支。push 前必须在 worktree 内执行 `git fetch origin && git rebase origin/master`；禁止直接向 `master`/`main` 提交或 push，禁止使用本地 `master`/`main` 承载开发。PR 创建、blocked handoff、保留 worktree 或跳过刷新都不构成完成。所有写操作、日志、临时产物和持久化缓存必须留在 repo 内。通用速度/autopilot 表达不豁免此规则。
+修改型 Legion 任务还必须加载 `git-worktree-pr`：只在 `.worktrees/<task-id>/` 开发，完成 commit、push 前 rebase、squash PR、checks/review、终态、cleanup 与主工作区刷新；禁止直接修改或提交主分支。所有产物留在仓库内。

@@ -1,93 +1,38 @@
 ---
 name: legion-wiki
-description: Use when building, updating, or querying the Legion wiki layer under `.legion/wiki`, especially for task summaries, current effective decisions, reusable patterns, maintenance backlog, or current-truth queries that should not start from raw task docs.
+description: 当需要建立、更新或查询 `.legion/wiki` 的任务摘要、当前决定、可复用模式、维护事项或当前真相时使用。
 ---
 
 # legion-wiki
 
-## Overview
+维护 Legion synthesis 层。`.legion/tasks/**` 是 raw evidence，`.legion/wiki/**` 是跨任务当前知识，`skills/**` 与 `.opencode/**` 是 schema。它是 `legion-workflow` 的固定 closing stage，但不改 workflow/schema 真源。默认用中文；路径、字段、命令和错误原文保持原样。
 
-`legion-wiki` 负责 Legion 的 **wiki / synthesis 层**。它不替代 `.legion/tasks/**` 的 raw task docs，而是把跨任务可查询知识收敛到 `.legion/wiki/**`。原先 playbook 风格的 durable conventions 也由这里统一吸收：按内容写入 `decisions.md`、`patterns.md` 或 `maintenance.md`。在 `legion-workflow` 里，它还是固定 closing stage：任务完成前必须执行 wiki writeback。
+## 何时使用
 
-## 输出语言与文档产物
+- 为已完成任务写可查询摘要，或在 report/render evidence 后完成 closing writeback。
+- 查询当前有效决定、模式、维护债务或任务综合结论。
+- 标记 `historical`、`superseded-by`、`schema-version`。
 
-- 默认用中文回答 wiki 查询、writeback 判断和收口交接。
-- `.legion/wiki/**` 页面、task summary、decisions、patterns、maintenance 与 wiki log 等文档产物默认使用中文。
-- raw 证据引用、路径、frontmatter/schema 字段、命令、错误原文和外部术语保持原文；需要时在中文正文中解释。
+单任务日志/checklist/设计/验证仍写 raw task docs；schema 规则不写 wiki。
 
-raw / wiki / schema 的分工是：
+## 查询路径
 
-- raw：`.legion/tasks/**`
-- wiki：`.legion/wiki/**`
-- schema：`skills/**` + `.opencode/**`
+涉及当前规则或执行行为时先读 schema；其他问题按：
 
-## When to Use
+`wiki/index.md -> wiki/tasks/<task-id>.md 或 decisions/patterns/maintenance -> 必要时 raw task docs`
 
-- 需要建立或维护 `.legion/wiki/**`
-- 需要把某个 task 的结果写成稳定的 summary 页
-- 任务已完成实现 / 验证 / walkthrough，需要执行固定 closing writeback
-- 需要回答“当前 Legion 的有效结论是什么”，但不想直接 grep 全部 raw task docs
-- 需要把跨任务决策、模式、维护债务从 raw docs 中提升出来
-- 需要标记 `historical` / `superseded-by` / `schema-version` 这类状态信息
+不要直接 grep 全部 raw docs 来回答“当前真相”。
 
-不要用在：
+## 写回
 
-- 单个 task 的执行日志、checklist、设计正文写作
-- schema 规则定义本身（那属于 `legion-workflow` / `legion-docs`）
+- 后续值得查询的任务结果写 `tasks/<task-id>.md`，链接 raw evidence，不复制正文。
+- 跨任务仍有效的强约束/结论写 `decisions.md`；可复用工作方式写 `patterns.md`；待补证据、迁移或清理写 `maintenance.md`。
+- `index.md` 只维护导航；durable writeback 后按需同步 `log.md`。
+- 不创建平行 playbook，不把 task-local 结论误提升为通用规则。
+- closing handoff 使用五字段 `结果 / 变化 / 风险 / 下一步 / 证据`，变化最多三条、证据最多三个 locator，不复制 task 文档。
 
-## Decision Flow
+## 条件引用
 
-```mermaid
-flowchart TD
-    A[Need Legion knowledge] --> B{Current rule or execution behavior?}
-    B -- yes --> C[Read schema first]
-    B -- no --> D{Cross-task summary or current truth?}
-    D -- yes --> E[Read .legion/wiki/index.md]
-    E --> F{Need task-specific context?}
-    F -- yes --> G[Read .legion/wiki/tasks/<task-id>.md]
-    F -- no --> H[Read decisions / patterns / maintenance]
-    G --> I{Still need source evidence?}
-    H --> I
-    I -- yes --> J[Drill down into raw task docs]
-    I -- no --> K[Answer from wiki]
-    C --> K
-```
-
-## Quick Reference
-
-- `.legion/wiki/index.md`：总导航与查询入口
-- `.legion/wiki/log.md`：wiki 层自己的更新日志
-- `.legion/wiki/decisions.md`：当前有效的跨任务决策
-- `.legion/wiki/patterns.md`：可复用模式与 former playbook 风格约定
-- `.legion/wiki/maintenance.md`：待迁移 / 待清理 / 待确认事项
-- `.legion/wiki/tasks/<task-id>.md`：每个任务的综合摘要页
-
-查询默认路径：
-
-```text
-schema -> wiki index -> task summary -> raw task docs
-```
-
-## Writeback Rules
-
-- task-specific 结论先判断是否需要 `tasks/<task-id>.md`；只有当该任务结果后续值得查询时才创建 summary
-- 跨任务仍然有效、可被当作当前规则使用的结论写 `decisions.md`
-- 可复用工作方式、实现惯例、former playbook 风格约定默认写 `patterns.md`
-- 暂时无法稳定分类、仍待补证据或待清理的项目写 `maintenance.md`
-- `index.md` 只维护导航与入口说明；每次新增 durable 页面或重点条目后同步更新入口
-- 每次 durable writeback 后，必要时同步 `log.md`
-- 本 skill 负责 closing writeback，但**不**回写 workflow 主干或 schema 真源
-
-## Common Mistakes
-
-- 让 `.legion/tasks/**` 继续兼任 wiki
-- 把 schema 规则抄进 wiki，造成第二套真源
-- 只写 task summary，不把跨任务有效结论提升到 decisions / patterns
-- 继续把可复用约定写进独立 playbook 概念，而不是统一收口到 wiki
-- 直接从 raw docs 回答“当前真相”，跳过 wiki 层
-
-## References
-
-- wiki 布局与页职责：读 [references/REF_WIKI_LAYOUT.md](./references/REF_WIKI_LAYOUT.md)
-- task summary 模板：读 [references/TEMPLATE_TASK_SUMMARY.md](./references/TEMPLATE_TASK_SUMMARY.md)
-- 写回规则与字段：读 [references/REF_WRITEBACK_RULES.md](./references/REF_WRITEBACK_RULES.md)
+- 新建/调整页面布局：`references/REF_WIKI_LAYOUT.md`
+- 写 task summary：`references/TEMPLATE_TASK_SUMMARY.md`
+- 提升 durable 知识：`references/REF_WRITEBACK_RULES.md`

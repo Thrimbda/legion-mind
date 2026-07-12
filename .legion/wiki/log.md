@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-07-12] writeback | optimize-token-cognitive-efficiency
+
+- 新增 `tasks/optimize-token-cognitive-efficiency.md`，汇总三层入口、五字段 handoff、子代理三层身份、上下文预算和 schema 驱动报告生成的当前结论。
+- 更新 `index.md` 与 `patterns.md`：普通请求不背完整 Legion 成本，复杂任务保留阶段门；完整证据落盘、会话只传判断增量；报告三产物由单一 JSON 和固定模板生成。
+- 更新 `maintenance.md`，记录强制 reference 发现仍是词法启发式的非阻塞维护项；未把字符数表述为精确 token，也未把 artifact-only 渲染说成 URL。
+
 ## [2026-07-11] writeback | human-attention-verification-routing
 
 - 新增 `tasks/human-attention-verification-routing.md`，收敛注意力投影、三轴五状态验证路由、独立阶段 `Verdict` 与 verifier provenance 的当前结论。
