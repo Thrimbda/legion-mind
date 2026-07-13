@@ -45,7 +45,14 @@
 - 新的独立 `verify-change-fizzy-sparrow` 给出 PASS：直接回归 `2/2`、定向 `36/36`、根回归 `40/40`、scheduler `59/59` 均通过；以两个隔离 task 实际生成的 `claims=[]` 与缺 verifier HTML 行尾空白均为 `0`。旧正式 staged HTML 属于待报告阶段重建的历史 artifact，不作为新 renderer 失败。
 - 新的独立 `review-change-quick-koala` 给出 PASS：行尾规范化只删除每行末尾空格/Tab，保留换行与 HTML 内容；回归直接覆盖 `claims=[]` 的空提示场景，报告一致性、无 verifier、scheduler 与多 Agent 大循环语义均未改变。旧 A/B 报告被明确判为 stale artifact，必须由新报告阶段整体重建后才能通过最终质量门。
 - 新的 `report-walkthrough-cosmic-otter` 已按 `--check -> render -> --check` 整体重建正式报告：当前 `claims=[]`、`attention: skim`、`render.state=local`，A/B 仅保留为范围外的非阻塞后续；三份产物均引用最新验证/审查，工作树 diff check 通过，新 HTML 行尾空白为 `0`。暂存区旧版本由编排器统一重新暂存后复查。
-- 遗留写入曾在 16:35 把 wiki 回放为旧 A/B 阻塞叙述；`legion-wiki-eager-capybara` 已再次按当前权威 JSON 覆盖：A/B 是可选非阻塞后续，任务保持 `active` 的唯一原因是 PR lifecycle 尚未终态。stale 文字扫描与 wiki diff check 均通过。
+- 遗留写入曾在 16:35 把 wiki 回放为旧 A/B 阻塞叙述；`legion-wiki-eager-capybara` 已再次按当前权威 JSON 覆盖：A/B 是可选非阻塞后续；在当时，任务保持 `active` 的唯一原因是 PR lifecycle 尚未终态。stale 文字扫描与 wiki diff check 均通过。
+
+### ✅ PR lifecycle 终态
+
+- 实现提交 `8c5b9fb` 在确认与 `origin/master` 无 rebase 差异后推送；提交后串行复跑定向 `36/36`、根回归 `40/40`、scheduler `59/59`、上下文审计、发布包 dry-run、正式报告 `--check` 与 diff check，全部通过。
+- 主交付 [PR #50](https://github.com/Thrimbda/legion-mind/pull/50) 没有仓库侧 required checks 或 GitHub review 阻塞，状态为 `MERGED`；squash merge commit 为 `df90d727f87a78119910883efb8d19c6b52c44eb`。
+- 合并后已删除远端与本地 `legion/preserve-agent-review-loop` 分支，移除隔离 worktree，并把主工作区刷新到 `origin/master` 的 `df90d72`。
+- 合并后遗留写入只污染了已合并 worktree，未进入 PR；清理前已直接重读远端 merge commit，确认 `claims=[]`、`attention: skim`、`render.state=local`、Wiki 非阻塞 A/B 叙述及 HTML 行尾空白 `0` 均保持正确。
 
 ### ⚠️ 历史运行噪音（已处理）
 
@@ -83,8 +90,8 @@
 
 **下次继续从这里开始：**
 
-1. 提交、rebase、push 并创建 PR，跟进 required checks。
-2. checks 与 review 通过后完成 squash merge、worktree cleanup 与主工作区刷新；当前没有未决 claim 阻塞 auto-merge/merge。
+1. 本任务已经完成，无需继续执行交付步骤。
+2. 若要量化真实多任务、多模型效果，再创建独立 A/B 评估任务；它不是本任务的遗留 merge gate。
 
 **注意事项：**
 
@@ -93,4 +100,4 @@
 
 ---
 
-*最后更新: 2026-07-13 16:24 by Codex*
+*最后更新: 2026-07-13 by Codex*
