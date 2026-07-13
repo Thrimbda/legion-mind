@@ -1,6 +1,6 @@
 {
   "name": "lgmind",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Install, verify, rollback, and uninstall LegionMind assets for coding agents.",
   "private": false,
   "type": "module",

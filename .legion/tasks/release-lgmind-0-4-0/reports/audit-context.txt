@@ -1,0 +1,134 @@
+命令: npm run audit:context
+工作目录: /Users/c1/Work/legion-mind/.worktrees/release-lgmind-0-4-0
+退出码: 0
+
+npm warn Unknown env config "tmp". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> lgmind@0.4.0 audit:context
+> node skills/legion-workflow/scripts/audit-context.mjs --check
+
+{
+  "version": 1,
+  "counter": "unicode-code-points",
+  "baselineRevision": "5359115",
+  "hot": {
+    "baseline": 70581,
+    "current": 24715,
+    "budget": 42000,
+    "reductionPercent": 64.98
+  },
+  "mediumClosure": {
+    "baseline": 96146,
+    "current": 35901,
+    "budget": 59000,
+    "reductionPercent": 62.66
+  },
+  "requiredReferences": [
+    "skills/legion-workflow/references/REF_HUMAN_ATTENTION.md",
+    "skills/verify-change/references/REF_COGNITIVE_VERIFICATION.md"
+  ],
+  "unbudgetedRequiredReferences": [],
+  "files": [
+    {
+      "path": "AGENTS.md",
+      "maxCharacters": 650,
+      "characters": 632
+    },
+    {
+      "path": ".opencode/agents/legion.md",
+      "maxCharacters": 900,
+      "characters": 898
+    },
+    {
+      "path": "skills/legion-workflow/SKILL.md",
+      "maxCharacters": 5500,
+      "characters": 4253
+    },
+    {
+      "path": "skills/brainstorm/SKILL.md",
+      "maxCharacters": 3700,
+      "characters": 1646
+    },
+    {
+      "path": "skills/spec-rfc/SKILL.md",
+      "maxCharacters": 2300,
+      "characters": 1496
+    },
+    {
+      "path": "skills/review-rfc/SKILL.md",
+      "maxCharacters": 2200,
+      "characters": 1310
+    },
+    {
+      "path": "skills/engineer/SKILL.md",
+      "maxCharacters": 1400,
+      "characters": 570
+    },
+    {
+      "path": "skills/verify-change/SKILL.md",
+      "maxCharacters": 3600,
+      "characters": 1975
+    },
+    {
+      "path": "skills/review-change/SKILL.md",
+      "maxCharacters": 3800,
+      "characters": 2106
+    },
+    {
+      "path": "skills/report-walkthrough/SKILL.md",
+      "maxCharacters": 4500,
+      "characters": 3134
+    },
+    {
+      "path": "skills/legion-wiki/SKILL.md",
+      "maxCharacters": 2200,
+      "characters": 1196
+    },
+    {
+      "path": "skills/git-worktree-pr/SKILL.md",
+      "maxCharacters": 3800,
+      "characters": 2243
+    },
+    {
+      "path": "skills/legion-docs/SKILL.md",
+      "maxCharacters": 2700,
+      "characters": 1438
+    },
+    {
+      "path": "skills/pr-html-render/SKILL.md",
+      "maxCharacters": 3000,
+      "characters": 1818
+    },
+    {
+      "path": "skills/legion-workflow/references/SUBAGENT_DISPATCH_MATRIX.md",
+      "maxCharacters": 1600,
+      "characters": 1531
+    },
+    {
+      "path": "skills/legion-workflow/references/GUIDE_DESIGN_GATE.md",
+      "maxCharacters": 2100,
+      "characters": 872
+    },
+    {
+      "path": "skills/legion-workflow/references/REF_HUMAN_ATTENTION.md",
+      "maxCharacters": 3200,
+      "characters": 2437
+    },
+    {
+      "path": "skills/verify-change/references/REF_COGNITIVE_VERIFICATION.md",
+      "maxCharacters": 4800,
+      "characters": 4004
+    },
+    {
+      "path": "skills/legion-docs/references/REF_SCHEMAS.md",
+      "maxCharacters": 3400,
+      "characters": 1655
+    },
+    {
+      "path": "skills/legion-docs/references/REF_LOG_SYNC.md",
+      "maxCharacters": 1200,
+      "characters": 687
+    }
+  ],
+  "failures": []
+}

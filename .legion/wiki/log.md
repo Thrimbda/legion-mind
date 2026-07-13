@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-07-13] writeback | release-lgmind-0-4-0
+
+- 新增 `tasks/release-lgmind-0-4-0.md`，记录 `lgmind@0.4.0` 仅达到发布前就绪：`REL-040-ARTIFACT=PASS`，`REL-040-DISTRIBUTION=DEFERRED`。
+- 更新 `index.md`：npm `latest` 当前仍为 `0.3.1`；`0.4.0` 尚未完成版本准备 PR lifecycle、可信发布、registry 切换与干净环境安装，不能写成已经发布。
+- 任务保持 `active`、整体风险为 `medium`：版本实现本身低风险，但公开 npm 版本不可覆盖；发布后验证完成前不得声明任务完成或执行最终清理。
+- 本次复用既有 npm 发布模式，没有新增 `patterns.md` 或跨任务决定；下一步进入版本准备 PR lifecycle，合并后从锁定的 `master` SHA 发布并恢复分发验证。
+
 ## [2026-07-13] writeback | preserve-agent-review-loop
 
 - 新增 `tasks/preserve-agent-review-loop.md`，收口 PASS 报告与当前 Verdict 一致性、无 verifier 未决 claim、精确 JSON 权限和完整多 Agent 写审循环的当前结论。
