@@ -1,0 +1,57 @@
+命令: npm run test:regression
+工作目录: /Users/c1/Work/legion-mind/.worktrees/release-lgmind-0-4-0
+退出码: 0
+
+npm warn Unknown env config "tmp". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> lgmind@0.4.0 test:regression
+> node --test --experimental-strip-types --experimental-sqlite tests/regression/*.test.ts
+
+✔ 两份协议 reference 是单一真源，关键阶段正确引用而不另造协议 (2.992833ms)
+✔ 注意力协议固定摘要字段、四级等级、噪音上限与 lifecycle 门禁 (0.530291ms)
+✔ 认知验证协议完整定义三轴、预注册字段、五种状态与专业证据边界 (0.529792ms)
+✔ 三个审查阶段都要求中文摘要 handoff，并保留独立精确 Verdict (0.254375ms)
+✔ scheduler 只认独立 PASS Verdict，不会把细粒度 claim 状态误作阶段结论 (8.244458ms)
+✔ provenance 正例会重开 locator 与重算摘要，逐项缺失或不一致只能得到 INCONCLUSIVE (2.775166ms)
+✔ authority 有效证据导出 PASS，缺失、过期、越界、不可读或任一校验失败均导出 INCONCLUSIVE (1.806042ms)
+✔ Legion CLI preserves filesystem invariants for init/create/status/list (352.835041ms)
+✔ 共享 current Verdict parser 只认唯一规范标题后的精确当前值 (1.203584ms)
+✔ report-walkthrough 保留 Markdown allow 并只新增精确 report-data.json allow (1.03975ms)
+✔ renderer 把 report-data 与阶段文档绑定到当前 task 的固定规范路径 (263.781583ms)
+✔ renderer 在 repo root 由 symlink 访问时仍接受合法普通文件 (34.177625ms)
+✔ v1.1 renderer 对无 verifier 未决项如实生成，并在三份产物顶部投影注意力 (552.53625ms)
+✔ v1.1 严格拒绝旧输入、状态冲突、严格 Verdict 和缺失高风险阶段 (650.215541ms)
+✔ DEFERRED 无 verifier 的完整协议可生成，伪 verifier 或非法时态字段必须拒绝 (494.5685ms)
+✔ DEFERRED 触发后在后续 task 重跑验证与审查，旧报告保持历史且 scheduler 不自动唤醒 (64.501625ms)
+✔ 阶段派生文档要求真实派生、会话隔离和诚实降级，不新增 attestation (0.834417ms)
+✔ OpenCode setup lifecycle works in isolated directories (660.059875ms)
+✔ lgmind npm bin exposes help and version (320.115834ms)
+✔ lgmind npm bin runs lifecycle in isolated directories (274.899625ms)
+✔ lgmind interactive install prompts for project scope only (88.238084ms)
+✔ lgmind project scope maps runtime installs to project-local roots (172.574667ms)
+✔ lgmind selects OpenClaw runtime non-interactively (266.4415ms)
+✔ default text output is quiet and verbose/json keep details (255.73475ms)
+✔ npm dry-run package includes CLI and install assets only (458.627083ms)
+✔ packed npm package bins run from node_modules without TypeScript stripping (770.932083ms)
+✔ rollback --to selects requested backup batch (282.156916ms)
+✔ uninstall safe-skips drift and force removes managed drift (212.068667ms)
+✔ tampered manifest and backup paths are rejected safely (275.144917ms)
+✔ symlinked managed root destructive operations are refused (65.252166ms)
+✔ invalid backup-index schema blocks rollback (139.801042ms)
+✔ OpenClaw setup lifecycle matches managed manifest semantics without owning openclaw.json (606.089084ms)
+✔ OpenCode installed skill list exists on disk and includes required skills (1.544208ms)
+✔ OpenClaw dynamic skill surface is an OpenCode superset (0.258791ms)
+✔ 入口把非代码工作与明确微操作留在普通路径，高风险与不确定工作仍升级 Legion (1.97975ms)
+✔ 上下文预算覆盖热文件与中风险强制加载闭包，并保留可重算降幅 (44.62075ms)
+✔ 完整阶段摘要只投影为五字段 handoff，attention 与停止点不得降级 (0.58625ms)
+✔ 子代理命名器生成 canonical displayName 与 transport-safe id，并保证同批唯一 (176.318625ms)
+✔ 报告生成器从单一 schema 数据确定性且事务式生成三份安全产物 (472.042417ms)
+✔ report-walkthrough 禁止手写三份产物，旧手工模板已退出真源 (0.192291ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4956.065625

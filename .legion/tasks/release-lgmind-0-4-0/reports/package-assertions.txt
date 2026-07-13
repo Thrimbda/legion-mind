@@ -1,0 +1,18 @@
+命令: node .legion/tasks/release-lgmind-0-4-0/reports/assert-package.mjs
+工作目录: /Users/c1/Work/legion-mind/.worktrees/release-lgmind-0-4-0
+退出码: 0
+
+NEGATIVE_CONTROL_OK missing=skills/report-walkthrough/scripts/current-verdict.mjs
+NEGATIVE_CONTROL_OK missing=skills/report-walkthrough/scripts/report-data-validation.mjs
+NEGATIVE_CONTROL_OK missing=skills/report-walkthrough/references/report-data.schema.json
+NEGATIVE_CONTROL_OK missing=skills/report-walkthrough/templates/report-walkthrough.html
+NEGATIVE_CONTROL_OK missing=skills/verify-change/references/REF_COGNITIVE_VERIFICATION.md
+NEGATIVE_CONTROL_OK missing=skills/legion-workflow/references/REF_HUMAN_ATTENTION.md
+NEGATIVE_CONTROL_OK missing=skills/legion-workflow/scripts/subagent-name.mjs
+NEGATIVE_CONTROL_OK missing=skills/legion-workflow/references/context-manifest.json
+ARTIFACT_OK id=lgmind@0.4.0 entries=69
+ASSET_ASSERTIONS_OK count=8
+VERSION_BOUNDARY_OK base=origin/master root=0.4.0 scheduler=0.0.0
+BIN_ENTRY_OK count=2
+TRACKED_DIFF_ALL files=.legion/tasks/release-lgmind-0-4-0/docs/pr-body.md,.legion/tasks/release-lgmind-0-4-0/docs/release-notes.md,.legion/tasks/release-lgmind-0-4-0/docs/report-data.json,.legion/tasks/release-lgmind-0-4-0/docs/report-walkthrough.html,.legion/tasks/release-lgmind-0-4-0/docs/report-walkthrough.md,.legion/tasks/release-lgmind-0-4-0/docs/review-change.md,.legion/tasks/release-lgmind-0-4-0/docs/test-report.md,.legion/tasks/release-lgmind-0-4-0/log.md,.legion/tasks/release-lgmind-0-4-0/plan.md,.legion/tasks/release-lgmind-0-4-0/reports/assert-package.mjs,.legion/tasks/release-lgmind-0-4-0/reports/audit-context.txt,.legion/tasks/release-lgmind-0-4-0/reports/npm-registry-preflight.txt,.legion/tasks/release-lgmind-0-4-0/reports/pack-dry-run.txt,.legion/tasks/release-lgmind-0-4-0/reports/package-assertions.txt,.legion/tasks/release-lgmind-0-4-0/reports/test-regression.txt,.legion/tasks/release-lgmind-0-4-0/tasks.md,.legion/wiki/index.md,.legion/wiki/log.md,.legion/wiki/tasks/release-lgmind-0-4-0.md,package.json
+TRACKED_PRODUCT_DIFF_OK files=package.json

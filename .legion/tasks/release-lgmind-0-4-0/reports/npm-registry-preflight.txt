@@ -1,0 +1,38 @@
+查询时间: 2026-07-13 Asia/Shanghai
+命令: npm view lgmind version dist-tags --json --registry=https://registry.npmjs.org
+退出码: 0
+
+npm warn Unknown env config "tmp". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+{
+  "version": "0.3.1",
+  "dist-tags": {
+    "latest": "0.3.1"
+  }
+}
+
+
+命令: npm view lgmind@0.4.0 version --json --registry=https://registry.npmjs.org
+退出码: 1
+
+npm warn Unknown env config "tmp". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+npm error code E404
+npm error 404 No match found for version 0.4.0
+npm error 404
+npm error 404  The requested resource 'lgmind@0.4.0' could not be found or you do not have permission to access it.
+npm error 404
+npm error 404 Note that you can also install from a
+npm error 404 tarball, folder, http url, or git url.
+{
+  "error": {
+    "code": "E404",
+    "summary": "No match found for version 0.4.0",
+    "detail": "The requested resource 'lgmind@0.4.0' could not be found or you do not have permission to access it.\n\nNote that you can also install from a\ntarball, folder, http url, or git url."
+  }
+}
+npm error A complete log of this run can be found in: /Users/c1/.cache/npm/_logs/2026-07-13T09_29_15_205Z-debug-0.log
+直接 registry HTTP 交叉检查
+命令: node --input-type=module -e "for (const endpoint of ['https://registry.npmjs.org/lgmind/latest','https://registry.npmjs.org/lgmind/0.4.0']) { const response = await fetch(endpoint); const body = await response.json(); console.log(JSON.stringify({ endpoint, status: response.status, version: body.version ?? null, error: body.error ?? null })); }"
+退出码: 0
+
+{"endpoint":"https://registry.npmjs.org/lgmind/latest","status":200,"version":"0.3.1","error":null}
+{"endpoint":"https://registry.npmjs.org/lgmind/0.4.0","status":404,"version":null,"error":null}

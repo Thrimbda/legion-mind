@@ -1,0 +1,392 @@
+命令: npm run pack:dry-run
+工作目录: /Users/c1/Work/legion-mind/.worktrees/release-lgmind-0-4-0
+退出码: 0
+
+## 执行前工作树
+ M package.json
+?? .legion/tasks/release-lgmind-0-4-0/
+package.json
+
+## 原始输出
+npm warn Unknown env config "tmp". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> lgmind@0.4.0 pack:dry-run
+> npm pack --dry-run --json
+
+npm warn Unknown env config "tmp". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> lgmind@0.4.0 prepack
+> npm run build:runtime-js
+
+npm warn Unknown env config "tmp". This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+> lgmind@0.4.0 build:runtime-js
+> node --no-warnings scripts/build-runtime-js.mjs
+
+[
+  {
+    "id": "lgmind@0.4.0",
+    "name": "lgmind",
+    "version": "0.4.0",
+    "size": 104171,
+    "unpackedSize": 347838,
+    "shasum": "c201188049ad9c8e545de7f95c1d28ca144d8bd0",
+    "integrity": "sha512-vw0RHNQ6WTOtuuoIa6ouIM84lQP9XfCyZshSBl3oFisoe6adAxgCRO/E++TnYdJbZzRpTAlcI0kPGfZw0whT4g==",
+    "filename": "lgmind-0.4.0.tgz",
+    "files": [
+      {
+        "path": ".opencode/agents/engineer.md",
+        "size": 600,
+        "mode": 416
+      },
+      {
+        "path": ".opencode/agents/legion.md",
+        "size": 1054,
+        "mode": 416
+      },
+      {
+        "path": ".opencode/agents/report-walkthrough.md",
+        "size": 354,
+        "mode": 416
+      },
+      {
+        "path": ".opencode/agents/review-change.md",
+        "size": 295,
+        "mode": 416
+      },
+      {
+        "path": ".opencode/agents/review-rfc.md",
+        "size": 268,
+        "mode": 416
+      },
+      {
+        "path": ".opencode/agents/spec-rfc.md",
+        "size": 274,
+        "mode": 416
+      },
+      {
+        "path": ".opencode/agents/verify-change.md",
+        "size": 560,
+        "mode": 416
+      },
+      {
+        "path": "LICENSE",
+        "size": 1068,
+        "mode": 416
+      },
+      {
+        "path": "README.md",
+        "size": 18915,
+        "mode": 416
+      },
+      {
+        "path": "bin/lgmind.js",
+        "size": 723,
+        "mode": 488
+      },
+      {
+        "path": "bin/setup-opencode.js",
+        "size": 747,
+        "mode": 488
+      },
+      {
+        "path": "package.json",
+        "size": 2165,
+        "mode": 416
+      },
+      {
+        "path": "scripts/build-runtime-js.mjs",
+        "size": 1805,
+        "mode": 416
+      },
+      {
+        "path": "scripts/lgmind.js",
+        "size": 11332,
+        "mode": 416
+      },
+      {
+        "path": "scripts/lib/setup-core.js",
+        "size": 22587,
+        "mode": 416
+      },
+      {
+        "path": "scripts/setup-openclaw.js",
+        "size": 19376,
+        "mode": 416
+      },
+      {
+        "path": "scripts/setup-opencode.js",
+        "size": 18974,
+        "mode": 416
+      },
+      {
+        "path": "skills/brainstorm/SKILL.md",
+        "size": 3098,
+        "mode": 416
+      },
+      {
+        "path": "skills/engineer/SKILL.md",
+        "size": 1120,
+        "mode": 416
+      },
+      {
+        "path": "skills/git-worktree-pr/SKILL.md",
+        "size": 3631,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-docs/references/REF_BEST_PRACTICES.md",
+        "size": 3178,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-docs/references/REF_LOG_SYNC.md",
+        "size": 1232,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-docs/references/REF_SCHEMAS.md",
+        "size": 2539,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-docs/SKILL.md",
+        "size": 2228,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-wiki/references/REF_WIKI_LAYOUT.md",
+        "size": 1176,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-wiki/references/REF_WRITEBACK_RULES.md",
+        "size": 1395,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-wiki/references/TEMPLATE_TASK_SUMMARY.md",
+        "size": 1037,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-wiki/SKILL.md",
+        "size": 1908,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/references/context-manifest.json",
+        "size": 2145,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/references/GUIDE_DESIGN_GATE.md",
+        "size": 1562,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/references/REF_AUTOPILOT.md",
+        "size": 2180,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/references/REF_ENVELOPE.md",
+        "size": 4619,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/references/REF_HUMAN_ATTENTION.md",
+        "size": 4694,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/references/REF_TOOLS.md",
+        "size": 766,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/references/SUBAGENT_DISPATCH_MATRIX.md",
+        "size": 2255,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/scripts/audit-context.mjs",
+        "size": 4112,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/scripts/legion.ts",
+        "size": 5460,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/scripts/lib/cli.ts",
+        "size": 50377,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/scripts/subagent-name.mjs",
+        "size": 3631,
+        "mode": 416
+      },
+      {
+        "path": "skills/legion-workflow/SKILL.md",
+        "size": 7068,
+        "mode": 416
+      },
+      {
+        "path": "skills/llm-wiki/references/architecture.md",
+        "size": 4341,
+        "mode": 416
+      },
+      {
+        "path": "skills/llm-wiki/references/canonical-layout.md",
+        "size": 3029,
+        "mode": 416
+      },
+      {
+        "path": "skills/llm-wiki/references/conventions.md",
+        "size": 3322,
+        "mode": 416
+      },
+      {
+        "path": "skills/llm-wiki/references/lint-contract.md",
+        "size": 4267,
+        "mode": 416
+      },
+      {
+        "path": "skills/llm-wiki/references/page-types.md",
+        "size": 1554,
+        "mode": 416
+      },
+      {
+        "path": "skills/llm-wiki/references/raw-model.md",
+        "size": 2657,
+        "mode": 416
+      },
+      {
+        "path": "skills/llm-wiki/references/scenarios.md",
+        "size": 2045,
+        "mode": 416
+      },
+      {
+        "path": "skills/llm-wiki/references/templates.md",
+        "size": 3453,
+        "mode": 416
+      },
+      {
+        "path": "skills/llm-wiki/references/workflows.md",
+        "size": 4122,
+        "mode": 416
+      },
+      {
+        "path": "skills/llm-wiki/SKILL.md",
+        "size": 5124,
+        "mode": 416
+      },
+      {
+        "path": "skills/pr-html-render/evals/evals.json",
+        "size": 1225,
+        "mode": 416
+      },
+      {
+        "path": "skills/pr-html-render/SKILL.md",
+        "size": 2688,
+        "mode": 416
+      },
+      {
+        "path": "skills/pr-html-render/templates/cleanup-pr-render.yml",
+        "size": 2887,
+        "mode": 416
+      },
+      {
+        "path": "skills/pr-html-render/templates/github-pages-pr-render.yml",
+        "size": 7106,
+        "mode": 416
+      },
+      {
+        "path": "skills/report-walkthrough/references/report-data.schema.json",
+        "size": 12787,
+        "mode": 416
+      },
+      {
+        "path": "skills/report-walkthrough/scripts/current-verdict.mjs",
+        "size": 2743,
+        "mode": 416
+      },
+      {
+        "path": "skills/report-walkthrough/scripts/render-report.mjs",
+        "size": 20908,
+        "mode": 416
+      },
+      {
+        "path": "skills/report-walkthrough/scripts/report-data-validation.mjs",
+        "size": 14780,
+        "mode": 416
+      },
+      {
+        "path": "skills/report-walkthrough/SKILL.md",
+        "size": 4944,
+        "mode": 416
+      },
+      {
+        "path": "skills/report-walkthrough/templates/report-walkthrough.html",
+        "size": 5419,
+        "mode": 416
+      },
+      {
+        "path": "skills/review-change/SKILL.md",
+        "size": 3626,
+        "mode": 416
+      },
+      {
+        "path": "skills/review-rfc/SKILL.md",
+        "size": 2308,
+        "mode": 416
+      },
+      {
+        "path": "skills/spec-rfc/references/REF_RFC_PROFILES.md",
+        "size": 1781,
+        "mode": 416
+      },
+      {
+        "path": "skills/spec-rfc/references/TEMPLATE_IMPLEMENTATION_PLAN.md",
+        "size": 388,
+        "mode": 416
+      },
+      {
+        "path": "skills/spec-rfc/references/TEMPLATE_RESEARCH.md",
+        "size": 1213,
+        "mode": 416
+      },
+      {
+        "path": "skills/spec-rfc/references/TEMPLATE_RFC_HEAVY.md",
+        "size": 3094,
+        "mode": 416
+      },
+      {
+        "path": "skills/spec-rfc/SKILL.md",
+        "size": 2592,
+        "mode": 416
+      },
+      {
+        "path": "skills/verify-change/references/REF_COGNITIVE_VERIFICATION.md",
+        "size": 7342,
+        "mode": 416
+      },
+      {
+        "path": "skills/verify-change/SKILL.md",
+        "size": 3585,
+        "mode": 416
+      }
+    ],
+    "entryCount": 69,
+    "bundled": []
+  }
+]
+
+
+## 执行后工作树与 runtime diff
+ M package.json
+?? .legion/tasks/release-lgmind-0-4-0/
+package.json
