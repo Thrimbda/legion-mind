@@ -54,6 +54,12 @@
 - 合并后已删除远端与本地 `legion/preserve-agent-review-loop` 分支，移除隔离 worktree，并把主工作区刷新到 `origin/master` 的 `df90d72`。
 - 合并后遗留写入只污染了已合并 worktree，未进入 PR；清理前已直接重读远端 merge commit，确认 `claims=[]`、`attention: skim`、`render.state=local`、Wiki 非阻塞 A/B 叙述及 HTML 行尾空白 `0` 均保持正确。
 
+### 🔄 交付语义纠偏
+
+- PR #50 与终态文档 PR #51 已经合并，但二者把“真实多任务、多模型下新版总体效果与旧版完全等价”从无 verifier 的 `INCONCLUSIVE` 主张降成了 `claims=[]` / `attention: skim`。这没有破坏已合并代码，却把“结构保真”误包装成足以消除完整效果等价疑问，并跨过了原定的人类复核停止点。
+- 新的隔离分支只恢复报告、wiki 与任务交接的当前真相：实现阶段继续为 `PASS`；`overall-effect-equivalence-ab` 继续为无 verifier 的 `INCONCLUSIVE`；人类 attention 为 `review`。二者属于不同层级，不互相覆盖。
+- corrective PR 可以准备、推送并运行 checks，但在维护者明确确认“本轮只接受结构、门禁、回退、路径安全与 token 闭包已证明，不把完整行为效果等价视为已证明”之前，不得 auto-merge 或 merge。
+
 ### ⚠️ 历史运行噪音（已处理）
 
 - 内置协作通道曾有 `spec-rfc` 实例未产生文件，OpenCode 回退路径也曾因 `Token refresh failed: 401` 不可用。后续 RFC 已经多轮独立 review-rfc 并最终 PASS，该故障不再是当前 blocker。
@@ -90,13 +96,14 @@
 
 **下次继续从这里开始：**
 
-1. 本任务已经完成，无需继续执行交付步骤。
-2. 若要量化真实多任务、多模型效果，再创建独立 A/B 评估任务；它不是本任务的遗留 merge gate。
+1. 完成 corrective PR 的独立审查、生成物校验与 checks。
+2. 在 merge 前等待维护者确认当前已证明边界；确认后才能合并并完成 cleanup。
+3. 若要把完整效果等价从 `INCONCLUSIVE` 提升为 `PASS`，另行使用固定模型、固定任务套件执行旧新版本 A/B。
 
 **注意事项：**
 
-- 当前报告没有无 verifier 的未决 claim；未来若真实登记 domain/authority 的 `INCONCLUSIVE` 或 `DEFERRED`，仍必须与阶段 Verdict 分层表达并提升人类注意力。
-- 普通文件系统 TOCTOU 与跨 transport 身份 attestation 仍是明确的非目标；真实多任务、多模型 A/B 只是一项非阻塞的未来效果评估，不是本次任务的当前 claim 或 merge gate。
+- 当前报告有一个无 verifier 的未决主张：`overall-effect-equivalence-ab = INCONCLUSIVE`；它与阶段 `Verdict: PASS` 分层表达，并把 corrective PR merge 前的人类注意力提升为 `review`。
+- 普通文件系统 TOCTOU 与跨 transport 身份 attestation 仍是明确的非目标；真实多任务、多模型 A/B 是提升该主张状态所需的验证协议，不能由结构性回归替代。
 
 ---
 

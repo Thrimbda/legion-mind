@@ -1,68 +1,76 @@
-# 独立变更审查：HTML 行尾空白有界返修
+# 独立变更审查：恢复未验证效果等价的报告边界
 
-审查实例：`review-change-quick-koala`
+审查实例：`review-change-swift-penguin`
 
-本实例未参与实现或 `verify-change-fizzy-sparrow` 的验证。本轮以已批准 RFC、`plan.md`、当前实现差异和最新 `docs/test-report.md` 为输入，只读审查 renderer 出口的行尾空白规范化及对应回归；除本文件外未修改产品、测试、任务状态、wiki、正式 `report-data.json` 或三份生成物。
-
-## 阻塞项
-
-无当前实现阻塞项。
-
-旧正式 `report-data.json` 及三份报告产物仍是先前 A/B claim 输入留下的 stale artifact，不代表本轮当前报告真相，也不属于本 reviewer 的修补权限。它们必须在下一阶段由新的 `report-walkthrough` Agent 从 `claims=[]`、`attention=skim`、`render.state=local` 的正式输入整体重建；重建前的全量 staged diff check 仍会失败，因此当前 PASS 不能被解释为报告交付已经完成。
-
-## 有界实现审查
-
-当前未暂存的产品与回归差异只有两处：
-
-1. `renderHtml()` 在模板替换、占位符检查和 HTML 质量门之后，使用 `/[ \t]+(?=\r?$)/gm` 删除每一行末尾的 ASCII 空格或 Tab，再沿用原有 `trimEnd()` 和单个结尾换行。
-2. `claims=[]` 的生成器回归对整份 HTML 增加行尾空格或 Tab 不得出现的断言。
-
-正则的边界是准确的：字符类只包含普通空格与 Tab；正向预查只在行末、CRLF 的 `\r` 之前或文件末尾命中。实测 LF、CRLF 和末行无换行三种输入均保留原换行类型与数量，行中空格不变。renderer 仍先完成所有 HTML 转义和模板替换，规范化不会引入标签、改变属性或跨行拼接内容。当前模板没有保留行尾空白语义的 `<pre>`/`white-space: pre` 区域，用户内容也先被转义，因此未发现对当前 HTML 语义的损伤。
-
-原有 `trimEnd()` 对文件末尾空白的行为不变；本轮只是把同一规范扩展到每一行，并没有把全角空格、NBSP 或其他 Unicode 空白误删。
-
-## 回归覆盖判断
-
-`validReportData()` 明确设置 `claims: []`。该输入会让 `MISSING_VERIFIER_ALERT` 返回空字符串，模板中原本缩进的空占位符行正是历史 trailing whitespace 的来源；新增的整份 HTML 断言会在该行或任何其他行仍含空格/Tab 行尾时失败。因此它确实覆盖 `claims=[]` 的空 alert，而不是只对一段手造字符串测试正则。
-
-同时，既有无 verifier 定向回归仍验证 domain `INCONCLUSIVE` 不伪造 verifier、保留 attention 与证据映射，并能生成三份产物。两项最小复跑结果：
-
-- `报告生成器从单一 schema 数据确定性且事务式生成三份安全产物`：`1/1 PASS`。
-- `v1.1 renderer 对无 verifier 未决项如实生成`：`1/1 PASS`。
-- 当前实现与回归文件的 `git diff --check`：PASS。
-
-最新 `test-report.md` 还记录定向组合 `36/36`、根回归 `40/40`、scheduler `59/59` 全部 PASS，足以排除这项出口格式返修对相邻协议的退化。
-
-## 协议与循环不变性
-
-本轮没有修改 schema、共享当前 Verdict 解析器、语义校验、scheduler、worker handoff、OpenCode 权限或阶段派生文档。代码路径复核与最新验证共同支持：
-
-- 顶部 PASS 仍必须与当前阶段文档的唯一规范 Verdict 一致；FAIL、BLOCKED、历史 PASS 或不可解析状态仍 fail-closed。
-- `domain/authority` 的无 verifier `INCONCLUSIVE/DEFERRED` 仍可如实表达，并保留 attention、停止点、唯一人类动作和后续验证协议。
-- `spec-rfc -> review-rfc -> engineer -> verify-change -> review-change` 仍由不同阶段 Agent 执行，失败仍按原循环回退；五字段短交接没有替代任何评审阶段。
-- scheduler 的 task/profile/risk、固定 locator、当前 Verdict 与 report-data 最终门均未改变。
-
-## 范围与安全视角
-
-本轮范围没有扩大：产品变更为 renderer 出口一行规范化，测试变更为一条对应断言；其余当前任务文档、wiki 和正式报告差异属于既有交付流水，不是本轮实现增量。
-
-由于 renderer 处理可进入 HTML 的数据，本轮展开了安全视角。行尾删除发生在已有 HTML 转义之后，只删除空格/Tab，不解码实体、不改引号、不生成标签，也不放宽脚本、外链、iframe 或预览 URL 质量门。未发现新的注入、内容逃逸、权限扩张或 fail-open 路径。
-
-## 交付前置与残余风险
-
-- `git diff --cached --check` 当前仍以 `.legion/tasks/preserve-agent-review-loop/docs/report-walkthrough.html:71` 的历史 trailing whitespace 返回 exit code `2`。这是 stale artifact 的可观察证据，不能被本轮新 renderer 的定向 PASS 掩盖。
-- 新的 `report-walkthrough` Agent 必须把正式输入恢复为 `claims=[]`、`attention=skim`、`render.state=local`，再由该输入重建 HTML、walkthrough Markdown 与 PR body。
-- 重建后必须同时重跑正式输入 `--check -> render -> --check` 以及全量 staged/unstaged `git diff --check`；任何一项未通过都不能进入最终 PR 交付。
-- 规范化只保证 renderer 生成的 HTML，不自动修改输入 JSON、阶段 Markdown、wiki 或其他非 renderer 产物。
+本实例未参与当前 corrective 报告、wiki 或任务交接的编写。审查范围严格限定为 `git diff origin/master`：恢复 `overall-effect-equivalence-ab = INCONCLUSIVE`、无 verifier、`attention: review` 与 corrective PR merge 前停止点，并确认已合并产品代码、多 Agent 阶段链和 FAIL 回退没有变化。
 
 ## Verdict
 
 PASS
 
-## 五字段交接
+## 独立结论
 
-- 结果：`review-change-quick-koala` 对最新 HTML 行尾空白有界返修判定 `PASS`，无实现 blocker。
-- 变化：renderer 只删除每行末尾空格/Tab；`claims=[]` 空 alert 回归直接覆盖历史空白来源，HTML 内容、换行与原报告协议未变。
-- 风险：旧正式 A/B artifact 仍 stale，当前全量 staged diff check 明确失败；该状态不能作为当前报告真相或最终交付证据。
-- 下一步：必须派生新的 `report-walkthrough` Agent，将正式输入恢复为 `claims=[]`、`attention=skim`、`render.state=local`，整体重建三份产物后执行正式 `--check -> render -> --check` 与全量 diff check。
-- 证据：`.legion/tasks/preserve-agent-review-loop/docs/test-report.md`、`skills/report-walkthrough/scripts/render-report.mjs`、`tests/regression/token-cognitive-efficiency.test.ts`、本文件。
+当前 corrective 变更可以进入 commit、push、PR 与 checks，但不能越过 merge 门。它准确修复了 `origin/master` 中 `claims=[]` / `attention: skim` 与现有验证证据之间的交付语义矛盾：实现阶段证据继续为 `PASS`，真实多任务、多模型下新版总体效果与旧版完全等价则保持无 verifier 的 `INCONCLUSIVE`。这两个层级没有互相覆盖，也没有把结构性回归扩大成完整行为效果等价证明。
+
+## Blocker
+
+无实现、范围或证据一致性 blocker。
+
+## Correctness 与状态聚合
+
+1. `report-data.json` 当前只登记一个未解决主张 `overall-effect-equivalence-ab`。其状态为 `INCONCLUSIVE`、专业门槛为 `domain`，没有 `verifier` 字段；同时具备负责人、影响、当前缓解、证据 locator、证据缺口和真实升级方法，没有伪造来源、版本、方法执行或独立性。
+2. 该 claim 的证据 locator 精确指向 `docs/test-report.md`，当前验证报告明确保留同一 claim id、无 verifier、`INCONCLUSIVE` 和 merge 前人工复核边界。`attention.evidence` 包含该 locator；聚合等级为 `review`，唯一人类动作和 `corrective PR 的 auto-merge/merge 前` 停止点均非占位值。
+3. HTML、walkthrough Markdown 与 PR body 均投影出“未获得 verifier”、claim id、证据缺口、升级路径、唯一动作和停止点；wiki、plan、log 与 tasks 也把任务恢复为 active/corrective，而没有继续把 A/B 描述为 `claims=[]`、可选且不构成 merge gate。
+
+根据认知验证协议，当前缺口属于可观测但尚未执行固定模型、固定任务 A/B、且当前未获得匹配 verifier 的领域证据不足。它不是阻塞实现阶段的 `FAIL`，但在被人类复核前构成 `review` 级 merge 门。后续若要改变 claim 状态，必须另行保存固定模型、固定任务套件、硬门违规、阶段轨迹、风险与停止点召回以及 token 消耗的原始输出，并重新派生 `verify-change -> review-change`；本审查不替 verifier 补造 provenance。
+
+## Scope 与多 Agent 循环
+
+- `git diff origin/master --name-only` 只包含当前 task 的 `report-data.json`、三份生成报告、`review-change.md`、plan/log/tasks，以及对应 wiki 当前真相；没有产品代码、schema、scheduler、权限或测试文件变化。
+- 已合并的 RFC 作者与独立 `review-rfc`、engineer 与 `verify-change`、`verify-change` 与独立 `review-change` 阶段契约没有被修改；FAIL 回到对应作者阶段的语义也没有减损。
+- token 结论仍只基于既有 context audit；corrective diff 没有通过删除阶段或证据来新增 token 优化主张。
+
+## 验证充分性
+
+本审查复用了当前任务已落盘且由 root 现跑确认的宽证据，没有冒充重新执行：定向组合 `36/36`、根回归 `40/40`、scheduler `59/59`、context audit 无 failures、发布包 dry-run `69` entries。当前 corrective diff 不修改这些行为面，因此没有重跑宽测试。
+
+本实例只执行与纠偏范围直接相关的检查：
+
+- `jq empty docs/report-data.json`：通过；
+- corrective 文件 allowlist 静态检查：`SCOPE_OK`；
+- 当前 claim、attention、唯一动作与 merge 停止点跨报告/wiki/任务文档扫描：一致；
+- `node skills/report-walkthrough/scripts/render-report.mjs --input .../report-data.json --check`：通过，输出 `CHECK_OK preserve-agent-review-loop`；
+- `git diff origin/master --check`：通过，无输出。
+
+这些证据足以判断本次文档与派生产物纠偏正确，但不能证明完整行为效果等价；该限制已经由 claim 和 attention 门显式保留。
+
+## Verifier、authority 与特殊 claim 重查
+
+- 领域 verifier：`overall-effect-equivalence-ab` 当前未获得 verifier；没有可重算版本、资源清单、执行记录或原始 A/B 输出，因此保持 `INCONCLUSIVE`，不允许提升为 `PASS`。
+- authority evidence：不适用；当前没有 authority claim，也没有签署、资质或外部权威结论。
+- `DEFERRED`：无；没有用“以后再看”替代完整触发协议。
+- `RECOMMENDATION`：无；固定模型、固定任务 A/B 是升级路径，不被包装成已决定的客观结论。
+
+## 安全视角
+
+历史实现涉及权限、证据路径和身份/信任边界，但本次 corrective diff 不改变任何权限规则或特权执行路径。它只收紧人类可见的信任表达：阻止无 verifier 的完整效果等价被 `claims=[]` / `skim` 隐藏。现有 TOCTOU 与跨 transport 身份 attestation 限制仍明确保留，没有被文档纠偏夸大为已解决；未发现新的安全 blocker。
+
+## 可选建议
+
+后续 A/B 任务应在执行前固定模型版本、任务套件、随机性、比较指标和原始输出 locator，再由新的 verifier/reviewer 独立判断。该建议不阻止 corrective PR 准备与 checks，但在当前唯一人类动作完成前仍禁止 auto-merge 或 merge。
+
+## 会话注意力摘要
+
+- 阶段：`review-change`
+- 阶段结论：`PASS`
+- 注意力等级：`review`
+- 判断变化：相对 `origin/master`，当前权威报告已把被误降级的总体效果等价主张恢复为无 verifier 的 `INCONCLUSIVE`，并恢复 corrective PR merge 前的人类复核门。
+- 关键发现：
+  1. 阶段 `PASS` 与 claim `INCONCLUSIVE` 已分层表达，三份生成物和 wiki/任务当前真相一致。
+  2. corrective diff 没有修改已合并产品代码、多 Agent 阶段链或 FAIL 回退。
+  3. 既有宽验证足以支持结构、门禁、回退、路径安全与 token 闭包，但不能支持完整行为效果等价。
+- 阻塞项：无。
+- 残余风险：真实多任务、多模型旧新版本 A/B 尚未执行，`overall-effect-equivalence-ab` 仍无 verifier；普通文件系统 TOCTOU 与跨 transport 身份 attestation 仍不在已证明范围。
+- 人类动作：确认本次只接受结构、门禁、回退、路径安全与 token 闭包的已验证结论，不将完整行为效果等价视为已证明。
+- 自动下一步：允许准备 commit、push、corrective PR 与 checks；在上述复核落盘前停止 auto-merge、merge、cleanup 和完成声明。
+- 完整证据：`.legion/tasks/preserve-agent-review-loop/docs/review-change.md`、`.legion/tasks/preserve-agent-review-loop/docs/report-data.json`、`.legion/tasks/preserve-agent-review-loop/docs/test-report.md`、`.legion/tasks/preserve-agent-review-loop/docs/verification-output.md`。

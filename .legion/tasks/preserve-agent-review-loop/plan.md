@@ -58,7 +58,7 @@
 1. **设计与独立评审** - 已完成，独立 `review-rfc` 为 PASS
 2. **实现** - 已完成 schema、renderer、scheduler、权限和阶段语义修复
 3. **验证与验收** - 已完成定向、全量回归与独立 review-change
-4. **交付** - 已完成 walkthrough、wiki、PR #50 squash merge、worktree/分支清理与主工作区刷新
+4. **交付** - PR #50 与终态文档 PR #51 已合并；当前正用 corrective PR 恢复被误降级的无 verifier 报告与人类复核门
 
 ---
 

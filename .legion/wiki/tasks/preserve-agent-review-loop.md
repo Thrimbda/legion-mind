@@ -3,7 +3,7 @@
 ## Metadata
 
 - `task-id`: `preserve-agent-review-loop`
-- `status`: `completed`
+- `status`: `active`
 - `risk`: `high`
 - `schema-version`: `2026-07-13 / report-data v1.1`
 - `historical`: `false`
@@ -16,7 +16,7 @@
 - `report-data.json` 是机器中间真源，不是第四份人类报告；renderer 校验后一次、事务式派生 HTML、Markdown 和 PR body，worker 到 scheduler 的 `reportData` locator 也已纳入完整证据门。
 - renderer 与 scheduler 对固定 repo-relative locator 和精确 canonical realpath 同时绑定，拒绝仓库外、跨 task、同 task 其他文件及中间目录 symlink，同时保留 repo root 经 symlink 访问的合法正例。
 - RFC 作者与独立 reviewer、engineer 与 verifier、verifier 与独立 acceptance reviewer 仍由不同阶段 Agent 执行，失败仍回到对应作者阶段；token 优化只来自按需加载、校验去重和五字段短交接。
-- 实现、独立验证与独立变更审查均为 `PASS`；当前权威报告为 `claims=[]`、`attention: skim`，HTML 使用 `render.state=local` fallback。真实多任务、多模型旧新版本 A/B 只是一项可选、非阻塞的后续效果评估建议，不是当前 claim 或 merge gate。
+- 实现、独立验证与独立变更审查均为阶段 `PASS`；当前权威报告把“真实多任务、多模型下新版总体效果与旧版完全等价”登记为无 verifier 的 `INCONCLUSIVE` 主张，并提升为 `attention: review`。它不否定已通过的结构性证据，但 corrective PR 必须在 merge 前等待人类确认已证明边界。
 
 ## Reusable Decisions
 
@@ -42,6 +42,6 @@
 
 - 精确 schema、Verdict 解析、阶段集合、attention 与权限规则仍以 `skills/**`、`.opencode/**` 和 scheduler 代码为真源；本页不复制字段定义。
 - 当前实现保证固定 repo-relative locator 与规范真实路径的读取边界，不宣称抵抗恶意本机并发替换，也不提供跨 transport 身份 attestation。
-- 当前报告没有登记未决领域或权威 claim；真实多任务、多模型 A/B 可在未来用固定模型与固定任务套件评估，但不阻塞本次交付。
+- 当前报告登记了 `overall-effect-equivalence-ab`：没有 verifier，状态为 `INCONCLUSIVE`；后续应以固定模型、固定任务套件完成 A/B，不能用当前结构回归冒充完整效果等价证明。
 - 当前 HTML 仅提供本地可打开的 fallback；仓库尚无受控 preview，后续若提供受控机制或明确批准 Pages，再恢复 rendered URL。
-- 主交付 PR #50 已 squash merge 为 `df90d72`；当时仓库没有 required checks 或 GitHub review 阻塞，隔离 worktree、远端/本地任务分支均已清理，主工作区已刷新到合并后的 `origin/master`。本页状态因此为 `completed`。
+- 主交付 PR #50 已 squash merge 为 `df90d72`，终态文档 PR #51 也已合并；两者当时把上述主张误降级为 `claims=[]` / `attention: skim`，跨过了原定人类复核点。当前 corrective PR 只纠正报告、wiki 与任务交接语义，在维护者确认前不得合并，因此本页状态为 `active`。
