@@ -7,25 +7,23 @@
 - 风险：`low`
 - 阶段结论：`PASS`
 - 审查状态：`PASS`
-- 最终状态：发布前就绪，分发待验证：版本准备实现、artifact 验证与独立审查均为 PASS，公开 npm 发布和真实安装仍为 DEFERRED。
+- 最终状态：lgmind@0\.4\.0 已发布，artifact 与分发结果均为 PASS，当前没有未决 claim；wiki writeback 与 smoke 清理已完成，发布结果收口 PR merge、worktree cleanup 与主工作区刷新尚待 lifecycle 完成。
 
-当前版本准备阶段为 PASS：OpenCode transport 曾意外改写 \.opencode/package\-lock\.json，review\-change\-quick\-koala 当时正确给出 FAIL 并阻止推进；随后通过 apply\_patch 精确恢复、engineer 哈希确认、verify\-change 重验和 review\-change\-sunny\-badger 独立审查，已证明当前 \.opencode/\*\* 副作用清零，产品集合仅排除 \.legion/\*\* 后精确为 package\.json，REL\-040\-ARTIFACT 恢复 PASS。历史 FAIL 保留为审计事实，但不是当前 blocker。40/40 仍是既有原始证据，不冒充本轮重跑。公开 npm 发布具有版本不可覆盖风险，REL\-040\-DISTRIBUTION 保持 DEFERRED；当前只可进入版本 PR lifecycle，不能把发布、registry 切换或干净安装写成已经完成。
+lgmind@0\.4\.0 已从 PR \#53 的合并提交 ff4c7009f967b7a897715b077ffb3a3dba76a2b3 发布。GitHub Actions run 29242902972 成功且 headSha 精确一致；npm 固定版本与 latest 均为 0\.4\.0；隔离环境中的固定版本 npx、首次安装、幂等复跑、strict verify 与 8 项关键资产逐字节一致性全部通过。REL\-040\-ARTIFACT 与新的 REL\-040\-DISTRIBUTION\-RESULT 均为 PASS，当前没有未决 claim。发布前 REL\-040\-DISTRIBUTION=DEFERRED 与 eager\-marten 对非法 block\-completion 的首轮正确 FAIL 均作为历史时点保留；字段修正为 block\-stage 后，jolly\-penguin 当前独立审查为 PASS。当前只剩发布结果收口 PR、cleanup 与主工作区刷新 lifecycle。
 
 ## 人类注意力与当前动作
 
-- 聚合注意力：`review`
-- 当前唯一人类动作：已由 release\-040\-deferred\-review\-001 完成本轮复核，允许版本准备 PR merge；无需新增决定，但必须遵守发布后验证停止点。
-- lifecycle 边界：可继续 walkthrough、wiki、commit、push、PR、checks 与版本准备 PR merge；merge 后必须从锁定的 master SHA 触发既有 trusted\-publishing workflow，再恢复分发验证。
-- 停止点：发布后的 workflow、registry 与干净安装验证完成前，不得声明任务完成、把 REL\-040\-DISTRIBUTION 更新为 PASS、执行最终清理或把主工作区刷新视为发布收口。
-- 摘要：公开 npm 版本一旦发布不可覆盖；当前 PASS 只覆盖版本准备与待发布 artifact，尚不覆盖 workflow、registry 和干净安装。release\-040\-deferred\-review\-001 已完成复核并允许版本准备 PR merge。
-- 证据：\.legion/tasks/release\-lgmind\-0\-4\-0/log\.md、\.legion/tasks/release\-lgmind\-0\-4\-0/docs/test\-report\.md、\.legion/tasks/release\-lgmind\-0\-4\-0/docs/review\-change\.md
+- 聚合注意力：`skim`
+- 当前唯一人类动作：快速浏览 workflow、registry、隔离安装、最终 \.legion/\*\* scope 与历史审计摘要；无需新增决定。
+- lifecycle 边界：可以继续提交、rebase、push、发布结果收口 PR、checks、review 与 merge；报告生成不代表收口 PR merge、worktree cleanup 或主工作区刷新已经完成。
+- 停止点：可以继续提交、rebase、push、发布结果收口 PR、checks、review 与 merge；报告生成不代表收口 PR merge、worktree cleanup 或主工作区刷新已经完成。
+- 摘要：公开发布、registry、真实安装、wiki writeback 与 closing scope 证据已经闭环，无当前 blocker 或未决 claim；只需快速浏览发布结果和双时态审计，再完成收口 PR lifecycle。
+- 证据：\.legion/tasks/release\-lgmind\-0\-4\-0/docs/publish\-result\.md、\.legion/tasks/release\-lgmind\-0\-4\-0/docs/test\-report\.md、\.legion/tasks/release\-lgmind\-0\-4\-0/docs/review\-change\.md
 
 
 ## 未解决的认知状态
 
-| claim\-id | 主张 / 状态 / 门槛 | 影响 | 负责人 / 状态字段 | 当前缓解 | 证据 |
-| --- | --- | --- | --- | --- | --- |
-| REL\-040\-DISTRIBUTION | 从指定的合并后 master SHA 发布后，npm latest 指向 0\.4\.0，且干净环境可通过固定版本 npx 安装并通过严格校验。；DEFERRED；routine | 该主张决定其他机器能否真正获得新资产；若失败，公开版本可能已被占用但无法正确交付。 | 发布编排器；触发条件：版本准备 PR squash merge 到 master，且从该合并 SHA 触发的 Publish npm package workflow 到达终态。；届时方法：核对 workflow URL、checkout SHA 与结论；查询固定版本和 dist\-tag；在不依赖本地仓库的干净目录执行固定版本 npx version、install、verify \-\-strict 和关键资产检查。；所需数据：合并 SHA（来源：GitHub master；验收：精确等于发布 workflow 的 checkout SHA。）；workflow 结果（来源：GitHub Actions；验收：发布步骤成功，且来源 SHA 与锁定的合并 SHA 一致。）；registry 状态（来源：npm registry；验收：固定版本与 dist\-tags\.latest 均为 0\.4\.0。）；隔离安装输出（来源：不依赖仓库的干净临时目录；验收：version、install、verify \-\-strict 与关键资产检查全部成功。）；停止条件：版本已存在但来源不明、workflow SHA 与锁定的 master SHA 不一致，或发布后 registry、安装任一失败；停止重跑与完成声明。；后续任务：本任务的发布结果收口阶段，重新执行 verify\-change \-&gt; review\-change。；通过后：回写 workflow URL、合并与 checkout SHA、registry 状态和干净安装证据。／在后续验证与审查中将新的分发主张判为 PASS，再进入最终清理和完成声明。；失败后：停止重跑并保留全部证据，准备后续修复版本决策。／后续阶段返回 FAIL，不修改本报告中的历史 DEFERRED 状态。 | 只从合并后锁定 SHA 的既有 trusted\-publishing workflow 发布；触发前重查版本唯一性，发布后逐项验证 workflow、registry 与隔离安装，任一异常立即停止重跑与完成声明。 | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/test\-report\.md |
+当前证据未登记需要单独聚合的未解决 claim。
 
 ## 领域验证摘要
 
@@ -35,97 +33,99 @@
 
 ### 范围内
 
-- 根 package\.json 版本由 0\.3\.1 精确更新为 0\.4\.0
-- 中文发布说明和任务内版本准备、验证、审查与报告证据
-- context audit、完整回归、npm pack 文件集、关键资产、bin、runtime 与 registry 唯一性检查
-- 版本准备 PR lifecycle、合并后 trusted\-publishing workflow、registry 与固定版本 npx 验证
-- 发布结果回写 wiki 和任务证据，以及全部终态完成后的清理与主工作区刷新
+- PR \#53 squash merge 与合并提交来源核对
+- GitHub Actions trusted\-publishing workflow 的 headSha、结论、回归、pack 与发布步骤
+- npm 固定版本、latest、bin 元数据与公开分发状态
+- 带独立 package 边界、HOME、cache 与 prefix 的固定版本 npx、首次安装、幂等复跑和 strict verify
+- 8 项关键资产与合并提交源码的逐字节一致性
+- 历史 DEFERRED、smoke 夹具假阳性、首轮审查 FAIL 与当前 PASS 的双时态审计
+- 发布结果文档、walkthrough、wiki、收口 PR、cleanup 与主工作区刷新
 
 ### 范围外
 
-- 新增或重设计 CLI、安装器、schema、协议、agent 或报告行为
-- 修改 scheduler 独立包版本或边界
-- 修改 npm package name、registry、public access、Node engine 或 trusted\-publishing 架构
-- 从未合并分支、本地主工作区或本机 npm 凭据直接发布
+- 修改 lgmind 0\.4\.0 的已发布内容或覆盖 npm 版本
+- 在发布结果收口分支修改产品代码、安装器、schema、协议、agent、workflow 或 scheduler
+- 把本次结果外推为未来版本、所有 Node/npm 组合或所有运行环境的保证
+- 把可选 MCP 未配置视为 filesystem\-backed CLI 的阻塞
 - 把尚未执行的完整多任务、多模型旧新版本 A/B 描述为已经证明
 
 ## 证据地图
 
 | 证据 | 类型 | 状态 | locator |
 | --- | --- | --- | --- |
-| 0\.4\.0 发布合同与验收边界 | plan | INFO | \.legion/tasks/release\-lgmind\-0\-4\-0/plan\.md |
-| 发布授权、DEFERRED 复核与阶段恢复记录 | attention | INFO | \.legion/tasks/release\-lgmind\-0\-4\-0/log\.md |
-| verify\-change\-gentle\-otter 发布前验证报告 | test\-report | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/test\-report\.md |
-| review\-change\-lively\-penguin 独立变更与供应链审查 | review\-change | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/review\-change\.md |
-| lgmind 0\.4\.0 中文发布说明 | other | INFO | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/release\-notes\.md |
+| 0\.4\.0 发布合同、验收与收口边界 | plan | INFO | \.legion/tasks/release\-lgmind\-0\-4\-0/plan\.md |
+| 发布授权、历史回退、恢复、PR、发布与收口记录 | attention | INFO | \.legion/tasks/release\-lgmind\-0\-4\-0/log\.md |
+| verify\-change 发布前与发布后继任验证报告 | test\-report | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/test\-report\.md |
+| lgmind 0\.4\.0 发布后验证结果 | other | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/publish\-result\.md |
+| review\-change\-jolly\-penguin 发布后独立审查 | review\-change | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/review\-change\.md |
+| 当前任务状态与剩余 lifecycle | other | INFO | \.legion/tasks/release\-lgmind\-0\-4\-0/tasks\.md |
 
 ## 交付路径
 
-1. engineer 只更新根包版本并建立中文发布说明，不改变 scheduler 或运行时行为
-2. verify\-change 独立执行 context audit、完整回归、pack 与关键资产断言，初次确认 artifact 边界并把分发主张保持为 DEFERRED
-3. release\-040\-deferred\-review\-001 完成复核，允许版本准备 PR merge，但不提前证明未来分发
-4. OpenCode transport 失败并意外改写 \.opencode/package\-lock\.json 后，review\-change\-quick\-koala 依据当时产品越界正确给出 FAIL，阻止 push、PR 与发布
-5. root 只用 apply\_patch 精确恢复 lockfile，engineer 确认哈希与副作用边界，verify\-change 重新执行有界方法并恢复 REL\-040\-ARTIFACT=PASS
-6. review\-change\-sunny\-badger 独立确认当前 \.opencode/\*\* 差异为空、产品 diff 仅 package\.json，给出当前 PASS 与 attention: review，同时保留历史 FAIL
-7. report\-walkthrough 从当前 PASS 证据生成单一报告真源与三份 reviewer artifact
-8. legion\-wiki 写回发布前状态，随后完成 commit、rebase、push、PR、checks、review 与 squash merge
-9. merge 后锁定 master SHA，通过既有 trusted\-publishing workflow 发布，再恢复 verify\-change \-&gt; review\-change 验证 registry 与干净安装
-10. 只有发布后验证 PASS 并完成结果回写后，才可最终清理 worktree、刷新主工作区和声明任务完成
+1. 版本准备阶段完成根版本更新、artifact 验证、独立审查、walkthrough、wiki 与发布授权，发布前分发主张保持 DEFERRED
+2. OpenCode transport 的历史 lockfile 越界由 quick\-koala 正确 FAIL 并 fail closed；精确恢复和新一轮验证审查证明副作用清零
+3. 版本准备 PR \#53 经 checks 与 review 后 squash merge，锁定合并提交 ff4c7009f967b7a897715b077ffb3a3dba76a2b3
+4. 从该 master 提交触发 trusted\-publishing workflow 29242902972，workflow checkout、40/40 回归、69 项 pack 与 npm publish 全部成功
+5. verify\-change 在独立 package 边界和隔离 HOME/cache/prefix 中验证固定版本、首次安装、幂等复跑、strict verify 与 8 项资产哈希，登记新的分发结果 PASS
+6. 首次无独立 package 边界的 command not found 被保留为夹具假阳性，修正边界并清空 cache 后才采纳成功证据
+7. eager\-marten 首轮因 successor claim 使用协议外 block\-completion 正确给出 FAIL；verify\-change 只修正为 block\-stage，jolly\-penguin 重新审查后给出当前 PASS
+8. report\-walkthrough 从当前 PASS 证据重建单一 report\-data\.json，并生成 HTML、Markdown 与 PR body
+9. legion\-wiki 已把 0\.4\.0 当前分发真相和双时态审计写回任务摘要、wiki index 与 wiki log
+10. 隔离 smoke 已删除；jolly\-penguin 补充确认最终 diff 全部位于 \.legion/\*\*，收口分支 40/40、报告 CHECK\_OK 与 git diff \-\-check 均通过
+11. 继续提交、rebase、push 并完成发布结果收口 PR；PR merge 后清理版本准备与收口 worktree并刷新主工作区
 
 ## 变更与决定
 
-- 根 package\.json 的版本从 0\.3\.1 更新为 0\.4\.0；scheduler/package\.json 保持 0\.0\.0 且未改变。
-- 验证断言以 origin/master 为版本基线，取 origin/master\.\.\.HEAD 与 HEAD working diff 的去重并集并原样保留完整 changed paths；产品集合只排除 \.legion/\*\*，当前精确为 package\.json，任何 \.opencode/\*\* 或其他源码路径都不会被忽略。
-- 失败的 OpenCode transport 曾把 \.opencode/package\-lock\.json 改到产品范围外；该副作用已通过 apply\_patch 精确恢复到 HEAD，当前 lockfile 哈希一致且分支与工作树的 \.opencode/\*\* 差异均为空，没有通过扩大过滤范围放行。
-- review\-change\-quick\-koala 对当时越界给出的 FAIL 作为正确历史审计轨迹保留；当前 PASS 表示 blocker 被真实移除后的状态，不追溯改写历史判断。
-- 新增本任务的中文发布说明、计划、日志、验证、审查、生成报告证据与 wiki writeback；这些 \.legion/\*\* 文件不会进入公开 npm artifact。
-- 发布包继续复用现有 prepack、runtime 构建、文件 allowlist 和 trusted\-publishing workflow，没有新增发布脚本分叉或本机 token 路径。
-- 0\.4\.0 计划交付主干中已有的注意力协议、认知验证协议、报告 schema/template、Verdict 解析、报告数据校验、subagent 命名器与 context manifest。
+- lgmind@0\.4\.0 已通过现有 OIDC trusted\-publishing workflow 发布；发布来源精确绑定 PR \#53 的合并提交。
+- npm 固定版本与 dist\-tags\.latest 已切换为 0\.4\.0，公开元数据包含 lgmind 与 setup\-opencode 两个预期 bin。
+- 隔离安装首次写入 49 个文件，重复安装跳过 49 个同内容文件，strict verify 返回 READY/failures=0；8 项关键资产与合并提交逐字节一致。
+- 发布结果收口分支的最终 diff 全部位于 \.legion/\*\*，包括本任务中文文档与 wiki writeback；没有 \.opencode/\*\*、产品代码、token、OTP、tarball、秘密或缓存进入变更。
+- 隔离 smoke 的 HOME、npm cache、安装树、prefix 与临时 package 边界已删除；收口分支重跑 40/40、报告 CHECK\_OK 与 git diff \-\-check 均通过。
+- 发布前 REL\-040\-DISTRIBUTION=DEFERRED 继续表示当时时点；发布后新登记的 REL\-040\-DISTRIBUTION\-RESULT=PASS 表示触发后的当前事实，不追溯改写历史。
+- eager\-marten 对非法 block\-completion 给出的首轮 FAIL 保留；两处登记修正为协议允许的 block\-stage 后，jolly\-penguin 独立确认当前 PASS。
 
 ## 验证与审查状态
 
 | 检查 | 状态 | 证据 |
 | --- | --- | --- |
-| REL\-040\-ARTIFACT 当前为 PASS：OpenCode lockfile 越界已精确恢复，待发布包为 lgmind@0\.4\.0，包含 69 项文件与 8 个关键资产 | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/test\-report\.md |
-| npm run audit:context 通过，failures 为空 | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/reports/audit\-context\.txt |
-| 既有原始证据记录 npm run test:regression 为 40/40 PASS 且无 fail 或 skip；本轮有界修订复核未重跑该命令，也未冒充为新执行 | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/reports/test\-regression\.txt |
-| npm run pack:dry\-run 通过，runtime 构建后没有额外 tracked diff | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/reports/pack\-dry\-run\.txt |
-| package 断言通过：完整输出远端基线至分支 HEAD 与当前工作树的 changed paths 去重并集，仅排除 \.legion/\*\* 后产品集合精确为 package\.json；8 个关键资产正负例、版本边界与 bin 断言均通过 | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/reports/package\-assertions\.txt |
-| 历史审计保留：OpenCode transport 曾造成 \.opencode/package\-lock\.json 越界，review\-change\-quick\-koala 当时正确给出 FAIL；该状态不是当前 blocker | INFO | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/review\-change\.md |
-| 当前副作用清零：lockfile 与 HEAD 哈希一致，分支和工作树的 \.opencode/\*\* 差异为空，产品 diff 仅 package\.json | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/review\-change\.md |
-| 发布前 registry 状态为 latest=0\.3\.1 且 0\.4\.0 不存在；这只证明版本唯一性前置条件 | INFO | \.legion/tasks/release\-lgmind\-0\-4\-0/reports/npm\-registry\-preflight\.txt |
-| review\-change\-sunny\-badger 独立确认历史 FAIL 正确且当前 blocker 已移除；40/40 只引用既有原始证据，当前阶段 Verdict 为 PASS | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/review\-change\.md |
+| REL\-040\-ARTIFACT=PASS：lgmind@0\.4\.0 的 69 项 pack、40/40 回归、两个 bin 与 8 项关键资产已通过发布前和 workflow 证据 | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/test\-report\.md |
+| REL\-040\-DISTRIBUTION\-RESULT=PASS：PR \#53 merge SHA 为 ff4c7009f967b7a897715b077ffb3a3dba76a2b3，workflow 29242902972 为 success 且 headSha 精确一致 | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/publish\-result\.md |
+| npm 固定版本与 latest 均为 0\.4\.0，bin 元数据包含 lgmind 与 setup\-opencode | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/publish\-result\.md |
+| 隔离环境固定版本 npx 返回 0\.4\.0；首次安装 copied=49/skipped=0，幂等复跑 copied=0/skipped=49，均 failures=0 | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/publish\-result\.md |
+| strict verify 返回 READY/failures=0，8 项安装资产与合并提交源码的 SHA\-256 全部一致 | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/publish\-result\.md |
+| 首次 command not found 已定位为缺少独立 package\.json 边界的夹具假阳性；该次失败未作为成功证据 | INFO | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/publish\-result\.md |
+| 历史 REL\-040\-DISTRIBUTION=DEFERRED 保留为发布前事实；触发后以新的分发结果 PASS 收口，而非追溯改写 | INFO | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/test\-report\.md |
+| eager\-marten 首轮因非法 block\-completion 正确 FAIL；字段改为 block\-stage 后，jolly\-penguin 独立重算并给出当前 PASS | PASS | \.legion/tasks/release\-lgmind\-0\-4\-0/docs/review\-change\.md |
 
 ## 风险与限制
 
-- 公开 npm 发布不可覆盖；顶层 risk=low 只描述版本准备实现风险，不表示公开发布操作本身低风险。；缓解：发布前重新确认 0\.4\.0 不存在并锁定合并后的 master SHA；只使用既有 trusted\-publishing workflow，发布后立即验证 registry 与干净安装，失败时停止重跑并转入修复版本决策。
-- 外部 Agent transport 可能在失败过程中产生未授权的工作树副作用；本次曾真实改写 \.opencode/package\-lock\.json。；缓解：保留 quick\-koala 的历史 FAIL 与原始审计轨迹；当前已用精确恢复、哈希一致性、完整 changed paths 和独立复核证明副作用清零。后续 transport 调用前后应比较 git status，任何新产品路径立即 fail closed。
-- master、trusted publisher 或 registry 状态可能在版本准备证据与正式触发之间漂移。；缓解：触发前重新锁定 SHA、重查版本唯一性并核对 workflow checkout SHA；任一不一致都停止发布或完成声明。
-- workflow 成功不等于其他机器已经获得正确资产，真实固定版本安装尚未发生。；缓解：在不依赖仓库的干净临时目录执行 lgmind@0\.4\.0 version、install、verify \-\-strict 和 8 项关键资产检查，并保存原始输出。
-- 完整多任务、多模型旧新版本 A/B 尚未执行。；缓解：发布说明只陈述已合并且已由现有回归和 artifact 检查覆盖的能力，不扩大为完整行为效果等价证明。
-- PR、发布与最终清理 lifecycle 尚未完成。；缓解：按顺序完成 wiki、版本 PR、合并、发布、发布后验证、结果回写和最终清理；每一阶段分别记录终态证据。
+- npm 0\.4\.0 已公开且不可覆盖；未来发现的新产品缺陷不能修改该版本。；缓解：保留锁定 SHA、workflow、registry、安装与资产哈希证据；若发现新缺陷，发布新的 patch 版本，不尝试覆盖 0\.4\.0。
+- 发布结果只证明当前锁定提交与已执行环境，不保证未来版本或所有运行环境。；缓解：将结论限定在 lgmind@0\.4\.0、当前 npm registry、已记录 Node/npm 与隔离安装方法；未来版本重新执行同类验证。
+- strict verify 存在可选 MCP 未配置 warning。；缓解：该项不影响 filesystem\-backed CLI、49 个安装文件或 READY/failures=0；只有需要对应 MCP 能力时再单独配置。
+- 失败的外部 transport 曾产生未授权 lockfile 副作用。；缓解：历史 FAIL、精确恢复与哈希证据均已保留；后续 transport 调用前后比较 git status，任何 scope 漂移立即 fail closed。
+- 发布结果收口 PR merge、版本准备与收口 worktree cleanup、主工作区刷新尚未完成。；缓解：当前 closing scope 与检查已通过；继续完成提交、rebase、push、PR checks/review/merge，随后清理 worktree并刷新主工作区，再声明任务最终完成。
+- 完整多任务、多模型旧新版本 A/B 尚未执行。；缓解：只陈述已由 artifact、workflow、registry 和隔离安装支持的发布事实，不扩大为完整行为效果等价证明。
 
 ## 审阅清单
 
-- [ ] 首先确认顶层 low 只表示版本准备实现风险，公开 npm 发布不可覆盖风险仍需按 review attention 处理。
-- [ ] 确认 test\-report 与 review\-change 都以 PASS 精确指向当前任务文档。
-- [ ] 确认历史双时态完整：OpenCode transport 曾造成 lockfile 越界，quick\-koala 当时正确 FAIL；当前 PASS 不抹除该历史判断。
-- [ ] 确认当前副作用已真实清零：lockfile 与 HEAD 哈希一致，\.opencode/\*\* 差异为空，产品集合仅排除 \.legion/\*\* 后精确为 package\.json。
-- [ ] 确认 40/40 只引用首次完整验证的既有原始证据，没有冒充本轮恢复后的重新执行。
-- [ ] 确认唯一未决 claim 是 REL\-040\-DISTRIBUTION=DEFERRED，且 trigger、method、requiredData、stopCondition、successorTask、onPass 与 onFail 完整。
-- [ ] 确认 REL\-040\-ARTIFACT=PASS 只出现在 verification 与 evidence，不被重复登记为未决 claim。
-- [ ] 确认 release\-040\-deferred\-review\-001 已允许版本准备 PR merge，但未把 workflow、registry 或干净安装提前改写为 PASS。
-- [ ] 确认 PR body 明确只是 PR 输入，不证明 checks、review、merge、发布、cleanup 或主工作区刷新已经完成。
-- [ ] 确认发布后验证完成前不得声明任务完成、最终清理或更新分发主张为 PASS。
+- [ ] 确认 PR \#53 merge SHA 与 workflow 29242902972 headSha 精确一致，workflow 为 success。
+- [ ] 确认 npm 固定版本与 latest 均为 0\.4\.0，两个预期 bin 存在。
+- [ ] 确认独立 package 边界、隔离 HOME/cache/prefix 下的 version、首次安装、幂等复跑、strict verify 与 8 项资产一致性全部通过。
+- [ ] 确认 claims 为空；REL\-040\-ARTIFACT 与 REL\-040\-DISTRIBUTION\-RESULT 作为当前 PASS 放在 verification/evidence，而不是未决 claim。
+- [ ] 确认发布前 DEFERRED、smoke 夹具假阳性和 eager\-marten 的首轮正确 FAIL 均保留，但不是当前 blocker。
+- [ ] 确认当前 review\-change\-jolly\-penguin 的唯一 Verdict 为 PASS，attention 为 skim。
+- [ ] 确认 wiki writeback 已完成，最终 diff 全部位于 \.legion/\*\*，包含 task docs 与 wiki，而不是只写 task docs。
+- [ ] 确认隔离 smoke 已删除，收口分支 40/40、报告 CHECK\_OK 与 git diff \-\-check 均通过。
+- [ ] 确认发布结果收口 PR merge、worktree cleanup 与主工作区刷新仍未完成，PR body 不冒充 lifecycle 终态。
 
 ## 渲染交接
 
 - PR-backed：是
 - 状态：`local`
-- 说明：当前采用仓库内本地预览：\.legion/tasks/release\-lgmind\-0\-4\-0/docs/report\-walkthrough\.html；内容不含秘密或客户数据，版本准备 PR 创建后仍以该 artifact 作为审阅入口。
+- 说明：当前采用仓库内本地预览：\.legion/tasks/release\-lgmind\-0\-4\-0/docs/report\-walkthrough\.html；wiki writeback 已完成，发布结果收口 PR 尚未完成，后续仍以该 artifact 作为审阅入口。
 
 ## 最终状态与下一阶段
 
-- 当前状态：发布前就绪，分发待验证：版本准备实现、artifact 验证与独立审查均为 PASS，公开 npm 发布和真实安装仍为 DEFERRED。
-- 下一阶段：先进入 legion\-wiki 与版本准备 PR lifecycle；squash merge 后锁定 master SHA 并发布，再恢复 verify\-change \-&gt; review\-change 完成 workflow、registry 与干净安装验证。
-- lifecycle 声明：本报告只是版本准备 PR 的输入，只证明当前版本准备与 artifact 证据通过；不证明 PR checks、review、merge、npm 发布、registry 切换、干净安装、cleanup 或主工作区刷新已经完成。
+- 当前状态：lgmind@0\.4\.0 已发布，artifact 与分发结果均为 PASS，当前没有未决 claim；wiki writeback 与 smoke 清理已完成，发布结果收口 PR merge、worktree cleanup 与主工作区刷新尚待 lifecycle 完成。
+- 下一阶段：提交、rebase、push 并完成发布结果收口 PR 的 checks、review 与 merge；随后清理版本准备与收口 worktree并刷新主工作区。
+- lifecycle 声明：本报告证明锁定提交对应的 lgmind@0\.4\.0 已成功发布、可安装且可严格校验，并证明当前 closing diff 与检查通过；不证明发布结果收口 PR、checks、review、merge、worktree cleanup 或主工作区刷新已经完成。

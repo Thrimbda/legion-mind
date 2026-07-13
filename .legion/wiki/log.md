@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-07-13] closeout | lgmind-0.4.0-publish
+
+- 记录 `lgmind@0.4.0` 发布完成：PR #53 squash merge SHA 为 `ff4c7009f967b7a897715b077ffb3a3dba76a2b3`，trusted-publishing workflow run `29242902972` 成功且来源 SHA 一致，npm fixed version 与 `latest` 均为 `0.4.0`。
+- 发布后继任主张 `REL-040-DISTRIBUTION-RESULT=PASS`：隔离首次安装 `copied=49`，幂等复跑 `skipped=49`，strict verify 返回 `READY`，8 项关键资产与合并源码逐字节一致；发布前 `REL-040-DISTRIBUTION=DEFERRED` 继续保留为历史时点事实。
+- 保留字段审查双时态：`review-change-eager-marten` 对协议外门禁字段给出的历史 `FAIL` 正确；字段修复后，`review-change-jolly-penguin` 独立复核得到当前 `PASS`。
+- 更新 `index.md` 与任务摘要到发布完成的分发真相；发布结果收口 PR merge、worktree cleanup 与主工作区刷新尚未执行，因此任务继续为 `active`，未伪造 Git lifecycle 完成。
+
 ## [2026-07-13] writeback | release-lgmind-0-4-0
 
 - 新增 `tasks/release-lgmind-0-4-0.md`，记录 `lgmind@0.4.0` 仅达到发布前就绪：`REL-040-ARTIFACT=PASS`，`REL-040-DISTRIBUTION=DEFERRED`。
