@@ -3,7 +3,7 @@
 ## Metadata
 
 - `task-id`: `preserve-agent-review-loop`
-- `status`: `active`
+- `status`: `completed`
 - `risk`: `high`
 - `schema-version`: `2026-07-13 / report-data v1.1`
 - `historical`: `false`
@@ -44,4 +44,4 @@
 - 当前实现保证固定 repo-relative locator 与规范真实路径的读取边界，不宣称抵抗恶意本机并发替换，也不提供跨 transport 身份 attestation。
 - 当前报告没有登记未决领域或权威 claim；真实多任务、多模型 A/B 可在未来用固定模型与固定任务套件评估，但不阻塞本次交付。
 - 当前 HTML 仅提供本地可打开的 fallback；仓库尚无受控 preview，后续若提供受控机制或明确批准 Pages，再恢复 rendered URL。
-- 本页标记为 `active`，仅因为 PR checks/review、merge、cleanup 与主工作区刷新尚未形成终态证据。
+- 主交付 PR #50 已 squash merge 为 `df90d72`；当时仓库没有 required checks 或 GitHub review 阻塞，隔离 worktree、远端/本地任务分支均已清理，主工作区已刷新到合并后的 `origin/master`。本页状态因此为 `completed`。
