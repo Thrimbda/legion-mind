@@ -30,7 +30,7 @@
 
 ### 约束
 
-- 所有修改只在 `.worktrees/release-lgmind-0-4-0/` 的 `codex/release-lgmind-0-4-0` 分支完成。
+- 版本准备修改只在 `.worktrees/release-lgmind-0-4-0/` 的 `codex/release-lgmind-0-4-0` 分支完成；版本准备 PR 合并后，发布结果只在 `.worktrees/record-lgmind-0-4-0-publish/` 的 `codex/record-lgmind-0-4-0-publish` 分支回写，并通过独立收口 PR 进入 `master`。
 - npm 发布只能来自合并后的 `master`，并通过现有 `workflow_dispatch` 发布工作流执行。
 - 不提交 npm token、OTP、缓存、tarball 或其他秘密/临时产物。
 - 人类阅读型新增或修改文档使用中文；命令、路径、schema 字段和原始输出保持原样。

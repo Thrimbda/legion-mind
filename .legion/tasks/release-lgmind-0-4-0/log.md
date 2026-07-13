@@ -104,3 +104,29 @@
 - `legion-wiki-plucky-falcon` 在 task summary 与 wiki log 中保留 task-local transport 审计：外部 transport 前后比较 `git status --porcelain`，未批准的 scope 漂移 fail closed；未无条件提升为全局 pattern。
 - 当前无 `.opencode/**` 差异；版本准备、验证、审查、walkthrough 与 wiki closing stages 已恢复有效 PASS。
 - 下一步：提交验证修订与恢复证据，随后 fetch/rebase 最新 `origin/master`，重跑有界检查后 push 并创建 PR。
+
+### 版本准备 PR 与公开发布
+
+- 版本准备分支最终包含 `be761a8` 与 `825646d` 两个提交；push 前重跑 40/40 regression、69 项 pack 清单与报告一致性门均通过。
+- PR #53 `chore: 发布 lgmind 0.4.0` 已 squash merge；合并提交为 `ff4c7009f967b7a897715b077ffb3a3dba76a2b3`，`origin/master` 与发布前锁定提交一致。
+- 从 `master` 手动触发 GitHub Actions `Publish npm package` run `29242902972`；checkout、Node 设置、npm identity surface、regression、pack 与 publish 步骤全部成功，workflow `headSha` 精确等于锁定合并提交。
+- npm registry 已返回 `lgmind@0.4.0`，且 `dist-tags.latest=0.4.0`；registry 元数据包含 `lgmind -> bin/lgmind.js` 与 `setup-opencode -> bin/setup-opencode.js` 两个 bin。
+- 在仓库内隔离 HOME 与 npm cache 的测试环境中，固定版本 npx 输出 `0.4.0`；首次安装为 `copied=49 skipped=0 warnings=0 failures=0`，strict verify 为 `READY`，只有可选 MCP 未配置这一条非阻塞 warning；8 项关键资产均与合并源码逐字节一致。
+- 首次 smoke 目录没有独立 `package.json` 边界，npm 把上层同名源码包识别为本地 `lgmind@0.4.0`，因源码根没有 npx bin 链接而出现一次 `command not found` 假阳性。确认 registry bin、pack bin 与 npm 解析日志后，为 smoke 目录建立独立 package 边界并从空 cache 重跑通过；该次失败不作为成功证据，也未被隐藏。
+- 已从合并后的 `origin/master` 创建 `.worktrees/record-lgmind-0-4-0-publish/` 与 `codex/record-lgmind-0-4-0-publish`，只回写发布后证据；下一步执行新的 `verify-change -> review-change`，随后更新 walkthrough、wiki，并完成发布结果收口 PR。
+
+### 发布后验证与字段回退
+
+- `verify-change-gentle-marten` 独立重算 workflow、registry、隔离安装、幂等复跑与 8 项资产，登记新的 `REL-040-DISTRIBUTION-RESULT=PASS`；发布前 `REL-040-DISTRIBUTION=DEFERRED` 继续保留为历史时点事实。
+- `review-change-eager-marten` 首轮确认发布事实成立，但检出新 claim 使用认知协议不存在的 `blocking-policy=block-completion`，因此正确给出 `FAIL / attention: skim` 并退回验证阶段。
+- `verify-change-gentle-marten` 只把 `docs/test-report.md` 与 `docs/publish-result.md` 两处字段修成协议允许且符合收口语义的 `block-stage`，并保留首轮 FAIL 审计轨迹。
+- 新实例 `review-change-jolly-penguin` 再次独立复核后给出当前 `PASS / attention: skim`：非法字段已清零，workflow/SHA、registry、隔离安装、幂等 `skipped=49`、strict verify 与 8 项资产证据闭环，无当前 blocker。
+- 下一步：更新 report-data 及其三份投影，写回 wiki，然后进入发布结果收口 PR lifecycle。
+
+### 发布结果材料收口
+
+- `report-walkthrough-zesty-quokka` 已把当前分发结果写入单一 `report-data.json`：`stageConclusion=PASS`、`reviewStatus=PASS`、`attention=skim`、`claims=[]`，并通过 `--check -> render -> --check` 生成 HTML、Markdown 与 PR body。
+- `legion-wiki-plucky-falcon` 已把 npm `latest=0.4.0`、workflow、隔离安装、幂等跳过和双时态审计写回任务摘要、wiki index 与 wiki log；任务在收口 PR merge 与 worktree/main 刷新前继续保持 `active`。
+- 隔离 smoke 的 HOME、npm cache、安装树、prefix 与临时 package 边界已从工作树删除；git 未跟踪其中任何文件。
+- 收口分支重跑 `npm run test:regression` 为 40/40 PASS，报告 `--check` 返回 `CHECK_OK release-lgmind-0-4-0`，`git diff --check` 通过。
+- 下一步：由当前 reviewer 补充核对 wiki closing diff 与 smoke 已清理的最终 scope，再刷新报告投影，随后 commit、rebase、push 与收口 PR。

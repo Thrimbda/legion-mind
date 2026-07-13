@@ -94,21 +94,35 @@
 - 残余不确定性：合并前 `master` 可能移动、trusted publisher 可能漂移、registry 可能被外部状态改变、发布后安装可能失败。
 - 失效条件：pack 文件集变化、产品 tracked diff 超出根版本、`0.4.0` 在发布前出现、workflow SHA 与锁定 SHA 不同，均需停止并重跑验证。
 
+## 发布后继任验证
+
+发布前的 `REL-040-DISTRIBUTION=DEFERRED` 已在版本准备 PR 合并和发布 workflow 到达终态后触发。为保留认知验证的时间语义，本节不改写旧 claim，而是登记新的 `REL-040-DISTRIBUTION-RESULT`：
+
+- 主张：从合并提交 `ff4c7009f967b7a897715b077ffb3a3dba76a2b3` 触发的 trusted-publishing workflow 已成功交付可安装、可严格校验的 `lgmind@0.4.0`。
+- 三轴：`objective / now / routine`；`criticality=high`；`blocking-policy=block-stage`。
+- 状态：`PASS`；独立验证执行者：`verify-change-gentle-marten`；独立性与置信度均为 `high`。
+- workflow：run `29242902972` 为 `success`，`headSha` 精确等于上述合并提交，regression、pack 与 publish 步骤全部成功。
+- registry：固定版本与 `dist-tags.latest` 均为 `0.4.0`，并含两个预期 bin。
+- 隔离安装：空 cache、隔离 HOME、独立 package 边界下，固定版本 npx 返回 `0.4.0`；首次安装 `copied=49 skipped=0 failures=0`，strict verify 返回 `READY`；8 项关键资产存在且与合并提交逐字节一致。
+- 幂等复跑：第二次安装 `copied=0 skipped=49 failures=0`；这里的 `skipped` 明确表示目标文件已与发布源一致。
+- 首次失败：没有独立 `package.json` 边界的 repo 内 smoke 目录曾返回 `command not found`；npm debug log 证明它错误复用了上层同名源码 package。建立独立 package 边界并清空 cache 后完整通过，该次失败保留为夹具假阳性，不计入成功证据。
+- 完整发布后证据：`docs/publish-result.md`。
+
 ## Verdict
 
 PASS
 
-本 Verdict 仅表示发布前 artifact 与发布前置条件满足；`REL-040-DISTRIBUTION` 仍为 `DEFERRED`。
+本 Verdict 同时覆盖发布前 `REL-040-ARTIFACT=PASS` 与发布后继任主张 `REL-040-DISTRIBUTION-RESULT=PASS`；历史 `REL-040-DISTRIBUTION=DEFERRED` 继续作为发布前时点记录保留。
 
 ## 会话注意力摘要
 
-- 阶段：`verify-change`
+- 阶段：`verify-change` 发布后继任验证
 - 阶段结论：`PASS`
-- 注意力等级：`review`
-- 判断变化：独立 reviewer 正确检出 `.opencode/package-lock.json` 越界并把 `REL-040-ARTIFACT` 退回 INCONCLUSIVE；engineer 精确恢复后，本轮重验将其恢复为 PASS；`REL-040-DISTRIBUTION` 保持 DEFERRED。
-- 关键发现：完整 changed paths 已不含 `.opencode/**` 且产品集合精确为 `package.json`；pack 的 8 个关键资产正负例、版本与 bin 断言通过；renderer 正确拒绝当前仍含 FAIL Verdict 的旧审查输入。
-- 阻塞项：当前 verify-change 无实现阻塞；必须由新 `review-change` 恢复有效审查 PASS 后，才能更新并重查 walkthrough。
-- 残余风险：公开发布与真实安装只能在 merge + publish 后验证，发布版本不可覆盖。
-- 人类动作：复核新一轮审查中的 changed paths 与本轮原始输出一致，确认产品集合只有 `package.json`；禁止在有效审查 PASS 与发布后验证前声明完成。
-- 自动下一步：重新派生 `review-change`；审查恢复 PASS 后再执行 renderer `--check`，随后才可恢复版本 PR lifecycle。
-- 完整证据：`.legion/tasks/release-lgmind-0-4-0/docs/test-report.md` 与 `.legion/tasks/release-lgmind-0-4-0/reports/`。
+- 注意力等级：`skim`
+- 判断变化：历史 lockfile 越界与恢复事实保持不变；发布前 DEFERRED 已按协议产生新的分发结果 PASS。
+- 关键发现：workflow checkout SHA、registry、固定版本 npx、首次安装、幂等重复安装、strict verify 与 8 项关键资产一致性闭环通过；首次 `command not found` 为缺少独立 package 边界的夹具假阳性。
+- 阻塞项：无。
+- 残余风险：`0.4.0` 不可覆盖；未来若发现新缺陷只能通过新 patch 版本处理。可选 MCP 未配置不阻塞 filesystem-backed CLI。
+- 人类动作：无需新增决定，可快速复核发布 run、registry 与隔离安装摘要。
+- 自动下一步：派生新的 `review-change` 独立审查发布后证据，再更新 walkthrough、wiki 与收口 PR。
+- 完整证据：`.legion/tasks/release-lgmind-0-4-0/docs/publish-result.md`、本文件与 GitHub Actions run `29242902972`。
