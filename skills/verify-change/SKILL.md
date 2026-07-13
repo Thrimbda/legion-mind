@@ -19,7 +19,7 @@ description: 当实现已经存在，需要选择、执行并记录可信验证�
 1. 从验收、风险、设计和 diff 提取真正影响判断的 claim；低风险 routine claim 可生成合理默认值。
 2. 核对三轴、领域、能力、方法、证据、`criticality`、`risk-if-wrong`、`blocking-policy`、owner；不得临场降级。
 3. routine claim 选择成本最低且证明力足够的直接检查，并主动覆盖反例或失败路径。
-4. domain/authority claim 按认知验证协议发现候选；必须同时匹配 `domain-id`、`required-capability`、`required-method`，完整读取必要资源、执行规定方法并留下可重查 provenance。缺失、不匹配、未真实执行或 authority 校验失败只能是 `INCONCLUSIVE`。
+4. domain/authority claim 按认知验证协议发现候选；必须同时匹配 `domain-id`、`required-capability`、`required-method`，完整读取必要资源、执行规定方法并留下可重查 provenance。缺失、不匹配、未真实执行或 authority 校验失败只能是 `INCONCLUSIVE`；合同允许的无 verifier 未决项必须明确“未获得 verifier”、至少 `review` attention、唯一人类动作、停止点和 evidence locator。
 5. 按专门协议处理 `DEFERRED` 与 `RECOMMENDATION`；作者总结仅是待验证输入。
 6. 逐 claim 记录状态、证据映射、独立性、置信度、残余不确定性和失效条件；再独立聚合阶段 Verdict 与最高 attention。
 

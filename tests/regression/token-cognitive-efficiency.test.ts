@@ -25,7 +25,7 @@ function digest(path: string): string {
 
 function validReportData() {
   return {
-    schemaVersion: '1.0',
+    schemaVersion: '1.1',
     task: {
       id: 'token-report-fixture',
       title: '生成器回归报告',
@@ -33,6 +33,7 @@ function validReportData() {
       reviewer: '仓库维护者',
     },
     profile: 'implementation',
+    risk: 'low',
     stageConclusion: 'PASS',
     reviewStatus: 'PASS',
     summary: '同一份 schema 数据生成三种 reviewer artifact；[危险](javascript:alert(1))；![远程图](https://example.com/x.png)\n# 伪标题',
@@ -174,10 +175,9 @@ test('子代理命名器生成 canonical displayName 与 transport-safe id，并
 });
 
 test('报告生成器从单一 schema 数据确定性且事务式生成三份安全产物', () => {
-  const cacheRoot = join(repoRoot, '.cache');
-  mkdirSync(cacheRoot, { recursive: true });
-  const root = mkdtempSync(join(cacheRoot, 'report-render-'));
+  const root = join(repoRoot, '.legion', 'tasks', 'token-report-fixture');
   const docs = join(root, 'docs');
+  rmSync(root, { recursive: true, force: true });
   mkdirSync(docs, { recursive: true });
   const input = join(docs, 'report-data.json');
   const inputArg = relative(repoRoot, input);
@@ -186,6 +186,8 @@ test('报告生成器从单一 schema 数据确定性且事务式生成三份安
 
   try {
     const data = validReportData();
+    writeFileSync(join(docs, 'test-report.md'), '# 验证\n\n## Verdict\n\nPASS\n');
+    writeFileSync(join(docs, 'review-change.md'), '# 审查\n\n## Verdict\n\nPASS\n');
     writeFileSync(input, `${JSON.stringify(data, null, 2)}\n`);
     const first = runNode([script, '--input', inputArg]);
     assert.equal(first.status, 0, first.stderr);
@@ -195,6 +197,7 @@ test('报告生成器从单一 schema 数据确定性且事务式生成三份安
     const html = readFileSync(join(docs, 'report-walkthrough.html'), 'utf8');
     assert.match(html, /&lt;script&gt;alert\(1\)&lt;\/script&gt;/);
     assert.doesNotMatch(html, /<script|<link|<iframe|https?:\/\/[^"<]*cdn/i);
+    assert.doesNotMatch(html, /[ \t]+(?=\r?$)/m, '空 verifier 提示不得在 HTML 中留下行尾空白');
     assert.match(html, /oklch\(/);
     assert.match(html, /@media print/);
     assert.match(html, /@media \(max-width:/);
@@ -260,6 +263,7 @@ test('报告生成器从单一 schema 数据确定性且事务式生成三份安
       { name: '未知字段', mutate: (value: any) => { value.unknown = true; } },
       { name: 'implementation 缺 test-report', mutate: (value: any) => { value.evidence = value.evidence.filter((item: any) => item.kind !== 'test-report'); } },
       { name: 'domain claim 缺 verifier', mutate: (value: any) => { value.claims = [structuredClone(domainFixture.claims[0])]; delete value.claims[0].verifier; } },
+      { name: 'verifier provenance 不可追溯', mutate: (value: any) => { value.claims = [structuredClone(domainFixture.claims[0])]; value.claims[0].verifier.resources = ['skills/other-verifier/SKILL.md']; } },
       { name: 'INCONCLUSIVE 缺证据缺口', mutate: (value: any) => { value.claims = [structuredClone(domainFixture.claims[0])]; delete value.claims[0].evidenceGap; } },
       { name: 'DEFERRED 缺触发协议', mutate: (value: any) => { value.claims = [{ ...structuredClone(domainFixture.claims[0]), status: 'DEFERRED', expertise: 'routine' }]; delete value.claims[0].verifier; delete value.claims[0].trigger; } },
       { name: 'RECOMMENDATION 缺选项', mutate: (value: any) => { value.claims = [{ ...structuredClone(domainFixture.claims[0]), status: 'RECOMMENDATION', expertise: 'routine' }]; delete value.claims[0].verifier; delete value.claims[0].options; } },

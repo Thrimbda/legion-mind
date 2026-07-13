@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-07-13] writeback | preserve-agent-review-loop
+
+- 新增 `tasks/preserve-agent-review-loop.md`，收口 PASS 报告与当前 Verdict 一致性、无 verifier 未决 claim、精确 JSON 权限和完整多 Agent 写审循环的当前结论。
+- 更新 `index.md` 与既有 report 模式：`report-data.json` 是机器中间真源，三份人类产物由 renderer 派生；固定 locator 同时绑定精确 canonical realpath，token 优化不得删除独立阶段 Agent 或 FAIL 回退。
+- 当前实现、独立验证与独立审查均为 `PASS`；权威报告为 `claims=[]`、`attention: skim`，HTML 采用 `render.state=local` fallback，PR lifecycle 尚未终态。
+- 更新 `maintenance.md`：真实多任务、多模型旧新版本 A/B 仅保留为可选、非阻塞的后续效果评估，不登记为当前 claim，也不阻塞 merge。
+
 ## [2026-07-12] writeback | optimize-token-cognitive-efficiency
 
 - 新增 `tasks/optimize-token-cognitive-efficiency.md`，汇总三层入口、五字段 handoff、子代理三层身份、上下文预算和 schema 驱动报告生成的当前结论。

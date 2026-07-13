@@ -29,11 +29,12 @@ Legion 的入口门、三种模式与阶段链真源。CLI 只是文件工具；
 
 ## 接管与恢复
 
-1. 无明确 task id/path：加载或派生 `brainstorm` 收敛 contract。
+1. 无明确 task id/path：派生 `brainstorm` 收敛 contract。
 2. 明确恢复：依次读 `plan.md -> docs/rfc.md -> log.md -> tasks.md`；contract 漂移则回 `brainstorm`。
 3. contract 稳定后选恰好一种模式。修改型 Legion 任务先加载 `git-worktree-pr`，后续写入和阶段运行只在 worktree。
-4. 每个阶段必须真实加载对应 skill 或派生对应子代理，不能凭记忆模拟。
-5. 派生前必须运行 `scripts/subagent-name.mjs <role> --json --transport <codex|opencode|raw>`；`agentType` 选择已注册职责，prompt、日志和交接回显 `displayName`，仅当 transport 有独立实例标识字段时才传 `transportId`。命名失败不得派生。
+4. 每个阶段必须通过真实 transport API 派生新的对应 `agentType` Agent，并真实加载对应 skill；Codex 每次 `spawn` 与 OpenCode 每次 `task` 都是独立派生事件，primary 会话切换 skill 不算派生。
+5. `spec-rfc -> review-rfc`、`engineer -> verify-change`、`verify-change -> review-change` 的直接作者与直接 reviewer 不得复用同一阶段会话；作者修订或验证重跑后必须重新派生本轮 reviewer，FAIL 按既有链回退。
+6. 派生前必须运行 `scripts/subagent-name.mjs <role> --json --transport <codex|opencode|raw>`；`agentType` 选择已注册职责，prompt、日志和交接回显 `displayName`，仅当 transport 有独立实例标识字段时才传 `transportId`。名称和返回的 agent/session id 只作排障线索，不是身份 attestation；没有可重查实例 ID 时只能诚实说明“已观察到不同派生事件，实例隔离未机械证明”。命名失败不得派生。
 
 ## 三种模式
 

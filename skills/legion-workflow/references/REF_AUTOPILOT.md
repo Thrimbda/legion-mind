@@ -22,6 +22,7 @@ Autopilot 只减少非阻塞打扰，不跳过入口、contract、设计/验证/
 - push 前：`git fetch origin && git rebase origin/master`。
 - commit：Conventional Commits；验证先跑最快的可信检查。
 - 完整证据落 task docs；会话和子代理只传五字段判断增量。
+- token 优化只靠按需读取上下文和五字段 handoff；不得取消真实 Codex `spawn` / OpenCode `task` 阶段派生，也不得让直接作者与 reviewer 复用会话。名称或 session id 不是身份 attestation；无可查实例 ID 时如实降级说明。
 - PR 后优先用 `gh pr checks <pr> --watch --required`；scope 内失败继续修，外部阻塞做 blocked handoff，但不得称 done。
 
 ## 重型设计

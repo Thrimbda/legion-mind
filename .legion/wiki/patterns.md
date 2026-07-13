@@ -33,10 +33,11 @@
 
 ## 模式：report-walkthrough 生成 HTML-first reviewer handoff
 
-- 来源任务：`harden-report-walkthrough`、`html-first-report-walkthrough`、`pr-html-render-skill`
+- 来源任务：`harden-report-walkthrough`、`html-first-report-walkthrough`、`pr-html-render-skill`、`optimize-token-cognitive-efficiency`、`preserve-agent-review-loop`
 - 背景：旧版 `report-walkthrough` 虽然要求“已有证据”，但用 `implementation mode` / `rfc-only mode` 容易和 `legion-workflow` execution mode 混淆，并用 production code 是否变化判断分支，导致 docs/config/test/script-only implementation、失败证据或 stale evidence 可能被错误包装成交付摘要。
-- 做法：`report-walkthrough` 使用 walkthrough profile，而不是 execution mode。Profile 由当前阶段链和前置证据决定：有实现结果、`test-report` 与 `review-change` 时使用 implementation profile；仅有 RFC 与 `review-rfc` 的设计交付使用 rfc-only profile。进入输出前必须执行 evidence health check：证据属于当前 task、对应当前交付状态、非 FAIL / blocked / stale，且每个完成性 claim 都能指向证据。
-- 输出：Agent 只维护 `docs/report-data.json`；`render-report.mjs` 按 schema 与固定模板一次、事务式生成 `report-walkthrough.html`、`report-walkthrough.md` 和 `pr-body.md`。三个生成产物禁止手写或局部修补；内容变化回到 JSON，布局变化回到共享模板。HTML 仍是主 reviewer artifact，Markdown 是 fallback，PR body 只是 PR 输入。
+- 做法：`report-walkthrough` 使用 walkthrough profile，而不是 execution mode。Profile 由当前阶段链和前置证据决定：有实现结果、`test-report` 与 `review-change` 时使用 implementation profile；仅有 RFC 与 `review-rfc` 的设计交付使用 rfc-only profile。进入输出前必须执行 evidence health check：证据属于当前 task、对应当前交付状态，且完成性阶段文档存在唯一 `## Verdict` 二级标题，其后第一条有效内容精确为 `PASS`；顶层自报 PASS、正文中的历史 PASS、FAIL/BLOCKED 或 stale evidence 都不能放行。
+- 输出：Agent 只维护 `docs/report-data.json` 这一机器中间真源；`render-report.mjs` 按 schema 与固定模板一次、事务式生成 `report-walkthrough.html`、`report-walkthrough.md` 和 `pr-body.md`。三个生成产物禁止手写或局部修补；内容变化回到 JSON，布局变化回到共享模板。OpenCode 报告 Agent 只新增该精确 JSON 路径的正常写权限，不放宽任意 JSON。HTML 仍是主 reviewer artifact，Markdown 是 fallback，PR body 只是 PR 输入。
+- 路径信任：报告与 scheduler 的固定 locator 必须先精确匹配规范 repo-relative 路径，再绑定 canonical repo root 下预期文件的精确 realpath；只做目录 containment 不足以阻止跨 task、同 task 其他文件或中间目录 symlink。repo root 本身经 symlink 访问可先规范化后保留合法正例；普通文件系统检查后的 TOCTOU 仍应作为残余边界说明。
 - HTML 质量门：先做 clean-doc 信息选择，明确 reader、decision task、main path、evidence selection 与 certainty levels；再做 impeccable 式 product evidence interface，要求 standalone semantic HTML、OKLCH、响应式、print-friendly、无外部资源、无 gradient text、无 side-stripe accent、无默认 glassmorphism、无 hero-metric cliché、无 em dash。
 - 边界：`report-walkthrough` 不补设计、不补验证、不补 review、不替代 `legion-wiki`，也不替代 `git-worktree-pr` PR lifecycle。它也不发布 preview、不写 CI workflow、不创建 PR comment；PR-backed HTML artifact 的 rendered preview path 交给 `pr-html-render`。`pr-body.md` 只是 PR 创建/更新输入，不代表 checks/review/merge、worktree cleanup 或主工作区 refresh 已完成。
 - 常见陷阱：不要因为没有 production code 变化就自动选 rfc-only；不要把 FAIL / blocked / stale evidence 写成 ready-to-merge；不要手写 HTML/Markdown/PR body；不要把 PR body 当成 PR lifecycle 终态；不要让 PR-backed HTML 缺 preview 路径且没有 artifact-only、bypass 或 blocker。

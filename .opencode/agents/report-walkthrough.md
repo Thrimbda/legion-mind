@@ -7,6 +7,7 @@ permission:
   edit:
     "*": deny
     ".legion/tasks/**/docs/*.md": allow
+    ".legion/tasks/**/docs/report-data.json": allow
   webfetch: deny
   skill:
     report-walkthrough: allow

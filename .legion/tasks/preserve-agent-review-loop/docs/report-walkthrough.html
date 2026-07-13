@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>保留多 Agent 评审循环并修复报告语义 | 交付审阅</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96% 0.012 92);
+      --surface: oklch(99% 0.006 92);
+      --ink: oklch(24% 0.018 132);
+      --muted: oklch(49% 0.025 132);
+      --line: oklch(82% 0.018 105);
+      --accent: oklch(45% 0.12 153);
+      --soft: oklch(91% 0.05 144);
+      --warn: oklch(91% 0.06 82);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.62; }
+    main { width: min(1120px, calc(100vw - 32px)); margin: 0 auto; padding: 48px 0 72px; }
+    h1, h2 { line-height: 1.18; text-wrap: balance; }
+    h1 { max-width: 22ch; font-size: clamp(2.1rem, 6vw, 4.8rem); margin: .3rem 0 1rem; }
+    h2 { margin-top: 0; }
+    p, li { max-width: 72ch; }
+    code { overflow-wrap: anywhere; }
+    a { color: var(--accent); }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: 32px; align-items: end; margin-bottom: 32px; }
+    .kicker { color: var(--accent); font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+    .status, section { border: 1px solid var(--line); border-radius: 22px; background: var(--surface); padding: 24px; }
+    .status p { margin: .45rem 0; }
+    .pill { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--soft); padding: .08rem .58rem; font-weight: 750; }
+    .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 28px; align-items: start; }
+    nav { position: sticky; top: 18px; display: grid; gap: 8px; }
+    nav a { text-decoration: none; padding: .36rem .55rem; border-radius: 8px; }
+    nav a:hover { background: var(--soft); }
+    section { margin-bottom: 20px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: .94rem; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 10px; overflow-wrap: anywhere; }
+    th { color: var(--muted); }
+    ul, ol { padding-left: 1.35rem; }
+    .empty { color: var(--muted); }
+    .boundary { background: var(--warn); border-radius: 12px; padding: 12px 14px; }
+    @media (max-width: 820px) {
+      .hero, .layout { grid-template-columns: 1fr; }
+      nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      section { overflow-x: auto; }
+    }
+    @media print {
+      body { background: var(--surface); }
+      main { width: 100%; padding: 0; }
+      nav { display: none; }
+      .status, section { break-inside: avoid; box-shadow: none; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">preserve-agent-review-loop · 交付审阅</p>
+        <h1>保留多 Agent 评审循环并修复报告语义</h1>
+        <p>在不减损 RFC 作者与独立评审、实现与验证、验证与独立验收大循环的前提下，修复报告状态一致性、无 verifier 场景的如实表达和 OpenCode 报告数据写入权限，并降低重复上下文带来的 token 成本。</p>
+        <p>审阅者：LegionMind 维护者</p>
+      </div>
+      <aside class="status" aria-label="当前结论与动作">
+        <p><span class="pill">交付类型 implementation</span> <span class="pill">风险 high</span> <span class="pill">结论 PASS</span></p>
+        <p>审查：<strong>PASS</strong></p>
+        <p>注意力：<strong>skim</strong></p>
+
+        <p><strong>当前唯一人类动作</strong></p>
+        <p>快速浏览交付摘要、验证计数与范围外边界，然后继续正常 PR lifecycle。</p>
+        <p class="boundary"><strong>停止点：</strong>报告生成不代表 PR checks、review、merge、cleanup 或主工作区刷新已经完成；这些步骤仍按正常 lifecycle 执行。</p>
+        <p><strong>最终状态：</strong>实现、最新独立验证与最新独立变更审查均为 PASS；正式报告从当前证据重建，当前没有未决 claim 或 merge gate。</p>
+      </aside>
+    </header>
+    <div class="layout">
+      <nav aria-label="交付审阅导航">
+        <a href="#summary">审阅结论</a>
+        <a href="#attention">当前动作</a>
+        <a href="#claims">认知状态</a>
+        <a href="#verifiers">领域验证</a>
+        <a href="#scope">范围</a>
+        <a href="#evidence">证据地图</a>
+        <a href="#path">交付路径</a>
+        <a href="#changes">变更决定</a>
+        <a href="#verification">验证审查</a>
+        <a href="#risks">风险限制</a>
+        <a href="#checklist">审阅清单</a>
+        <a href="#render">渲染交接</a>
+        <a href="#final">下一阶段</a>
+      </nav>
+      <div>
+        <section id="summary"><h2>审阅结论</h2><p>三项原始缺陷、worker 到 scheduler 的 reportData 证据链、固定 locator 的精确 realpath 与 symlink 边界，以及 HTML 行尾空白返修均已完成实现、独立验证和独立变更审查。当前正式证据一致为 PASS，未登记需要人类裁决的未决 claim；维护者只需快速浏览交付摘要与风险边界。</p></section>
+        <section id="attention"><h2>人类注意力与当前动作</h2><p>最新独立验证与独立审查均为 PASS，没有当前 blocker、未决 claim 或需要人类决定的事项。</p><p><strong>当前唯一人类动作：</strong>快速浏览交付摘要、验证计数与范围外边界，然后继续正常 PR lifecycle。</p><p class="boundary"><strong>lifecycle 边界：</strong>报告生成不代表 PR checks、review、merge、cleanup 或主工作区刷新已经完成；这些步骤仍按正常 lifecycle 执行。</p><p><strong>证据：</strong><code>.legion/tasks/preserve-agent-review-loop/docs/test-report.md</code>、<code>.legion/tasks/preserve-agent-review-loop/docs/review-change.md</code></p></section>
+        <section id="claims"><h2>未解决的认知状态</h2><p class="empty">当前证据未登记需要单独聚合的未解决 claim。</p></section>
+        <section id="verifiers"><h2>领域验证摘要</h2><p class="empty">当前证据未登记领域或权威 verifier。</p></section>
+        <section id="scope"><h2>范围</h2><h3>范围内</h3><ul><li>报告 v1.1 状态一致性、严格当前 Verdict 与 fail-closed 阶段门</li><li>无 verifier 的领域或权威主张的诚实表达协议</li><li>OpenCode 报告 Agent 对 docs/report-data.json 的精确写权限</li><li>worker 到 scheduler 的 reportData 必需证据链</li><li>renderer 与 scheduler 的固定 locator、精确规范 realpath 和 symlink 安全边界</li><li>RFC 作者与独立评审、实现与验证、验证与独立验收循环及 FAIL 回退</li><li>按需加载、共享校验器与五字段短交接的 token 优化</li><li>renderer 生成 HTML 的行尾空格与 Tab 规范化</li></ul><h3>范围外</h3><ul><li>真实多任务、多模型旧新版本 A/B 效果评估；这是可选的后续评估，不是当前 claim 或 merge gate</li><li>跨 transport 身份证明或密码学执行证明</li><li>恶意本机并发替换下的文件句柄级原子读取</li><li>自动调度 DEFERRED 触发与后续任务</li><li>为本地 HTML 新增公开 Pages 或其他预览基础设施</li></ul></section>
+        <section id="evidence"><h2>证据地图</h2><table><thead><tr><th scope="col">证据</th><th scope="col">类型</th><th scope="col">状态</th><th scope="col">locator</th></tr></thead><tbody><tr><td>任务合同</td><td>plan</td><td>INFO</td><td><code>.legion/tasks/preserve-agent-review-loop/plan.md</code></td></tr><tr><td>高风险实现 RFC</td><td>rfc</td><td>PASS</td><td><code>.legion/tasks/preserve-agent-review-loop/docs/rfc.md</code></td></tr><tr><td>review-rfc-nimble-ferret 独立 RFC 对抗审查</td><td>review-rfc</td><td>PASS</td><td><code>.legion/tasks/preserve-agent-review-loop/docs/review-rfc.md</code></td></tr><tr><td>verify-change-fizzy-sparrow 独立验证报告</td><td>test-report</td><td>PASS</td><td><code>.legion/tasks/preserve-agent-review-loop/docs/test-report.md</code></td></tr><tr><td>review-change-quick-koala 独立变更与安全审查</td><td>review-change</td><td>PASS</td><td><code>.legion/tasks/preserve-agent-review-loop/docs/review-change.md</code></td></tr></tbody></table></section>
+        <section id="path"><h2>交付路径</h2><ol><li>spec-rfc 编写高风险设计，新的独立 review-rfc Agent 对抗审查后才准入实现</li><li>engineer Agent 实现报告协议、scheduler 证据门、精确权限与阶段运行契约</li><li>verify-change Agent 独立运行直接回归、定向组合、根回归、scheduler 全量与真实 HTML fixture</li><li>review-change Agent 独立复核正确性、范围、可维护性、安全边界与大循环不变性</li><li>任一验证或审查 FAIL 都回到对应实现或设计阶段，返修后重新派生新的独立 Agent</li><li>report-walkthrough 只从当前 PASS 证据填写单一 report-data.json，再原子生成三份审阅产物</li><li>本地 HTML、wiki 与 PR lifecycle 分别继续收口，不把报告生成冒充 merge 终态</li></ol></section>
+        <section id="changes"><h2>变更与决定</h2><ul><li>报告 schema 升级为 v1.1，evidence 与 verification 只接受 PASS 或 INFO；renderer 与 scheduler 共用严格 current Verdict 解析器，当前 FAIL、重复或缺失 Verdict、历史 PASS 冒充当前结论均会 fail-closed。</li><li>domain 或 authority 的 INCONCLUSIVE、DEFERRED 主张可以在没有真实 verifier 时如实生成；详细产物明确显示未获得 verifier、证据缺口、升级或延后验证路径，只有当前未决项才提升人类 attention。</li><li>OpenCode 报告 Agent 保留既有 Markdown 写权限，只精确新增 .legion/tasks/**/docs/report-data.json；该 JSON 是 schema 校验后的机器生成真源，不是需要人类阅读或手工同步的第四份报告。</li><li>worker 的必需结果块新增规范 reportData locator，scheduler 将其纳入最终完整证据门，并与当前 task、profile、risk 和固定阶段文档绑定；缺失或偏离都会拒绝。</li><li>renderer 与 scheduler 要求固定 repo-relative locator 的 realpath 精确等于仓库内预期文件，拒绝仓库外、跨 task、同 task 其他文件和中间目录 symlink 重定向。</li><li>spec-rfc 与 review-rfc、engineer 与 verify-change、verify-change 与 review-change 继续由不同阶段 Agent 执行；三条 FAIL 回退、attention 门、阶段归属和五字段交接均保留。</li><li>token 效率来自按需加载、共享验证逻辑和五字段判断增量；完整命令、diff、测试与审查证据仍落盘，没有删除 RFC、验证或独立审查阶段。</li><li>report-data.json 通过 schema、语义、当前 Verdict、taskId 与路径门后，由 renderer 事务式原子派生 HTML、Markdown 与 PR body，并在 HTML 出口删除每行末尾的空格和 Tab。</li></ul></section>
+        <section id="verification"><h2>验证与审查状态</h2><table><thead><tr><th scope="col">检查</th><th scope="col">状态</th><th scope="col">证据</th></tr></thead><tbody><tr><td>两项 HTML 行尾空白与无 verifier 直接回归 2/2</td><td>PASS</td><td><code>.legion/tasks/preserve-agent-review-loop/docs/test-report.md</code></td></tr><tr><td>报告、scheduler、attention、权限与阶段契约定向组合 36/36</td><td>PASS</td><td><code>.legion/tasks/preserve-agent-review-loop/docs/test-report.md</code></td></tr><tr><td>根回归 40/40</td><td>PASS</td><td><code>.legion/tasks/preserve-agent-review-loop/docs/test-report.md</code></td></tr><tr><td>scheduler 全量测试 59/59</td><td>PASS</td><td><code>.legion/tasks/preserve-agent-review-loop/docs/test-report.md</code></td></tr><tr><td>claims 为空与缺 verifier 两类实际 HTML 的行尾空白行均为 0，预期 verifier 提示均保留</td><td>PASS</td><td><code>.legion/tasks/preserve-agent-review-loop/docs/test-report.md</code></td></tr><tr><td>review-change-quick-koala 独立变更审查与安全视角通过</td><td>PASS</td><td><code>.legion/tasks/preserve-agent-review-loop/docs/review-change.md</code></td></tr></tbody></table></section>
+        <section id="risks"><h2>风险与限制</h2><table><thead><tr><th scope="col">风险</th><th scope="col">缓解</th></tr></thead><tbody><tr><td>真实多任务、多模型旧新版本 A/B 的完整效果等价未在本任务中评估</td><td>只陈述本轮已验证的协议、门禁、回退、路径安全与阶段不变性；将 A/B 保留为可选的后续评估，不注册为当前 claim，也不阻塞 merge。</td></tr><tr><td>普通文件系统在 realpath 检查完成后仍存在 TOCTOU 窗口</td><td>当前只承诺固定 locator 与精确规范路径绑定，不把结果扩大为文件句柄级原子读取或抵抗恶意本机并发替换的保证。</td></tr><tr><td>阶段派生事件和 Agent 名称不是跨 transport 身份 attestation</td><td>名称与 session id 只作审计线索；工作流只宣称可观察的真实派生、不同阶段会话和独立审查合同。</td></tr><tr><td>PR lifecycle 尚未完成</td><td>继续执行 wiki、commit、push、checks、review、merge、cleanup 与主工作区刷新，并分别记录终态证据。</td></tr></tbody></table></section>
+        <section id="checklist"><h2>审阅清单</h2><ul><li>快速确认页面顶部显示 implementation、high、PASS、skim、唯一当前动作和 PR lifecycle 边界。</li><li>确认 claims 为空，真实多任务、多模型 A/B 只在范围外与风险边界中作为非阻塞后续评估出现。</li><li>确认三项原始修复、worker reportData、精确 realpath 与 symlink 边界都能回到最新 test-report 和 review-change。</li><li>确认两项直接回归、36/36、40/40、59/59、两类 HTML 行尾空白为 0 与独立审查 PASS 均清晰可见。</li><li>确认 RFC、独立 review-rfc、engineer、独立 verify-change 与独立 review-change 大循环及 FAIL 回退没有因 token 优化减少。</li><li>确认 HTML、Markdown 与 PR body 均由同一 report-data.json 原子生成，且 PR body 不冒充 lifecycle 终态。</li></ul></section>
+        <section id="render"><h2>渲染交接</h2><p><strong>PR-backed：</strong>是</p><p><strong>状态：</strong>local</p><p>仓库当前没有受控的 HTML preview 机制，因此保留仓库内本地 HTML 审阅产物且未新增公开 Pages；未来在受控机制可用或维护者明确批准 Pages 后，可恢复 rendered URL。</p></section>
+        <section id="final"><h2>最终状态与下一阶段</h2><p><strong>当前状态：</strong>实现、最新独立验证与最新独立变更审查均为 PASS；正式报告从当前证据重建，当前没有未决 claim 或 merge gate。</p><p><strong>下一阶段：</strong>维护者快速浏览仓库内本地 HTML，随后进入 wiki 与正常 PR lifecycle。</p><p class="boundary">本报告只证明当前 task 的设计、实现、验证与独立审查证据已通过，不证明 PR checks、review、merge、cleanup 或主工作区刷新已经完成。</p></section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>

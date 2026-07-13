@@ -103,4 +103,12 @@ git:
 
 ## 输出提醒
 
-子代理应只返回最小 `[Handoff]` 包：`summary`、`decisions`、`risks`、`files_touched`、`commands`、`next`、`open_questions`。
+子代理只返回统一五字段判断增量，不复制 contract、正文、长 diff 或命令输出：
+
+```text
+结果: <displayName> · <stage> · <PASS|FAIL|BLOCKED|DONE> · attention:<level>
+变化: <判断变化与关键发现合计最多三条>
+风险: <仅当前阻塞项和残余风险；无则省略>
+下一步: <一个自动动作；review/decide 时含唯一人类动作与停止点>
+证据: <最多三个 repo-relative locator>
+```
