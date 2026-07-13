@@ -6,6 +6,7 @@ import { dirname, isAbsolute, join, resolve } from 'node:path';
 import {
   defaultEvidencePaths,
   verifyLegionEvidence,
+  writeEvidenceFixture,
 } from '../../scheduler/src/worker-runner.ts';
 import type { LegionEvidencePaths, WorkerResultBlock } from '../../scheduler/src/worker-runner.ts';
 
@@ -189,7 +190,7 @@ function evaluateAuthority(root: string, claimId: string, now: Date, evidence?: 
 }
 
 function evidenceFixture(root: string, taskId: string): LegionEvidencePaths {
-  const paths = defaultEvidencePaths(taskId);
+  const paths = writeEvidenceFixture(root, taskId, { includeRfc: true });
   const claimTable = `
 ## Claim 登记与状态
 
@@ -200,15 +201,9 @@ function evidenceFixture(root: string, taskId: string): LegionEvidencePaths {
 `;
   const passReview = `# 阶段审查\n${claimTable}\n## Verdict\n\nPASS\n`;
   const entries: Array<[keyof LegionEvidencePaths, string]> = [
-    ['plan', '# 任务契约\n'],
-    ['tasks', '# 当前状态\n'],
-    ['log', '# 过程日志\n'],
-    ['rfc', '# 设计 RFC\n'],
     ['reviewRfc', passReview],
-    ['testReport', `# 验证报告\n${claimTable}`],
+    ['testReport', `# 验证报告\n${claimTable}\n## Verdict\n\nPASS\n`],
     ['reviewChange', passReview],
-    ['report', '# 交付审阅\n'],
-    ['wiki', '# 任务知识摘要\n'],
   ];
   for (const [key, content] of entries) {
     const path = paths[key];
@@ -379,7 +374,7 @@ test('scheduler 只认独立 PASS Verdict，不会把细粒度 claim 状态误�
     writeFileSync(reviewChangePath, '# 阶段审查\n\n| claim-id | 当前状态 |\n|---|---|\n| claim-ok | PASS |\n');
     const missingVerdict = verifyFixture(root, taskId, evidence);
     assert.equal(missingVerdict.ok, false, '缺少独立 Verdict 时，即使 claim 表含 PASS 也不得通过');
-    assert.equal(missingVerdict.failures.some((failure) => failure.includes('review-change.md missing PASS verdict')), true, '缺失 Verdict 应由 scheduler 给出明确失败原因');
+    assert.equal(missingVerdict.failures.some((failure) => failure.includes('review-change.md 当前 Verdict')), true, '缺失 Verdict 应由 scheduler 给出明确失败原因');
 
     writeFileSync(reviewChangePath, '# 阶段审查\n\n| claim-id | 当前状态 |\n|---|---|\n| claim-ok | PASS |\n\n## Verdict\n\nFAIL\n');
     const failedVerdict = verifyFixture(root, taskId, evidence);

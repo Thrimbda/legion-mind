@@ -8,6 +8,7 @@
     "schemaVersion",
     "task",
     "profile",
+    "risk",
     "stageConclusion",
     "reviewStatus",
     "summary",
@@ -24,9 +25,10 @@
     "render"
   ],
   "properties": {
-    "schemaVersion": { "const": "1.0" },
+    "schemaVersion": { "const": "1.1" },
     "task": { "$ref": "#/$defs/task" },
     "profile": { "enum": ["implementation", "rfc-only"] },
+    "risk": { "enum": ["low", "medium", "high"] },
     "stageConclusion": { "const": "PASS" },
     "reviewStatus": { "const": "PASS" },
     "summary": { "$ref": "#/$defs/nonEmptyString" },
@@ -83,6 +85,24 @@
       }
     },
     {
+      "if": {
+        "allOf": [
+          { "properties": { "profile": { "const": "implementation" } }, "required": ["profile"] },
+          { "properties": { "risk": { "enum": ["medium", "high"] } }, "required": ["risk"] }
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidence": {
+            "allOf": [
+              { "contains": { "properties": { "kind": { "const": "rfc" } }, "required": ["kind"] } },
+              { "contains": { "properties": { "kind": { "const": "review-rfc" } }, "required": ["kind"] } }
+            ]
+          }
+        }
+      }
+    },
+    {
       "if": { "properties": { "profile": { "const": "rfc-only" } }, "required": ["profile"] },
       "then": {
         "properties": {
@@ -97,7 +117,7 @@
     }
   ],
   "$defs": {
-    "nonEmptyString": { "type": "string", "minLength": 1 },
+    "nonEmptyString": { "type": "string", "minLength": 1, "pattern": ".*\\S.*" },
     "repoLocator": {
       "type": "string",
       "minLength": 1,
@@ -153,9 +173,7 @@
         "evidence": { "$ref": "#/$defs/repoLocator" },
         "evidenceGap": { "$ref": "#/$defs/nonEmptyString" },
         "escalation": { "$ref": "#/$defs/nonEmptyString" },
-        "trigger": { "$ref": "#/$defs/nonEmptyString" },
-        "method": { "$ref": "#/$defs/nonEmptyString" },
-        "stopCondition": { "$ref": "#/$defs/nonEmptyString" },
+        "deferredProtocol": { "$ref": "#/$defs/deferredProtocol" },
         "options": {
           "type": "array",
           "minItems": 2,
@@ -174,15 +192,11 @@
         },
         {
           "if": { "properties": { "status": { "const": "DEFERRED" } }, "required": ["status"] },
-          "then": { "required": ["trigger", "method", "stopCondition"] }
+          "then": { "required": ["deferredProtocol"] }
         },
         {
           "if": { "properties": { "status": { "const": "RECOMMENDATION" } }, "required": ["status"] },
           "then": { "required": ["options", "recommendation", "tradeoff", "decisionStatus", "decisionOwner"] }
-        },
-        {
-          "if": { "properties": { "expertise": { "enum": ["domain", "authority"] } }, "required": ["expertise"] },
-          "then": { "required": ["verifier"] }
         }
       ]
     },
@@ -234,6 +248,43 @@
         "validUntil": { "$ref": "#/$defs/nonEmptyString" }
       }
     },
+    "deferredOutcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nextAction", "conclusionUpdate"],
+      "properties": {
+        "nextAction": { "$ref": "#/$defs/nonEmptyString" },
+        "conclusionUpdate": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "requiredData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "source", "acceptance"],
+      "properties": {
+        "name": { "$ref": "#/$defs/nonEmptyString" },
+        "source": { "$ref": "#/$defs/nonEmptyString" },
+        "acceptance": { "$ref": "#/$defs/nonEmptyString" }
+      }
+    },
+    "deferredProtocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["trigger", "method", "requiredData", "stopCondition", "successorTask", "onPass", "onFail"],
+      "properties": {
+        "trigger": { "$ref": "#/$defs/nonEmptyString" },
+        "method": { "$ref": "#/$defs/nonEmptyString" },
+        "requiredData": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/requiredData" }
+        },
+        "stopCondition": { "$ref": "#/$defs/nonEmptyString" },
+        "successorTask": { "$ref": "#/$defs/nonEmptyString" },
+        "onPass": { "$ref": "#/$defs/deferredOutcome" },
+        "onFail": { "$ref": "#/$defs/deferredOutcome" }
+      }
+    },
     "scope": {
       "type": "object",
       "additionalProperties": false,
@@ -251,7 +302,7 @@
         "kind": { "enum": ["plan", "rfc", "review-rfc", "test-report", "review-change", "attention", "other"] },
         "label": { "$ref": "#/$defs/nonEmptyString" },
         "locator": { "$ref": "#/$defs/repoLocator" },
-        "status": { "enum": ["PASS", "FAIL", "INFO", "INCONCLUSIVE", "DEFERRED", "RECOMMENDATION"] }
+        "status": { "enum": ["PASS", "INFO"] }
       }
     },
     "verification": {
@@ -260,7 +311,7 @@
       "required": ["label", "status", "evidence"],
       "properties": {
         "label": { "$ref": "#/$defs/nonEmptyString" },
-        "status": { "enum": ["PASS", "FAIL", "BLOCKED", "INFO"] },
+        "status": { "enum": ["PASS", "INFO"] },
         "evidence": { "$ref": "#/$defs/repoLocator" }
       }
     },

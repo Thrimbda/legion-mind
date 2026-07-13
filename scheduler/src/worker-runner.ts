@@ -1,11 +1,20 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
 import { decideRetry, retryNotBeforeDue } from './retry-policy.ts';
 import type { RetryPolicyOptions } from './retry-policy.ts';
 import type { AttemptResultKind, OutboxRow, RunAttemptRow, RunKind, RunRow, SchedulerStore } from './sqlite-store.ts';
 import { stableHash, stableStringify } from './sqlite-store.ts';
+import {
+  loadReportDataSchema,
+  reportStageRequirements,
+  resolveExactRepoFile,
+  validateCurrentReportEvidence,
+  validateReportData,
+  validateRuntimeReportBinding,
+} from '../../skills/report-walkthrough/scripts/report-data-validation.mjs';
+import { parseCurrentVerdict } from '../../skills/report-walkthrough/scripts/current-verdict.mjs';
 
 export const WORKER_RESULT_START = 'LEGION_WORKER_RESULT_START';
 export const WORKER_RESULT_END = 'LEGION_WORKER_RESULT_END';
@@ -69,6 +78,7 @@ export interface LegionEvidencePaths {
   reviewRfc?: string;
   testReport?: string;
   reviewChange?: string;
+  reportData?: string;
   report?: string;
   wiki?: string;
   lifecycle?: string;
@@ -166,36 +176,32 @@ function resolveEvidencePath(root: string, path: string): string {
   return resolve(root, path);
 }
 
-function fileContains(path: string, pattern: RegExp): boolean {
-  return existsSync(path) && pattern.test(readFileSync(path, 'utf-8'));
-}
-
-function hasPassVerdict(path: string): boolean {
-  return fileContains(path, /(^|\n)\s*(#{1,6}\s*)?Verdict\s*:?\s*(\n\s*)?PASS\b/i);
-}
-
 function expectedEvidenceRelative(taskId: string, key: keyof LegionEvidencePaths): string | null {
   return defaultEvidencePaths(taskId)[key] ?? null;
 }
 
+function currentPassFailure(path: string, label: string): string | null {
+  try {
+    const verdict = parseCurrentVerdict(readFileSync(path, 'utf-8'));
+    return verdict.verdict === 'PASS' ? null : `${label} 当前 Verdict 不是 PASS：${verdict.error ?? verdict.verdict}`;
+  } catch (error) {
+    return `${label} 无法读取：${error instanceof Error ? error.message : String(error)}`;
+  }
+}
+
 function resolveContainedEvidencePath(root: string, taskId: string, key: keyof LegionEvidencePaths, value: string): { path?: string; failure?: string } {
-  if (isAbsolute(value)) {
-    return { failure: `${String(key)} must be a repo-relative path` };
-  }
   const expected = expectedEvidenceRelative(taskId, key);
-  if (expected && value !== expected) {
-    return { failure: `${String(key)} must be ${expected}` };
+  if (!expected) {
+    return { failure: `${String(key)} 没有当前 task 的固定 locator` };
   }
-  const repoReal = realpathSync(root);
-  const candidate = resolveEvidencePath(root, value);
-  if (!existsSync(candidate)) {
-    return { failure: `${String(key)} missing at ${value}` };
+  if (value !== expected) {
+    return { failure: `${String(key)} 必须精确等于 ${expected}` };
   }
-  const real = realpathSync(candidate);
-  if (real !== repoReal && !real.startsWith(`${repoReal}/`)) {
-    return { failure: `${String(key)} resolves outside repo: ${value}` };
+  const resolution = resolveExactRepoFile(root, value, expected);
+  if (resolution.failure || !resolution.path) {
+    return { failure: `${String(key)} 路径校验失败：${resolution.failure ?? value}` };
   }
-  return { path: real };
+  return { path: resolution.path };
 }
 
 function readLifecycleEvidence(root: string, taskId: string, value: string | undefined): { evidence?: Required<GitWorktreeLifecycleEvidence>; missing?: string; failures: string[] } {
@@ -273,6 +279,7 @@ export function renderOpenCodePrompt(context: OpenCodePromptContext): string {
       reviewRfc: `.legion/tasks/${context.taskId}/docs/review-rfc.md`,
       testReport: `.legion/tasks/${context.taskId}/docs/test-report.md`,
       reviewChange: `.legion/tasks/${context.taskId}/docs/review-change.md`,
+      reportData: `.legion/tasks/${context.taskId}/docs/report-data.json`,
       report: `.legion/tasks/${context.taskId}/docs/report-walkthrough.md`,
       wiki: `.legion/wiki/tasks/${context.taskId}.md`,
       lifecycle: `.legion/tasks/${context.taskId}/docs/git-worktree-lifecycle.json`,
@@ -380,6 +387,7 @@ export function verifyLegionEvidence(result: WorkerResultBlock, options: { repoP
   const missing: string[] = [];
   const failures: string[] = [];
   const evidence = result.legionEvidence ?? {};
+  const resolvedEvidence: Partial<Record<keyof LegionEvidencePaths, string>> = {};
   const requirePath = (key: keyof LegionEvidencePaths, label: string) => {
     const value = evidence[key];
     if (!value) {
@@ -391,34 +399,81 @@ export function verifyLegionEvidence(result: WorkerResultBlock, options: { repoP
       missing.push(`${label}:${resolved.failure ?? value}`);
       return null;
     }
+    resolvedEvidence[key] = resolved.path;
     return resolved.path;
   };
+
+  const reportDataPath = requirePath('reportData', 'docs/report-data.json');
 
   if (options.runKind === 'design_only') {
     requirePath('rfc', 'docs/rfc.md');
     const reviewRfc = requirePath('reviewRfc', 'docs/review-rfc.md');
     requirePath('report', 'docs/report-walkthrough.md');
     requirePath('wiki', 'wiki writeback');
-    if (reviewRfc && !hasPassVerdict(reviewRfc)) {
-      failures.push('docs/review-rfc.md missing PASS verdict');
+    if (reviewRfc) {
+      const failure = currentPassFailure(reviewRfc, 'docs/review-rfc.md');
+      if (failure) failures.push(failure);
     }
-  } else {
+  } else if (options.runKind === 'implementation') {
     requirePath('plan', 'plan.md');
     requirePath('tasks', 'tasks.md');
     requirePath('log', 'log.md');
-    requirePath('testReport', 'docs/test-report.md');
+    const testReport = requirePath('testReport', 'docs/test-report.md');
     const reviewChange = requirePath('reviewChange', 'docs/review-change.md');
     requirePath('report', 'docs/report-walkthrough.md');
     requirePath('wiki', 'wiki writeback');
-    if (reviewChange && !hasPassVerdict(reviewChange)) {
-      failures.push('docs/review-change.md missing PASS verdict');
+    if (testReport) {
+      const failure = currentPassFailure(testReport, 'docs/test-report.md');
+      if (failure) failures.push(failure);
+    }
+    if (reviewChange) {
+      const failure = currentPassFailure(reviewChange, 'docs/review-change.md');
+      if (failure) failures.push(failure);
     }
     if (options.risk === 'medium' || options.risk === 'high') {
       requirePath('rfc', 'docs/rfc.md');
       const reviewRfc = requirePath('reviewRfc', 'docs/review-rfc.md');
-      if (reviewRfc && !hasPassVerdict(reviewRfc)) {
-        failures.push('docs/review-rfc.md missing PASS verdict');
+      if (reviewRfc) {
+        const failure = currentPassFailure(reviewRfc, 'docs/review-rfc.md');
+        if (failure) failures.push(failure);
       }
+    }
+  } else {
+    failures.push(`不支持 runKind=${options.runKind} 的 v1.1 收口报告`);
+  }
+
+  if (reportDataPath) {
+    try {
+      const data = JSON.parse(readFileSync(reportDataPath, 'utf-8'));
+      const reportErrors = validateReportData(data, loadReportDataSchema());
+      const bindingErrors = validateRuntimeReportBinding(data, options);
+      failures.push(...reportErrors.map((failure) => `report-data.json：${failure}`));
+      failures.push(...bindingErrors.map((failure) => `report-data.json：${failure}`));
+      if (data?.task?.id !== result.taskId) {
+        failures.push(`report-data.json：task.id 必须等于当前 taskId ${result.taskId}`);
+      } else if (reportErrors.length === 0 && bindingErrors.length === 0) {
+        const documents: Record<string, string | undefined> = {};
+        for (const stage of reportStageRequirements(result.taskId, data.profile, data.risk)) {
+          const evidenceKey: keyof LegionEvidencePaths | null = stage.kind === 'test-report'
+            ? 'testReport'
+            : stage.kind === 'review-change'
+              ? 'reviewChange'
+              : stage.kind === 'review-rfc'
+                ? 'reviewRfc'
+                : stage.kind === 'rfc'
+                  ? 'rfc'
+                  : null;
+          const stagePath = evidenceKey ? resolvedEvidence[evidenceKey] : undefined;
+          try {
+            documents[stage.locator] = stagePath ? readFileSync(stagePath, 'utf-8') : undefined;
+          } catch {
+            documents[stage.locator] = undefined;
+          }
+        }
+        failures.push(...validateCurrentReportEvidence(data, { taskId: result.taskId, documents }).map((failure) => `report-data.json：${failure}`));
+      }
+    } catch (error) {
+      failures.push(`report-data.json 无法解析：${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -929,25 +984,29 @@ export function defaultEvidencePaths(taskId: string): LegionEvidencePaths {
     reviewRfc: `.legion/tasks/${taskId}/docs/review-rfc.md`,
     testReport: `.legion/tasks/${taskId}/docs/test-report.md`,
     reviewChange: `.legion/tasks/${taskId}/docs/review-change.md`,
+    reportData: `.legion/tasks/${taskId}/docs/report-data.json`,
     report: `.legion/tasks/${taskId}/docs/report-walkthrough.md`,
     wiki: `.legion/wiki/tasks/${taskId}.md`,
     lifecycle: `.legion/tasks/${taskId}/docs/git-worktree-lifecycle.json`,
   };
 }
 
-export function writeEvidenceFixture(root: string, taskId: string, options: { includeRfc?: boolean } = {}): LegionEvidencePaths {
+export function writeEvidenceFixture(root: string, taskId: string, options: { includeRfc?: boolean; profile?: 'implementation' | 'rfc-only'; risk?: 'low' | 'medium' | 'high' } = {}): LegionEvidencePaths {
   const paths = defaultEvidencePaths(taskId);
+  const profile = options.profile ?? 'implementation';
+  const risk = options.risk ?? (options.includeRfc ? 'high' : 'low');
+  const includeRfc = options.includeRfc ?? (profile === 'rfc-only' || risk !== 'low');
   const entries: Array<[keyof LegionEvidencePaths, string]> = [
     ['plan', '# plan'],
     ['tasks', '# tasks'],
     ['log', '# log'],
-    ['testReport', '# test report\n\n## Result\n\nPASS'],
+    ['testReport', '# test report\n\n## Verdict\n\nPASS'],
     ['reviewChange', '# review-change\n\n## Verdict\n\nPASS'],
     ['report', '# report'],
     ['wiki', '# wiki'],
     ['lifecycle', `${JSON.stringify({ prMerged: true, checksAndReviewComplete: true, worktreeRemoved: true, mainRefreshed: true }, null, 2)}\n`],
   ];
-  if (options.includeRfc) {
+  if (includeRfc) {
     entries.push(['rfc', '# rfc'], ['reviewRfc', '# review-rfc\n\n## Verdict\n\nPASS']);
   }
   for (const [key, content] of entries) {
@@ -957,6 +1016,39 @@ export function writeEvidenceFixture(root: string, taskId: string, options: { in
     mkdirSync(dirname(absolute), { recursive: true });
     writeFileSync(absolute, content);
   }
+  const requiredEvidence = reportStageRequirements(taskId, profile, risk).map((stage) => ({
+    kind: stage.kind,
+    label: `${stage.kind} 测试样例`,
+    locator: stage.locator,
+    status: 'PASS',
+  }));
+  const reportData = {
+    schemaVersion: '1.1',
+    task: { id: taskId, title: 'Scheduler 证据测试样例', purpose: '验证当前阶段证据门', reviewer: '独立审查者' },
+    profile,
+    risk,
+    stageConclusion: 'PASS',
+    reviewStatus: 'PASS',
+    summary: '由当前阶段文档重新读取的 scheduler fixture。',
+    attention: {
+      level: 'none',
+      summary: '无额外人类注意力。',
+      humanAction: '无需动作。',
+      lifecycleBoundary: '可继续既有 lifecycle。',
+      evidence: [requiredEvidence[0]?.locator ?? paths.plan],
+    },
+    claims: [],
+    scope: { included: ['调度器证据测试样例'], excluded: ['外部系统'] },
+    evidence: requiredEvidence,
+    deliveryPath: ['当前阶段证据'],
+    changes: ['测试样例'],
+    verification: [{ label: '当前阶段 Verdict', status: 'PASS', evidence: requiredEvidence[0]?.locator ?? paths.plan }],
+    risks: [],
+    checklist: ['当前 Verdict 必须为 PASS。'],
+    final: { state: '阶段证据完成', nextStage: '继续 lifecycle', lifecycleDisclaimer: '测试样例不代表真实 PR 状态。' },
+    render: { prBacked: false, state: 'local', note: '仅供 scheduler 回归。' },
+  };
+  writeFileSync(resolveEvidencePath(root, paths.reportData as string), `${JSON.stringify(reportData, null, 2)}\n`);
   return paths;
 }
 

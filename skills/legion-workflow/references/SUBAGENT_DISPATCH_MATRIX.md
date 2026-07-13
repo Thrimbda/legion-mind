@@ -1,18 +1,14 @@
 # 子代理派生矩阵
 
-仅用于 `legion-workflow` 已接管且 contract 稳定之后。三种模式和阶段顺序以此为运行时真源；worktree/PR 只是 lifecycle envelope。
+仅用于已接管且 contract 稳定的任务；worktree/PR 只是 lifecycle envelope。
 
 ## 派生前置
 
-每次派生任何子代理（含只读探索）都先运行：
+每次派生（含只读探索）先运行 `node skills/legion-workflow/scripts/subagent-name.mjs <role> --json --transport <codex|opencode|raw>`。
 
-```sh
-node skills/legion-workflow/scripts/subagent-name.mjs <role> --json --transport <codex|opencode|raw>
-```
-
-- `agentType` 只选择已注册职责；OpenCode 等固定类型 API 仍用它作为 subagent type。仅当 API 另有实例标识字段时才传 `transportId`；prompt 首行、日志与最终 `结果` 回显 `displayName`。
-- 批量同角色用 `--count <n>`；不得手写、复用或在命名失败后降级为无实例名派生。
-- `role/agentType` 表示职责，`displayName` 只区分实例，不改变阶段权限。
+- `agentType` 选职责；仅 API 有实例字段才传 `transportId`；prompt、日志和 `结果` 回显 `displayName`。批量用 `--count`，命名失败不得降级派生。
+- 每阶段都由真实 Codex `spawn` 或 OpenCode `task` 新派生；primary 切换 skill 不算。三对直接作者/reviewer 不得复用会话；重跑重派 reviewer，FAIL 按链回退。
+- 名称、`transportId`、agent/session id 不是身份 attestation；无可查实例 ID 时只能写“已观察到不同派生事件，实例隔离未机械证明”。
 
 ## 阶段链
 

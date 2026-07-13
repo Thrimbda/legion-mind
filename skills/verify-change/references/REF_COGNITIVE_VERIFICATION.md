@@ -64,7 +64,7 @@ attention 按 `../../legion-workflow/references/REF_HUMAN_ATTENTION.md`：未解
 
 统一返回：claim/scope/status、verifier 与方法、原始证据及作者独立性、主动反例、独立性 `low|medium|high` 及理由、置信度 `low|medium|high`、残余不确定性/失效条件/下一步、非专家解释和完整 provenance。多个 verifier 分歧保持 `INCONCLUSIVE`，不得投票。
 
-找不到匹配 verifier、方法不可执行、provenance 或 authority 不足时，不得由通用模型自证。阻塞/高风险 claim 用 `decide`，真实升级路径只能是：安装适用 verifier、寻求外部专家/权威、缩小 claim、补权限/条件、显式接受或延后风险；非阻塞 claim 至少 `review`。
+找不到匹配 verifier、方法不可执行、provenance 或 authority 不足时，不得由通用模型自证。对合同允许的 `domain|authority` `INCONCLUSIVE|DEFERRED`，报告必须明确“未获得 verifier”，把 claim evidence locator 映射到聚合 attention，并至少 `review`；同时记录唯一人类动作和停止点。阻塞/高风险 claim 用 `decide`，真实升级路径只能是：安装适用 verifier、寻求外部专家/权威、缩小 claim、补权限/条件、显式接受或延后风险；非阻塞 claim 至少 `review`。
 
 ## 权威证据
 
@@ -81,6 +81,8 @@ attention 按 `../../legion-workflow/references/REF_HUMAN_ATTENTION.md`：未解
 - 届时方法、所需数据与证据保存位置；
 - 当前风险、临时缓解、失败影响与回滚/停止条件；
 - 触发后成功和失败分别如何更新结论。
+
+在 v1.1 report-data 中，这些字段收敛为 `deferredProtocol`：`trigger`、`method`、至少一项含名称/来源/验收条件的 `requiredData`、`stopCondition`、`successorTask`，以及只含 `nextAction`、`conclusionUpdate` 的 `onPass/onFail`。不得写 `triggerObserved` 或把未来 PASS/FAIL 回写为旧 claim 状态；触发由 owner/编排器观察后 create/restore 后续 task，重新派生 `verify-change -> review-change`，旧报告只保留历史证据。
 
 “以后再看”不成立；无真实 owner、触发或方法时为 `INCONCLUSIVE`。本任务只承诺持久化，不宣称 scheduler 自动唤醒。
 
