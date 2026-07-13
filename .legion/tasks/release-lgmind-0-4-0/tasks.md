@@ -31,12 +31,14 @@
 - [x] 运行 `npm run pack:dry-run` 并断言版本与关键资产。
 - [x] 确认 npm registry 尚不存在 `lgmind@0.4.0`。
 - [x] 记录 claim、原始证据与阶段 attention。
+- [x] 重验提交后 `origin/master...HEAD` + working diff 基线与 OpenCode 越界清理结果。
 
 ### Review change — COMPLETE
 
 - [x] 独立审查版本改动、包内容、供应链边界与发布就绪度。
 - [x] 处理所有 blocking review。
 - [x] 独立复核 wiki writeback 后的产品 diff 过滤边界修订。
+- [x] 越界清理后重新派生独立 reviewer，并恢复有效 PASS 证据。
 
 ### Walkthrough 与 wiki — COMPLETE
 
@@ -45,7 +47,7 @@
 
 ### Git / PR lifecycle — IN PROGRESS
 
-- [ ] 提交 scope 内变更。
+- [x] 提交 scope 内版本准备变更，并准备提交验证修订与越界恢复证据。
 - [ ] push 前 fetch/rebase 最新 `origin/master`。
 - [ ] 推送分支并创建 squash PR。
 - [ ] 跟进 checks/review，确认 merge 前发布门。

@@ -10,7 +10,7 @@
   "risk": "low",
   "stageConclusion": "PASS",
   "reviewStatus": "PASS",
-  "summary": "版本准备实现风险为 low：全部 tracked paths 已原样输出为 .legion/wiki/index.md、.legion/wiki/log.md、package.json；产品集合仅排除 .legion/** 后精确为 package.json，scheduler 边界和运行时行为未改变，发布前 artifact 与独立审查均已通过。40/40 是既有原始证据，本轮验证修订复核未重跑该命令，也未冒充为新执行。公开 npm 发布仍具有版本不可覆盖风险，REL-040-DISTRIBUTION 保持 DEFERRED；当前只可进入版本 PR lifecycle，不能把发布、registry 切换或干净安装写成已经完成。",
+  "summary": "当前版本准备阶段为 PASS：OpenCode transport 曾意外改写 .opencode/package-lock.json，review-change-quick-koala 当时正确给出 FAIL 并阻止推进；随后通过 apply_patch 精确恢复、engineer 哈希确认、verify-change 重验和 review-change-sunny-badger 独立审查，已证明当前 .opencode/** 副作用清零，产品集合仅排除 .legion/** 后精确为 package.json，REL-040-ARTIFACT 恢复 PASS。历史 FAIL 保留为审计事实，但不是当前 blocker。40/40 仍是既有原始证据，不冒充本轮重跑。公开 npm 发布具有版本不可覆盖风险，REL-040-DISTRIBUTION 保持 DEFERRED；当前只可进入版本 PR lifecycle，不能把发布、registry 切换或干净安装写成已经完成。",
   "attention": {
     "level": "review",
     "summary": "公开 npm 版本一旦发布不可覆盖；当前 PASS 只覆盖版本准备与待发布 artifact，尚不覆盖 workflow、registry 和干净安装。release-040-deferred-review-001 已完成复核并允许版本准备 PR merge。",
@@ -121,9 +121,11 @@
   ],
   "deliveryPath": [
     "engineer 只更新根包版本并建立中文发布说明，不改变 scheduler 或运行时行为",
-    "verify-change 独立执行 context audit、完整回归、pack 与关键资产断言，并把分发主张保持为 DEFERRED",
+    "verify-change 独立执行 context audit、完整回归、pack 与关键资产断言，初次确认 artifact 边界并把分发主张保持为 DEFERRED",
     "release-040-deferred-review-001 完成复核，允许版本准备 PR merge，但不提前证明未来分发",
-    "review-change 独立复核版本边界、证据可重算性和供应链风险，给出 PASS 与 attention: review",
+    "OpenCode transport 失败并意外改写 .opencode/package-lock.json 后，review-change-quick-koala 依据当时产品越界正确给出 FAIL，阻止 push、PR 与发布",
+    "root 只用 apply_patch 精确恢复 lockfile，engineer 确认哈希与副作用边界，verify-change 重新执行有界方法并恢复 REL-040-ARTIFACT=PASS",
+    "review-change-sunny-badger 独立确认当前 .opencode/** 差异为空、产品 diff 仅 package.json，给出当前 PASS 与 attention: review，同时保留历史 FAIL",
     "report-walkthrough 从当前 PASS 证据生成单一报告真源与三份 reviewer artifact",
     "legion-wiki 写回发布前状态，随后完成 commit、rebase、push、PR、checks、review 与 squash merge",
     "merge 后锁定 master SHA，通过既有 trusted-publishing workflow 发布，再恢复 verify-change -> review-change 验证 registry 与干净安装",
@@ -131,14 +133,16 @@
   ],
   "changes": [
     "根 package.json 的版本从 0.3.1 更新为 0.4.0；scheduler/package.json 保持 0.0.0 且未改变。",
-    "验证断言先通过 TRACKED_DIFF_ALL 原样输出全部 tracked paths：.legion/wiki/index.md、.legion/wiki/log.md、package.json；产品集合的唯一过滤条件是排除 .legion/**，过滤后仍精确为 package.json，其他源码路径不会被忽略。",
+    "验证断言以 origin/master 为版本基线，取 origin/master...HEAD 与 HEAD working diff 的去重并集并原样保留完整 changed paths；产品集合只排除 .legion/**，当前精确为 package.json，任何 .opencode/** 或其他源码路径都不会被忽略。",
+    "失败的 OpenCode transport 曾把 .opencode/package-lock.json 改到产品范围外；该副作用已通过 apply_patch 精确恢复到 HEAD，当前 lockfile 哈希一致且分支与工作树的 .opencode/** 差异均为空，没有通过扩大过滤范围放行。",
+    "review-change-quick-koala 对当时越界给出的 FAIL 作为正确历史审计轨迹保留；当前 PASS 表示 blocker 被真实移除后的状态，不追溯改写历史判断。",
     "新增本任务的中文发布说明、计划、日志、验证、审查、生成报告证据与 wiki writeback；这些 .legion/** 文件不会进入公开 npm artifact。",
     "发布包继续复用现有 prepack、runtime 构建、文件 allowlist 和 trusted-publishing workflow，没有新增发布脚本分叉或本机 token 路径。",
     "0.4.0 计划交付主干中已有的注意力协议、认知验证协议、报告 schema/template、Verdict 解析、报告数据校验、subagent 命名器与 context manifest。"
   ],
   "verification": [
     {
-      "label": "REL-040-ARTIFACT 已验证为 PASS：待发布包为 lgmind@0.4.0，包含 69 项文件与 8 个关键资产",
+      "label": "REL-040-ARTIFACT 当前为 PASS：OpenCode lockfile 越界已精确恢复，待发布包为 lgmind@0.4.0，包含 69 项文件与 8 个关键资产",
       "status": "PASS",
       "evidence": ".legion/tasks/release-lgmind-0-4-0/docs/test-report.md"
     },
@@ -158,9 +162,19 @@
       "evidence": ".legion/tasks/release-lgmind-0-4-0/reports/pack-dry-run.txt"
     },
     {
-      "label": "package 断言通过：全部 tracked paths 原样输出，产品集合仅排除 .legion/** 后精确为 package.json；8 个关键资产正负例、版本边界与 bin 断言均通过",
+      "label": "package 断言通过：完整输出远端基线至分支 HEAD 与当前工作树的 changed paths 去重并集，仅排除 .legion/** 后产品集合精确为 package.json；8 个关键资产正负例、版本边界与 bin 断言均通过",
       "status": "PASS",
       "evidence": ".legion/tasks/release-lgmind-0-4-0/reports/package-assertions.txt"
+    },
+    {
+      "label": "历史审计保留：OpenCode transport 曾造成 .opencode/package-lock.json 越界，review-change-quick-koala 当时正确给出 FAIL；该状态不是当前 blocker",
+      "status": "INFO",
+      "evidence": ".legion/tasks/release-lgmind-0-4-0/docs/review-change.md"
+    },
+    {
+      "label": "当前副作用清零：lockfile 与 HEAD 哈希一致，分支和工作树的 .opencode/** 差异为空，产品 diff 仅 package.json",
+      "status": "PASS",
+      "evidence": ".legion/tasks/release-lgmind-0-4-0/docs/review-change.md"
     },
     {
       "label": "发布前 registry 状态为 latest=0.3.1 且 0.4.0 不存在；这只证明版本唯一性前置条件",
@@ -168,7 +182,7 @@
       "evidence": ".legion/tasks/release-lgmind-0-4-0/reports/npm-registry-preflight.txt"
     },
     {
-      "label": "独立审查确认全部 tracked paths 原样可见、产品集合仅排除 .legion/** 后精确为 package.json；40/40 只引用既有原始证据，阶段 Verdict 保持 PASS",
+      "label": "review-change-sunny-badger 独立确认历史 FAIL 正确且当前 blocker 已移除；40/40 只引用既有原始证据，当前阶段 Verdict 为 PASS",
       "status": "PASS",
       "evidence": ".legion/tasks/release-lgmind-0-4-0/docs/review-change.md"
     }
@@ -177,6 +191,10 @@
     {
       "risk": "公开 npm 发布不可覆盖；顶层 risk=low 只描述版本准备实现风险，不表示公开发布操作本身低风险。",
       "mitigation": "发布前重新确认 0.4.0 不存在并锁定合并后的 master SHA；只使用既有 trusted-publishing workflow，发布后立即验证 registry 与干净安装，失败时停止重跑并转入修复版本决策。"
+    },
+    {
+      "risk": "外部 Agent transport 可能在失败过程中产生未授权的工作树副作用；本次曾真实改写 .opencode/package-lock.json。",
+      "mitigation": "保留 quick-koala 的历史 FAIL 与原始审计轨迹；当前已用精确恢复、哈希一致性、完整 changed paths 和独立复核证明副作用清零。后续 transport 调用前后应比较 git status，任何新产品路径立即 fail closed。"
     },
     {
       "risk": "master、trusted publisher 或 registry 状态可能在版本准备证据与正式触发之间漂移。",
@@ -198,6 +216,9 @@
   "checklist": [
     "首先确认顶层 low 只表示版本准备实现风险，公开 npm 发布不可覆盖风险仍需按 review attention 处理。",
     "确认 test-report 与 review-change 都以 PASS 精确指向当前任务文档。",
+    "确认历史双时态完整：OpenCode transport 曾造成 lockfile 越界，quick-koala 当时正确 FAIL；当前 PASS 不抹除该历史判断。",
+    "确认当前副作用已真实清零：lockfile 与 HEAD 哈希一致，.opencode/** 差异为空，产品集合仅排除 .legion/** 后精确为 package.json。",
+    "确认 40/40 只引用首次完整验证的既有原始证据，没有冒充本轮恢复后的重新执行。",
     "确认唯一未决 claim 是 REL-040-DISTRIBUTION=DEFERRED，且 trigger、method、requiredData、stopCondition、successorTask、onPass 与 onFail 完整。",
     "确认 REL-040-ARTIFACT=PASS 只出现在 verification 与 evidence，不被重复登记为未决 claim。",
     "确认 release-040-deferred-review-001 已允许版本准备 PR merge，但未把 workflow、registry 或干净安装提前改写为 PASS。",

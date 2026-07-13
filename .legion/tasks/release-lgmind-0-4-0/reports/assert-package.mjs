@@ -57,14 +57,14 @@ for (const removed of requiredAssets) {
 
 const rootPackage = readJson('package.json');
 const schedulerPackage = readJson('scheduler/package.json');
-const headRootPackage = JSON.parse(execFileSync('git', ['show', 'HEAD:package.json'], { encoding: 'utf8' }));
-const headSchedulerPackage = JSON.parse(execFileSync('git', ['show', 'HEAD:scheduler/package.json'], { encoding: 'utf8' }));
+const baseRootPackage = JSON.parse(execFileSync('git', ['show', 'origin/master:package.json'], { encoding: 'utf8' }));
+const baseSchedulerPackage = JSON.parse(execFileSync('git', ['show', 'origin/master:scheduler/package.json'], { encoding: 'utf8' }));
 
-assert.equal(headRootPackage.version, '0.3.1');
+assert.equal(baseRootPackage.version, '0.3.1');
 assert.equal(rootPackage.version, '0.4.0');
-assert.deepEqual(withoutVersion(rootPackage), withoutVersion(headRootPackage));
+assert.deepEqual(withoutVersion(rootPackage), withoutVersion(baseRootPackage));
 assert.equal(schedulerPackage.version, '0.0.0');
-assert.deepEqual(schedulerPackage, headSchedulerPackage);
+assert.deepEqual(schedulerPackage, baseSchedulerPackage);
 
 for (const [binName, binPath] of Object.entries(rootPackage.bin)) {
   const entry = fileMap.get(binPath);
@@ -74,16 +74,23 @@ for (const [binName, binPath] of Object.entries(rootPackage.bin)) {
   assert.match(readFileSync(binPath, 'utf8'), /^#!\/usr\/bin\/env node\n/);
 }
 
-const changedPaths = execFileSync('git', ['diff', '--name-only'], { encoding: 'utf8' })
-  .trim()
-  .split('\n')
-  .filter(Boolean);
+const branchChangedPaths = execFileSync(
+  'git',
+  ['diff', '--name-only', 'origin/master...HEAD'],
+  { encoding: 'utf8' },
+).trim().split('\n').filter(Boolean);
+const workingChangedPaths = execFileSync(
+  'git',
+  ['diff', '--name-only', 'HEAD'],
+  { encoding: 'utf8' },
+).trim().split('\n').filter(Boolean);
+const changedPaths = [...new Set([...branchChangedPaths, ...workingChangedPaths])].sort();
 const productTrackedDiff = changedPaths.filter((path) => !path.startsWith('.legion/'));
 assert.deepEqual(productTrackedDiff, ['package.json']);
 
 console.log(`ARTIFACT_OK id=${artifact.id} entries=${artifact.entryCount}`);
 console.log(`ASSET_ASSERTIONS_OK count=${requiredAssets.length}`);
-console.log(`VERSION_BOUNDARY_OK root=${rootPackage.version} scheduler=${schedulerPackage.version}`);
+console.log(`VERSION_BOUNDARY_OK base=origin/master root=${rootPackage.version} scheduler=${schedulerPackage.version}`);
 console.log(`BIN_ENTRY_OK count=${Object.keys(rootPackage.bin).length}`);
 console.log(`TRACKED_DIFF_ALL files=${changedPaths.join(',')}`);
 console.log(`TRACKED_PRODUCT_DIFF_OK files=${productTrackedDiff.join(',')}`);

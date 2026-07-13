@@ -4,7 +4,7 @@
 
 - 范围：根包版本边界、runtime 构建漂移、context budget、完整回归、npm dry-run 文件集、关键资产、可执行 bin、registry 发布前唯一性。
 - 不在本阶段宣称：workflow 已发布、registry 已切换到 `0.4.0`、其他机器已完成固定版本安装；这些事实必须在 merge 与 publish 后验证。
-- 方法选择：两项 claim 均为 routine objective claim，采用可重算命令、结构化 pack 清单、逐项断言和主动负例；验证代理与 engineer 独立派生。
+- 方法选择：两项 claim 均为 routine objective claim，采用可重算命令、结构化 pack 清单、逐项断言和主动负例；版本边界以 `origin/master` 为基线，changed paths 取 `git diff --name-only origin/master...HEAD` 与 `git diff --name-only HEAD` 的去重并集，以覆盖提交前、提交后和 rebase 后状态；验证代理与 engineer 独立派生。
 - 实现输入：`package.json`、`scheduler/package.json`、实际 diff、`docs/release-notes.md` 与 `log.md` 的 engineer handoff。
 
 ## Claim 登记与证据映射
@@ -18,7 +18,7 @@
 - `required-capability`：npm pack 文件集检查与 Node CLI/runtime 回归验证。
 - `required-method`：context audit、完整 regression、`npm pack --dry-run --json`、关键路径和失败路径断言。
 - `criticality`：`high`；`risk-if-wrong`：发布不可覆盖的残缺包；`blocking-policy`：`block-merge`；owner：`verify-change`。
-- 状态：`PASS`；独立性：`high`（与 engineer 独立派生并重跑）；置信度：`high`。
+- 状态：`PASS`；独立 reviewer 曾因 `.opencode/package-lock.json` 越界把该主张退回 `INCONCLUSIVE`，engineer 精确恢复后，本轮重新执行同一 fail-closed 方法并恢复为 `PASS`；独立性：`high`（与 engineer 独立派生并重跑）；置信度：`high`。
 - 证据：`reports/audit-context.txt`、`reports/test-regression.txt`、`reports/pack-dry-run.txt`、`reports/package-assertions.txt`。
 
 ### REL-040-DISTRIBUTION
@@ -41,11 +41,13 @@
 | `npm run audit:context` | exit 0；hot 降低 64.98%，medium closure 降低 62.66%，failures 为空 | `reports/audit-context.txt` |
 | `npm run test:regression` | exit 0；40/40 PASS，0 fail/skip | `reports/test-regression.txt` |
 | `npm run pack:dry-run` | exit 0；`lgmind@0.4.0`，69 entries | `reports/pack-dry-run.txt` |
-| 产品 tracked diff 边界 | 当前全部 tracked 变更为 `.legion/wiki/index.md`、`.legion/wiki/log.md`、`package.json`；仅排除任务元数据 `.legion/**` 后，产品 tracked diff 精确为 `package.json` | `reports/package-assertions.txt` |
+| 产品 tracked diff 边界 | 完整输出远端基线至分支 HEAD 与当前工作树的 changed paths 去重并集；仅排除任务元数据 `.legion/**` 后，产品 tracked diff 精确为 `package.json` | `reports/package-assertions.txt` |
+| OpenCode 越界清理 | `git diff -- .opencode/package-lock.json` exit 0 且输出为空；完整 changed paths 不含 `.opencode/**` | `reports/package-assertions.txt`、可重算 git diff |
 | 8 项关键资产 | 全部存在；逐个移除任一资产的 8 个负例均被拒绝 | `reports/package-assertions.txt` |
-| 版本边界 | 根包 `0.4.0`；scheduler 保持 `0.0.0` 且内容未变 | `reports/package-assertions.txt` |
+| 版本边界 | `origin/master` 根包基线为 `0.3.1`，当前根包为 `0.4.0`；scheduler 保持 `0.0.0` 且相对远端基线内容未变 | `reports/package-assertions.txt` |
 | bin 入口 | `lgmind` 与 `setup-opencode` 均在 pack 内、带 shebang 且可执行 | `reports/package-assertions.txt` |
 | registry 前置状态 | `latest=0.3.1`；`lgmind/0.4.0` HTTP 404 | `reports/npm-registry-preflight.txt` |
+| 当前报告一致性门 | renderer `--check` 预期 exit 1：当前 `review-change.md` Verdict 仍为 `FAIL`，因此拒绝把旧 PASS walkthrough 包装为当前 PASS；待新 reviewer 恢复后重跑 | `docs/review-change.md` |
 
 8 个关键资产为：
 
@@ -84,8 +86,9 @@
 
 ## 失败、跳过与残余不确定性
 
-- 当前检查失败：无。
-- 证据脚本修订：首次脚本把 `git diff --name-only` 的全部结果精确断言为 `['package.json']`，在合法 wiki closing writeback 后重跑会把 `.legion/wiki/**` 误判为产品漂移，形成假阳性。修订后脚本先保留并输出全部 changed paths，仅从产品漂移集合排除 `.legion/**`，再继续精确断言产品 tracked diff 只有 `package.json`；8 项关键资产的正向检查与逐项缺失负例，以及版本、bin、产品 diff 边界断言仍全部通过，当前原始输出见 `reports/package-assertions.txt`。
+- 当前 artifact 检查失败：无。renderer `--check` 因当前 `review-change.md` 仍为 `FAIL` 而预期 exit 1；这是报告一致性的 fail-closed 边界，不是 artifact 失败，也不能包装成 PASS。
+- 越界发现与恢复：独立 reviewer 正确检出 OpenCode transport 意外改写 `.opencode/package-lock.json`，当时产品集合超出唯一允许的 `package.json`，并把 `REL-040-ARTIFACT` 退回 `INCONCLUSIVE`。engineer 已把 lockfile 精确恢复到 `HEAD`；本轮 `git diff -- .opencode/package-lock.json` 输出为空，完整 changed paths 包含分支 task、wiki 与 `package.json`，不含 `.opencode/**`，产品集合重新精确为 `package.json`，断言 exit 0，因此 `REL-040-ARTIFACT` 恢复 `PASS`。
+- 证据脚本修订：首次脚本把工作树 `git diff --name-only` 的全部结果精确断言为 `['package.json']`，在合法 wiki closing writeback 后重跑会把 `.legion/wiki/**` 误判为产品漂移。第一次修订虽区分了任务元数据与产品路径，但版本基线仍绑定 `HEAD`、changed paths 仍只绑定工作树；提交后 `HEAD:package.json` 已为 `0.4.0` 且普通工作树 diff 为空，因此再次形成生命周期假阳性。第二次修订统一从 `origin/master:package.json` 与 `origin/master:scheduler/package.json` 读取远端基线，并取 `origin/master...HEAD` 与 `HEAD` working diff 的去重并集，覆盖提交前、提交后和 rebase 后状态；仅 `.legion/**` 从产品集合排除，其他路径仍会使精确断言失败。8 项关键资产的正向检查与逐项缺失负例，以及版本、bin、产品 diff 边界断言仍全部通过，当前原始输出见 `reports/package-assertions.txt`。
 - 有意跳过：workflow、registry 切换与干净 npx 安装尚未触发，按 contract 延后。
 - 非阻塞提示：npm 报出现有 `tmp` env config 弃用 warning，不影响命令退出状态或 artifact。
 - 残余不确定性：合并前 `master` 可能移动、trusted publisher 可能漂移、registry 可能被外部状态改变、发布后安装可能失败。
@@ -102,10 +105,10 @@ PASS
 - 阶段：`verify-change`
 - 阶段结论：`PASS`
 - 注意力等级：`review`
-- 判断变化：`REL-040-ARTIFACT` 已由 INCONCLUSIVE 更新为 PASS；`REL-040-DISTRIBUTION` 保持 DEFERRED。
-- 关键发现：40/40 回归通过；pack 的 8 个关键资产及其负例门禁通过；registry 当前为 `latest=0.3.1` 且 `0.4.0` 不存在。
-- 阻塞项：无；完整 `defer-by-contract` 不阻塞版本准备阶段 PASS。
+- 判断变化：独立 reviewer 正确检出 `.opencode/package-lock.json` 越界并把 `REL-040-ARTIFACT` 退回 INCONCLUSIVE；engineer 精确恢复后，本轮重验将其恢复为 PASS；`REL-040-DISTRIBUTION` 保持 DEFERRED。
+- 关键发现：完整 changed paths 已不含 `.opencode/**` 且产品集合精确为 `package.json`；pack 的 8 个关键资产正负例、版本与 bin 断言通过；renderer 正确拒绝当前仍含 FAIL Verdict 的旧审查输入。
+- 阻塞项：当前 verify-change 无实现阻塞；必须由新 `review-change` 恢复有效审查 PASS 后，才能更新并重查 walkthrough。
 - 残余风险：公开发布与真实安装只能在 merge + publish 后验证，发布版本不可覆盖。
-- 人类动作：复核已由 log 中 `release-040-publish-authority-001` 完成，允许推进版本准备 PR 合并；禁止在发布后验证前声明任务完成。
-- 自动下一步：`review-change`；随后可准备版本 PR，发布后必须恢复本任务完成分发验证。
+- 人类动作：复核新一轮审查中的 changed paths 与本轮原始输出一致，确认产品集合只有 `package.json`；禁止在有效审查 PASS 与发布后验证前声明完成。
+- 自动下一步：重新派生 `review-change`；审查恢复 PASS 后再执行 renderer `--check`，随后才可恢复版本 PR lifecycle。
 - 完整证据：`.legion/tasks/release-lgmind-0-4-0/docs/test-report.md` 与 `.legion/tasks/release-lgmind-0-4-0/reports/`。

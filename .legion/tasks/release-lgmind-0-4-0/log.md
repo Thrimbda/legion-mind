@@ -81,3 +81,26 @@
 - `report-walkthrough-zesty-quokka` 已把产品 diff 过滤边界与“40/40 未重跑”同步进单一 report-data，并完成 `--check -> render -> --check`。
 - `legion-wiki-plucky-falcon` 再次核对后确认发布状态未变，现有 wiki 仍准确，因此没有制造额外 wiki 改动。
 - 当前 closing stages 均通过；恢复 Git / PR lifecycle，提交前再次运行有界证据脚本与报告 check。
+
+### 提交后生命周期验证与越界回退
+
+- 已创建版本准备提交 `be761a8 chore: 准备 lgmind 0.4.0 发布`，尚未 push。
+- 提交后复跑发现验证脚本仍把 `HEAD` 当作 0.3.1 基线，无法在提交后重算；`verify-change-brisk-falcon` 已将版本与 diff 基线改为 `origin/master`，changed paths 改为 `origin/master...HEAD` 与 working diff 的去重并集。
+- 为满足“验证重跑后新 reviewer”，尝试通过 OpenCode transport 派生 `review-change-gentle-badger`；该尝试因 subagent 不能作为 primary 且凭据刷新 401 失败，不计为审查证据。
+- 失败的 OpenCode 启动同时把已跟踪的 `.opencode/package-lock.json` 从既有 1.4.7 lock 更新为 1.17.7 依赖图；新 reviewer `review-change-quick-koala` 正确检出越界并给出 `FAIL + attention: review`，因此停止 commit 后续动作、push 与 PR。
+- root 使用 apply_patch 将该 lockfile 精确恢复到 `HEAD`；`engineer-nimble-otter` 只读确认文件哈希与 `HEAD` 一致、`.opencode/**` 无其他副作用、产品 diff 仍仅 `package.json`。
+- 当前旧 test/review 文档仍含 FAIL 后状态；下一步必须重新执行 `verify-change -> review-change`，不得直接改回 PASS。
+
+### 越界修复重验与审查
+
+- `verify-change-brisk-falcon` 在 lockfile 恢复后重跑：断言 exit 0，完整路径并集不含 `.opencode/**`，仅排除 `.legion/**` 后产品集合精确为 `package.json`；40/40 仍引用首次原始输出，未冒充重跑。
+- `review-change-sunny-badger` 独立复核并保留双时态事实：quick-koala 对当时越界的 FAIL 正确；当前 lockfile 与 HEAD 哈希一致，OpenCode 副作用已清除，`REL-040-ARTIFACT` 恢复 PASS。
+- 当前 review Verdict 为 `PASS`、attention 为 `review`；`REL-040-DISTRIBUTION` 继续 `DEFERRED`。既有发布授权仍只允许在无 scope blocker、锁定合并后 SHA 且发布前检查通过时推进。
+- 下一步：同步 report-data/walkthrough 与 wiki，再恢复 PR lifecycle。
+
+### 越界恢复收口
+
+- `report-walkthrough-zesty-quokka` 已把历史正确 FAIL 与当前恢复 PASS 的双时态写入单一 report-data，并完成 `--check -> render -> --check`；当前 artifact PASS、distribution DEFERRED。
+- `legion-wiki-plucky-falcon` 在 task summary 与 wiki log 中保留 task-local transport 审计：外部 transport 前后比较 `git status --porcelain`，未批准的 scope 漂移 fail closed；未无条件提升为全局 pattern。
+- 当前无 `.opencode/**` 差异；版本准备、验证、审查、walkthrough 与 wiki closing stages 已恢复有效 PASS。
+- 下一步：提交验证修订与恢复证据，随后 fetch/rebase 最新 `origin/master`，重跑有界检查后 push 并创建 PR。

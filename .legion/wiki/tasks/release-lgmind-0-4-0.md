@@ -23,6 +23,7 @@
 - 阶段 `PASS` 只证明版本准备和待发布 artifact，不等于 npm 分发已经完成；发布事实必须由发布后证据单独确认。
 - 真实发布必须等待版本准备 PR 合并，从锁定的 `master` SHA 触发既有 trusted-publishing workflow；不得从未合并分支、本地主工作区或本机 npm 凭据直接发布。
 - npm 版本不可覆盖；若 workflow 来源、registry 或隔离安装验证任一异常，应停止重跑与完成声明，并转入后续修复版本决策。
+- 外部 Agent transport 即使启动失败也可能改写已跟踪文件；本任务曾因 `.opencode/package-lock.json` 越界正确进入历史 `FAIL`，精确恢复并独立重验后才回到当前 `PASS`。后续调用应在前后比较 `git status --porcelain`，任何新增且不在批准范围内的路径都按 scope 漂移 fail closed。
 
 ## 相关原始来源
 
