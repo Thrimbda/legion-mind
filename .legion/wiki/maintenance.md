@@ -2,7 +2,7 @@
 
 ## Open follow-ups
 
-- `preserve-agent-review-loop` 可选的非阻塞后续：若要量化真实多任务、多模型下新版与旧版的总体效果，可使用固定模型与固定任务套件做 A/B，比较硬门违规、阶段轨迹、风险/停止点召回和 token 消耗。该评估不属于当前 task 的已登记 claim 或 merge gate；当前报告为 `claims=[]`、`attention: skim`，不得把这条维护建议升级成当前阻塞结论。
+- `preserve-agent-review-loop` 当前登记一个无 verifier 的 `INCONCLUSIVE` 主张：真实多任务、多模型下新版总体效果与旧版完全等价。后续应使用固定模型与固定任务套件做 A/B，比较硬门违规、阶段轨迹、风险/停止点召回和 token 消耗。该缺口不把已经通过的实现阶段改写为 FAIL，但要求 `attention: review`；corrective PR 在维护者确认已证明边界前不得 auto-merge 或 merge。
 - `optimize-token-cognitive-efficiency` 的强制 reference 自动发现目前仍是词法启发式，依赖现行中文动词、同一行反引号 locator 与相对路径形式；当前已知引用均由 manifest 覆盖并通过审计。若未来要把它提升为更强的持续门，应使用结构化依赖声明或递归闭包解析，避免仅改变措辞或 locator 形式就绕过发现。
 - `human-attention-verification-routing` 已交付注意力投影与认知验证路由协议，但尚未实现真实外部领域 verifier、权威来源 adapter、生产注意力负担指标及 `DEFERRED` 自动唤醒机制；这些属于独立集成与运行时观测任务，不影响当前 schema、回退规则和回归证据的交付结论。
 - `publish-lgmind-npm` 已完成首次手动 npm publish：`lgmind@0.1.0`，`latest` -> `0.1.0`。后续应新增独立任务，为未来 npm releases 配置 GitHub CI trusted publishing，减少手动 OTP 发布路径。

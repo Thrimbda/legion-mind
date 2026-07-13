@@ -2,9 +2,9 @@
 
 ## 快速恢复
 
-**当前阶段**: 已完成
-**当前检查项**: 无；主交付 PR #50 已合并，cleanup 与主工作区刷新已完成
-**进度**: 9/9 任务完成
+**当前阶段**: 阶段 4 - 交付语义纠偏
+**当前检查项**: 恢复无 verifier 的 `INCONCLUSIVE` / `attention: review`，准备 corrective PR，在 merge 前等待人类复核
+**进度**: 9/10 任务完成
 
 ---
 
@@ -29,7 +29,7 @@
 
 ---
 
-## 阶段 4: 交付 ✅ COMPLETED
+## 阶段 4: 交付 🔄 CORRECTIVE
 
 - [x] 生成 walkthrough 与 wiki | 验收: 人类可读报告和当前真源写回完成
 - [x] 完成 PR lifecycle | 验收: 提交、rebase、push、checks、review、终态、cleanup 和主工作区刷新完成
@@ -40,6 +40,7 @@
 ## 发现的新任务
 
 - [x] 修复空 verifier 占位符产生的 HTML 行尾空格，重新独立验证/审查并重建报告 | 验收: 生成产物无行尾空格，相关回归、`git diff --check` 和新一轮 review-change 均 PASS
+- [ ] 恢复被误降级的 A/B 等价性未决 claim、wiki 当前真相与 merge 前人类复核门 | 验收: corrective PR 经独立审查、checks 和人类确认后才能 merge ← CURRENT
 
 
 ---

@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-07-13] corrective writeback | preserve-agent-review-loop
+
+- 复核发现主交付 PR #50 与终态文档 PR #51 已合并，但其 `claims=[]` / `attention: skim` 收口把“真实多任务、多模型下新版总体效果与旧版完全等价”这一无 verifier 主张误降成了非阻塞建议，并跨过原定人类复核点。
+- 当前权威报告恢复为：实现、独立验证与独立审查均为阶段 `PASS`；`overall-effect-equivalence-ab` 为无 verifier 的 `INCONCLUSIVE`；聚合注意力为 `review`。两层状态不得互相覆盖。
+- 固定模型、固定任务的旧新版本 A/B 是该未决主张的后续验证协议；corrective PR 可以准备和运行 checks，但在维护者确认已证明边界前不得 auto-merge 或 merge，任务状态回到 `active`。
+
 ## [2026-07-13] writeback | preserve-agent-review-loop
 
 - 新增 `tasks/preserve-agent-review-loop.md`，收口 PASS 报告与当前 Verdict 一致性、无 verifier 未决 claim、精确 JSON 权限和完整多 Agent 写审循环的当前结论。
