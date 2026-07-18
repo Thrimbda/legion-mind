@@ -21,12 +21,23 @@ description: 为 Legion 修改型开发任务提供隔离 worktree、squash PR�
 2. **Open**：从最新远端 base 创建 worktree；所有 Legion 阶段和写入在其中完成。
 3. **Commit**：提交 scope 内变更，不混入用户或无关改动。
 4. **Rebase**：push 前在 worktree 运行 `git fetch origin && git rebase origin/master`，或仓库明确覆盖的 base。
-5. **Push/PR**：push 同一开发分支；创建或更新 squash PR，并链接 plan/RFC/test/review/walkthrough/wiki 证据。
+5. **Push/PR**：push 同一开发分支；创建或更新 squash PR，并链接适用的 plan/RFC/test/review/walkthrough/wiki 证据与 disposition。
 6. **Auto-merge**：PR 创建后立即尝试启用；`review/decide` attention 未解除时停在其门禁。不得绕过 branch protection、checks 或审批。
 7. **Follow**：优先 `gh pr checks <pr> --watch --required`；scope 内 check/review 失败继续修。落后 base、冲突或更新要求仍在同一 worktree/branch/PR 中 rebase 后继续。
 8. **Terminal**：merged 是成功；closed/confirmed abandoned 是非成功终态，须记录原因、影响和下一步；blocked handoff 不是终态。
 9. **Cleanup**：终态且后续 review 已处理后删除 worktree；仍有动作不得删。
-10. **Refresh**：回主工作区 `git fetch origin && git checkout origin/master` 或覆盖后的 base，并核对基线。
+10. **Refresh**：回主工作区运行安全刷新脚本；它先 fetch，再切回本地默认分支并 fast-forward，不 checkout 远端 tracking ref。
+
+默认 base 为 `origin/master` 时使用：
+
+```sh
+node skills/git-worktree-pr/scripts/refresh-main-workspace.mjs \
+  --repo <main-workspace-absolute-path> \
+  --remote origin \
+  --branch master
+```
+
+脚本仅在本地默认分支不存在时创建 tracking branch，并用 `merge --ff-only` 对齐。若分支被其他 worktree 占用、工作区改动阻止切换或本地分支已分叉，记录 blocked 并停止，不 reset、不覆盖用户状态。仓库覆盖 base 时显式传入对应 remote/branch。
 
 ## Attention 边界
 
@@ -40,7 +51,7 @@ description: 为 Legion 修改型开发任务提供隔离 worktree、squash PR�
 
 必须同时满足：
 
-- Legion 适用阶段、verification/review/walkthrough/wiki 证据已完成；
+- Legion 适用阶段、verification/review 与 delivery/wiki disposition 已满足；
 - PR 已 merged，或 closed/confirmed abandoned 且记录完整；
 - 无 blocking review、冲突、required check 失败或保护规则阻塞；
 - worktree 已删除；主工作区已刷新到远端 base。

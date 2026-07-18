@@ -5,7 +5,7 @@ description: 适用于 Legion 管理仓库中的多步骤、不确定、中高�
 
 # legion-workflow
 
-Legion 的入口门、三种模式与阶段链真源。CLI 只是文件工具；修改型 Legion 任务由 `git-worktree-pr` 包裹，它不是第四种模式。
+Legion 的入口门、三档 profile 与阶段路由真源。CLI 只是文件工具；修改型 Legion 任务由 `git-worktree-pr` 包裹，它不是第四档 profile。
 
 默认中文交接和文档；命令、路径、字段、错误原文保持原样。
 
@@ -32,26 +32,26 @@ Legion 的入口门、三种模式与阶段链真源。CLI 只是文件工具；
 1. 无明确 task id/path：派生 `brainstorm` 收敛 contract。
 2. 明确恢复：依次读 `plan.md -> docs/rfc.md -> log.md -> tasks.md`；contract 漂移则回 `brainstorm`。
 3. contract 稳定后选恰好一种模式。修改型 Legion 任务先加载 `git-worktree-pr`，后续写入和阶段运行只在 worktree。
-4. 每个阶段必须通过真实 transport API 派生新的对应 `agentType` Agent，并真实加载对应 skill；Codex 每次 `spawn` 与 OpenCode 每次 `task` 都是独立派生事件，primary 会话切换 skill 不算派生。
-5. `spec-rfc -> review-rfc`、`engineer -> verify-change`、`verify-change -> review-change` 的直接作者与直接 reviewer 不得复用同一阶段会话；作者修订或验证重跑后必须重新派生本轮 reviewer，FAIL 按既有链回退。
-6. 派生前必须运行 `scripts/subagent-name.mjs <role> --json --transport <codex|opencode|raw>`；`agentType` 选择已注册职责，prompt、日志和交接回显 `displayName`，仅当 transport 有独立实例标识字段时才传 `transportId`。名称和返回的 agent/session id 只作排障线索，不是身份 attestation；没有可重查实例 ID 时只能诚实说明“已观察到不同派生事件，实例隔离未机械证明”。命名失败不得派生。
+4. 阶段是能力与证据边界，不等同于必须创建 Agent。Lite 默认由当前执行者连续完成；Standard/Strict 的直接作者与直接 reviewer 必须分离，可使用新会话、内置 review 或独立 Agent。真正可独立并行的工作才派生子代理。
+5. `spec-rfc -> review-rfc`、`engineer -> review-change` 的直接作者与 reviewer 不得复用同一判断上下文；Strict 的 verifier 也必须与实现判断分离。作者修订或验证重跑后必须重新执行本轮 reviewer，FAIL 按既有链回退。
+6. 一旦派生，先运行 `scripts/subagent-name.mjs <role> --json --transport <codex|opencode|raw>`；`agentType` 选择职责，prompt、日志和交接回显 `displayName`。命名或实例 id 只作排障线索，不是身份 attestation。
 
-## 三种模式
+## 三档 profile
 
-- **default implementation**
-  - 低风险：`engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki`
-  - 中高风险：`spec-rfc -> review-rfc -> engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki`
-- **approved-design continuation**：`engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki`
-- **heavy design-only**：`spec-rfc -> review-rfc -> report-walkthrough -> legion-wiki`
+`risk:low/medium/high` 默认映射 Lite/Standard/Strict；`profile:*` 或 `workflow:*` 只能向上覆盖。安全/权限、持久数据/schema、外部协议兼容、秘密/签名、破坏性动作、困难回滚必须先升级风险，不能用 LOC、文件数、持续时间或执行者自报降级。
 
-`bypass`、`restore`、`brainstorm` 是入口状态，不是模式。风险和设计门按需读取 `references/GUIDE_DESIGN_GATE.md`；运行时派生只认 `references/SUBAGENT_DISPATCH_MATRIX.md`。
+- **Lite**：`engineer -> verify-change`；仅在真实设计分叉时补短 RFC，不强制独立 Agent。
+- **Standard**：`engineer -> verify-change -> review-change`；公共配置/API、跨模块取舍或回滚歧义时前置 `spec-rfc -> review-rfc`，review 与作者判断分离。
+- **Strict**：`spec-rfc -> review-rfc -> engineer -> verify-change -> review-change`；设计、验证和 review 均保留独立性与安全/数据视角。
+
+`design_only` 的 Standard/Strict 为 `spec-rfc -> review-rfc`；Lite 可只交付稳定 contract。`bypass`、`restore`、`brainstorm` 是入口状态。代码判定以 `scripts/profile-policy.mjs` 为真源，阶段/独立性说明见 `references/SUBAGENT_DISPATCH_MATRIX.md`。
 
 回退：`review-rfc FAIL -> spec-rfc`；`verify-change FAIL/实现缺口 -> engineer`；`review-change FAIL -> engineer`；设计实现不一致则 `spec-rfc -> review-rfc`。attention 为 `decide` 时暂停这些普通回退。
 
 ## 阶段与证据
 
 - `brainstorm`：contract；`spec-rfc/review-rfc`：设计门；`engineer`：有界实现。
-- `verify-change`：验证；`review-change`：交付判断；`report-walkthrough`：评审摘要；`legion-wiki`：强制收口写回。
+- `verify-change`：验证；`review-change`：交付判断；`report-walkthrough`：条件化评审摘要；`legion-wiki`：条件化长期真相写回。
 - 编排器维护 `plan.md`、`log.md`、`tasks.md`；阶段代理写 task `docs/`；wiki 阶段写 `.legion/wiki/**`。
 - 完整判断、日志、diff 和证据落文件；会话与普通 subagent 交接只使用下述五字段格式，不复制 contract 或正文。
 
@@ -79,7 +79,7 @@ Legion 的入口门、三种模式与阶段链真源。CLI 只是文件工具；
 
 进入 `git-worktree-pr` 后默认完成 commit、push 前 fetch/rebase、push、squash PR、auto-merge 尝试、checks/review、merge/closed/confirmed-abandoned 终态、worktree cleanup 与主工作区刷新；用户沉默不是停止条件。禁止直接提交或 push `master/main`，所有产物留在仓库内。
 
-只有适用阶段证据和 wiki 已完成，且 PR 到终态、review/checks 已处理、worktree 已删除、主工作区已刷新，才可声明 done。PR created、blocked handoff、保留 worktree或跳过刷新都不是完成。
+只有适用阶段证据、delivery/wiki disposition 已满足，且 PR 到终态、review/checks 已处理、worktree 已删除、主工作区已刷新，才可声明 done。`summary`/`no-change` 是明确判定，不要求占位 walkthrough/Wiki。PR created、blocked handoff、保留 worktree或跳过刷新都不是完成。
 
 ## 条件参考
 

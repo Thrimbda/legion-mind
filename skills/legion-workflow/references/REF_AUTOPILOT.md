@@ -1,6 +1,6 @@
 # 自动推进协议
 
-Autopilot 只减少非阻塞打扰，不跳过入口、contract、设计/验证/review、报告、wiki 或 PR lifecycle。
+Autopilot 只减少非阻塞打扰，不跳过入口、contract、profile 要求的设计/验证/review、delivery/wiki disposition 或 PR lifecycle。
 
 ## 默认行为
 
@@ -22,9 +22,9 @@ Autopilot 只减少非阻塞打扰，不跳过入口、contract、设计/验证/
 - push 前：`git fetch origin && git rebase origin/master`。
 - commit：Conventional Commits；验证先跑最快的可信检查。
 - 完整证据落 task docs；会话和子代理只传五字段判断增量。
-- token 优化只靠按需读取上下文和五字段 handoff；不得取消真实 Codex `spawn` / OpenCode `task` 阶段派生，也不得让直接作者与 reviewer 复用会话。名称或 session id 不是身份 attestation；无可查实例 ID 时如实降级说明。
+- token 优化使用按需上下文和五字段 handoff；不为阶段切换强制派生。Standard/Strict 的直接作者与 reviewer 仍须分离，Strict verifier 也须独立。名称或 session id 不是身份 attestation。
 - PR 后优先用 `gh pr checks <pr> --watch --required`；scope 内失败继续修，外部阻塞做 blocked handoff，但不得称 done。
 
 ## 重型设计
 
-Epic/High-risk 或用户指定 `rfc:heavy` 时先生成 `plan + research + rfc + review-rfc + pr-body`，推荐仅设计 Draft PR。`review-rfc` 仍先投影 attention；设计 PR merge 后进入 approved-design continuation。用户指定 `plan-only/rfc-only` 时不实现。
+Epic/High-risk 或用户指定 `rfc:heavy` 时先生成 `plan + research + rfc + review-rfc`；需要 reviewer walkthrough 时再生成 `pr-body`。`review-rfc` 仍先投影 attention；设计 PR merge 后进入 approved-design continuation。用户指定 `plan-only/rfc-only` 时不实现。

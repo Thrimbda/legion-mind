@@ -5,10 +5,11 @@ import { constants } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  reportStageRequirements,
+  walkthroughStageRequirements,
   resolveExactRepoFile,
   validateCurrentReportEvidence,
   validateReportData,
+  validateWalkthroughPolicyBinding,
 } from './report-data-validation.mjs';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
@@ -184,6 +185,7 @@ function renderHtml(data, template) {
     PURPOSE: html(data.task.purpose),
     REVIEWER: html(data.task.reviewer),
     PROFILE: html(data.profile),
+    WORKFLOW_PROFILE: html(data.workflowProfile ?? 'legacy'),
     RISK: html(data.risk),
     STAGE_CONCLUSION: html(data.stageConclusion),
     REVIEW_STATUS: html(data.reviewStatus),
@@ -246,7 +248,7 @@ function verifierMarkdownRows(data) {
 
 function renderMarkdown(data, { prBody = false } = {}) {
   const title = prBody
-    ? (data.profile === 'implementation' ? '# 实现交付审查' : '# RFC 审查（仅设计交付）')
+    ? (data.profile === 'implementation' ? '# 实现交付审查' : data.profile === 'rfc-only' ? '# RFC 审查（仅设计交付）' : '# Contract 交付审查')
     : `# ${markdown(data.task.title)}：交付审阅指南`;
   const disclaimer = prBody
     ? `> ${markdown(data.final.lifecycleDisclaimer)}\n> 本文只是 PR 创建或更新输入，不证明 checks、review、merge、cleanup 或主工作区刷新已完成。\n`
@@ -260,6 +262,7 @@ ${disclaimer}
 ## 交付视角与结论
 
 - 交付类型：\`${data.profile}\`
+- Workflow profile：\`${data.workflowProfile ?? 'legacy'}\`
 - 风险：\`${data.risk}\`
 - 阶段结论：\`${data.stageConclusion}\`
 - 审查状态：\`${data.reviewStatus}\`
@@ -416,8 +419,9 @@ async function main() {
     throw new Error(`report-data.json 必须位于当前 task 的 ${expectedInput}`);
   }
   const errors = validateReportData(data, schema);
+  errors.push(...validateWalkthroughPolicyBinding(data));
   if (errors.length > 0) throw new Error(`report-data.json 校验失败：\n- ${errors.join('\n- ')}`);
-  const requiredStages = reportStageRequirements(data?.task?.id, data?.profile, data?.risk);
+  const requiredStages = walkthroughStageRequirements(data?.task?.id, data);
   const stageDocuments = await Promise.all(requiredStages.map(async (stage) => {
     const resolution = resolveExactRepoFile(executionRoot, stage.locator, stage.locator);
     if (resolution.failure || !resolution.path) {
@@ -433,7 +437,7 @@ async function main() {
   errors.push(...stageDocuments
     .filter((stage) => stage.failure)
     .map((stage) => `${stage.locator} 路径校验失败：${stage.failure}`));
-  errors.push(...validateCurrentReportEvidence(data, { taskId: data?.task?.id, documents }));
+  errors.push(...validateCurrentReportEvidence(data, { taskId: data?.task?.id, documents, stages: requiredStages }));
   if (errors.length > 0) throw new Error(`report-data.json 校验失败：\n- ${errors.join('\n- ')}`);
 
   const outputs = {

@@ -5,6 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { parseCurrentVerdict } from '../../skills/report-walkthrough/scripts/current-verdict.mjs';
+import { workflowPolicy } from '../../skills/legion-workflow/scripts/profile-policy.mjs';
 
 const repoRoot = resolve(new URL('../..', import.meta.url).pathname);
 const renderer = 'skills/report-walkthrough/scripts/render-report.mjs';
@@ -22,17 +23,23 @@ function taskPaths(taskId: string) {
   return { taskRoot, docs };
 }
 
-function stageLocators(taskId: string, profile: 'implementation' | 'rfc-only', risk: 'low' | 'medium' | 'high') {
+type ArtifactProfile = 'implementation' | 'rfc-only' | 'contract-only';
+type WorkflowProfile = 'lite' | 'standard' | 'strict';
+
+function stageLocators(taskId: string, profile: ArtifactProfile, workflowProfile: WorkflowProfile, designRequired: boolean) {
   const root = `.legion/tasks/${taskId}/docs`;
+  if (profile === 'contract-only') return [
+    { kind: 'plan', locator: `.legion/tasks/${taskId}/plan.md` },
+  ];
   if (profile === 'rfc-only') return [
     { kind: 'rfc', locator: `${root}/rfc.md` },
     { kind: 'review-rfc', locator: `${root}/review-rfc.md` },
   ];
   const result = [
     { kind: 'test-report', locator: `${root}/test-report.md` },
-    { kind: 'review-change', locator: `${root}/review-change.md` },
   ];
-  if (risk !== 'low') result.push(
+  if (workflowProfile !== 'lite') result.push({ kind: 'review-change', locator: `${root}/review-change.md` });
+  if (workflowProfile === 'strict' || designRequired) result.push(
     { kind: 'rfc', locator: `${root}/rfc.md` },
     { kind: 'review-rfc', locator: `${root}/review-rfc.md` },
   );
@@ -40,21 +47,27 @@ function stageLocators(taskId: string, profile: 'implementation' | 'rfc-only', r
 }
 
 function reportData(taskId: string, options: {
-  profile?: 'implementation' | 'rfc-only';
+  profile?: ArtifactProfile;
   risk?: 'low' | 'medium' | 'high';
+  workflowProfile?: WorkflowProfile;
+  designRequired?: boolean;
   claims?: unknown[];
   attention?: Record<string, unknown>;
 } = {}) {
   const profile = options.profile ?? 'implementation';
   const risk = options.risk ?? 'low';
-  const stages = stageLocators(taskId, profile, risk);
+  const workflowProfile = options.workflowProfile ?? ({ low: 'lite', medium: 'standard', high: 'strict' } as const)[risk];
+  const designRequired = options.designRequired ?? (profile === 'rfc-only' || workflowProfile === 'strict');
+  const stages = stageLocators(taskId, profile, workflowProfile, designRequired);
   return {
     schemaVersion: '1.1',
     task: { id: taskId, title: '报告协议回归', purpose: '验证当前证据门', reviewer: '独立审查者' },
     profile,
+    workflowProfile,
+    designRequired,
     risk,
     stageConclusion: 'PASS',
-    reviewStatus: 'PASS',
+    reviewStatus: profile === 'contract-only' || (profile === 'implementation' && workflowProfile === 'lite') ? 'NOT_REQUIRED' : 'PASS',
     summary: '同一输入只在当前阶段证据通过后生成三份产物。',
     attention: {
       level: 'none',
@@ -97,16 +110,20 @@ function completeDomainVerifier(taskId: string) {
   };
 }
 
-function prepareTask(taskId: string, profile: 'implementation' | 'rfc-only' = 'implementation', risk: 'low' | 'medium' | 'high' = 'low') {
+function prepareTask(taskId: string, profile: ArtifactProfile = 'implementation', risk: 'low' | 'medium' | 'high' = 'low', policy: {
+  workflowProfile?: WorkflowProfile;
+  designRequired?: boolean;
+} = {}) {
   const paths = taskPaths(taskId);
   rmSync(paths.taskRoot, { recursive: true, force: true });
   mkdirSync(paths.docs, { recursive: true });
+  writeFileSync(join(paths.taskRoot, 'plan.md'), '# Contract\n');
   writeFileSync(join(paths.docs, 'rfc.md'), '# RFC\n');
   writeFileSync(join(paths.docs, 'review-rfc.md'), '# RFC 审查\n\n## Verdict\n\nPASS\n');
   writeFileSync(join(paths.docs, 'test-report.md'), '# 验证\n\n## Verdict\n\nPASS\n');
   writeFileSync(join(paths.docs, 'review-change.md'), '# 变更审查\n\n## Verdict\n\nPASS\n');
   const input = join(paths.docs, 'report-data.json');
-  writeFileSync(input, `${JSON.stringify(reportData(taskId, { profile, risk }), null, 2)}\n`);
+  writeFileSync(input, `${JSON.stringify(reportData(taskId, { profile, risk, ...policy }), null, 2)}\n`);
   return { ...paths, input };
 }
 
@@ -129,12 +146,61 @@ test('共享 current Verdict parser 只认唯一规范标题后的精确当前�
   }
 });
 
-test('report-walkthrough 保留 Markdown allow 并只新增精确 report-data.json allow', () => {
-  const source = readFileSync(join(repoRoot, '.opencode/agents/report-walkthrough.md'), 'utf8');
-  assert.match(source, /"\.legion\/tasks\/\*\*\/docs\/\*\.md": allow/);
-  assert.match(source, /"\.legion\/tasks\/\*\*\/docs\/report-data\.json": allow/);
-  assert.deepEqual(source.match(/"[^"\n]*\.json": allow/g), ['".legion/tasks/**/docs/report-data.json": allow']);
-  assert.doesNotMatch(source, /\*\.json/);
+test('OpenCode 不再依赖 custom agents，外部只读验证与目录授权分离', () => {
+  const config = JSON.parse(readFileSync(join(repoRoot, 'opencode.json'), 'utf8'));
+  assert.equal(existsSync(join(repoRoot, '.opencode', 'agents')), false);
+  assert.equal(config.default_agent, undefined);
+  assert.equal(config.permission.webfetch, 'allow');
+  assert.equal(config.permission.websearch, 'allow');
+  assert.equal(config.permission.external_directory, 'ask');
+  for (const pattern of ['rm -rf *', 'sudo *', 'ssh *', 'bash -c *', 'node -e *']) {
+    assert.equal(config.permission.bash[pattern], 'deny', `${pattern} must remain denied`);
+  }
+});
+
+test('walkthrough 只要求当前 profile 的最低阶段，不反向升级流程', () => {
+  const lite = prepareTask('report-profile-lite', 'implementation', 'low');
+  const standard = prepareTask('report-profile-standard', 'implementation', 'medium');
+  const strict = prepareTask('report-profile-strict', 'implementation', 'high');
+  const strictOverride = prepareTask('report-profile-strict-override', 'implementation', 'low', { workflowProfile: 'strict' });
+  const designUpgrade = prepareTask('report-profile-design-upgrade', 'implementation', 'low', { designRequired: true });
+  const contractOnly = prepareTask('report-profile-contract-only', 'contract-only', 'low');
+  const contractSource = prepareTask('report-profile-contract-source', 'contract-only', 'low');
+  const outside = mkdtempSync(join(tmpdir(), 'legion-contract-only-'));
+  try {
+    for (const name of ['review-change.md', 'rfc.md', 'review-rfc.md']) rmSync(join(lite.docs, name));
+    assert.equal(runRenderer(lite.input).status, 0, 'Lite walkthrough only needs current verification');
+
+    for (const name of ['rfc.md', 'review-rfc.md']) rmSync(join(standard.docs, name));
+    assert.equal(runRenderer(standard.input).status, 0, 'Standard walkthrough must not imply a Strict RFC gate');
+
+    rmSync(join(strict.docs, 'review-rfc.md'));
+    assert.notEqual(runRenderer(strict.input).status, 0, 'Strict walkthrough keeps the reviewed RFC gate');
+
+    rmSync(join(strictOverride.docs, 'review-rfc.md'));
+    assert.notEqual(runRenderer(strictOverride.input).status, 0, 'explicit Strict override must survive into walkthrough validation');
+
+    rmSync(join(designUpgrade.docs, 'review-rfc.md'));
+    assert.notEqual(runRenderer(designUpgrade.input).status, 0, 'explicit design gate must survive into walkthrough validation');
+
+    for (const name of ['test-report.md', 'review-change.md', 'rfc.md', 'review-rfc.md']) rmSync(join(contractOnly.docs, name));
+    assert.equal(runRenderer(contractOnly.input).status, 0, 'Lite design-only contract walkthrough must not invent RFC or review evidence');
+
+    rmSync(join(contractOnly.taskRoot, 'plan.md'));
+    assert.notEqual(runRenderer(contractOnly.input).status, 0, 'contract-only must reopen the current plan');
+    symlinkSync(join(contractSource.taskRoot, 'plan.md'), join(contractOnly.taskRoot, 'plan.md'));
+    assert.notEqual(runRenderer(contractOnly.input).status, 0, 'contract-only must reject a cross-task plan symlink');
+    rmSync(join(contractOnly.taskRoot, 'plan.md'));
+    const outsidePlan = join(outside, 'plan.md');
+    writeFileSync(outsidePlan, '# Outside contract\n');
+    symlinkSync(outsidePlan, join(contractOnly.taskRoot, 'plan.md'));
+    assert.notEqual(runRenderer(contractOnly.input).status, 0, 'contract-only must reject an outside-repo plan symlink');
+  } finally {
+    for (const fixture of [lite, standard, strict, strictOverride, designUpgrade, contractOnly, contractSource]) {
+      rmSync(fixture.taskRoot, { recursive: true, force: true });
+    }
+    rmSync(outside, { recursive: true, force: true });
+  }
 });
 
 test('renderer 把 report-data 与阶段文档绑定到当前 task 的固定规范路径', () => {
@@ -147,25 +213,25 @@ test('renderer 把 report-data 与阶段文档绑定到当前 task 的固定规�
     assert.notEqual(absoluteInput.status, 0, 'renderer 输入必须使用固定 repo-relative locator');
     assert.match(absoluteInput.stderr, /repo-relative 固定路径/);
 
-    const reviewChange = join(target.docs, 'review-change.md');
-    rmSync(reviewChange);
-    symlinkSync(join(source.docs, 'review-change.md'), reviewChange);
+    const testReport = join(target.docs, 'test-report.md');
+    rmSync(testReport);
+    symlinkSync(join(source.docs, 'test-report.md'), testReport);
     const crossTaskStage = runRenderer(target.input);
     assert.notEqual(crossTaskStage.status, 0, '跨 task PASS 阶段文件 symlink 必须拒绝');
     assert.match(crossTaskStage.stderr, /解引用后必须精确等于当前 task 的规范路径/);
 
-    rmSync(reviewChange);
-    writeFileSync(reviewChange, '# 当前 task 审查\n\n## Verdict\n\nPASS\n');
-    const outsideReview = join(outside, 'review-change.md');
+    rmSync(testReport);
+    writeFileSync(testReport, '# 当前 task 验证\n\n## Verdict\n\nPASS\n');
+    const outsideReview = join(outside, 'test-report.md');
     writeFileSync(outsideReview, '# 仓库外审查\n\n## Verdict\n\nPASS\n');
-    rmSync(reviewChange);
-    symlinkSync(outsideReview, reviewChange);
+    rmSync(testReport);
+    symlinkSync(outsideReview, testReport);
     const outsideStage = runRenderer(target.input);
     assert.notEqual(outsideStage.status, 0, '仓库外 PASS 阶段 symlink 必须拒绝');
     assert.match(outsideStage.stderr, /解引用后必须精确等于当前 task 的规范路径/);
 
-    rmSync(reviewChange);
-    writeFileSync(reviewChange, '# 当前 task 审查\n\n## Verdict\n\nPASS\n');
+    rmSync(testReport);
+    writeFileSync(testReport, '# 当前 task 验证\n\n## Verdict\n\nPASS\n');
     const targetInputSource = readFileSync(target.input, 'utf8');
     rmSync(target.input);
     symlinkSync(source.input, target.input);
@@ -311,7 +377,7 @@ test('v1.1 严格拒绝旧输入、状态冲突、严格 Verdict 和缺失高风
   const { taskRoot, docs, input } = prepareTask(taskId);
   try {
     const base = reportData(taskId);
-    assert.equal(runRenderer(input).status, 0, 'implementation+low 应只要求 test-report 与 review-change');
+    assert.equal(runRenderer(input).status, 0, 'implementation+low 应只要求 test-report');
     writeInput(input, base);
     assert.equal(runRenderer(input, false).status, 0);
     const outputNames = ['report-walkthrough.html', 'report-walkthrough.md', 'pr-body.md'];
@@ -326,13 +392,17 @@ test('v1.1 严格拒绝旧输入、状态冲突、严格 Verdict 和缺失高风
     assert.deepEqual(Object.fromEntries(outputNames.map((name) => [name, readFileSync(join(docs, name), 'utf8')])), beforeV1, 'v1.0 必须在任何输出写入前失败');
     for (const risk of ['medium', 'high'] as const) {
       writeInput(input, reportData(taskId, { risk }));
-      assert.equal(runRenderer(input).status, 0, `implementation+${risk} 应在 rfc/review-rfc 当前证据齐全时通过`);
+      assert.equal(runRenderer(input).status, 0, `implementation+${risk} 应在该 profile 当前证据齐全时通过`);
     }
     const invalidInputs: Array<{ name: string; mutate: (value: any) => void; expected?: RegExp }> = [
       { name: 'v1.0 历史输入', mutate: (value) => { value.schemaVersion = '1.0'; }, expected: /v1\.0 仅为历史 artifact，需按 v1\.1 当前证据重建输入/ },
       { name: 'evidence FAIL', mutate: (value) => { value.evidence[0].status = 'FAIL'; } },
       { name: 'verification BLOCKED', mutate: (value) => { value.verification[0].status = 'BLOCKED'; } },
       { name: '缺顶层 risk', mutate: (value) => { delete value.risk; } },
+      { name: '缺 resolved workflowProfile', mutate: (value) => { delete value.workflowProfile; }, expected: /必须显式携带已解析 workflowProfile/ },
+      { name: '缺 resolved designRequired', mutate: (value) => { delete value.designRequired; }, expected: /必须显式携带已解析 designRequired/ },
+      { name: 'Lite 虚报 review PASS', mutate: (value) => { value.reviewStatus = 'PASS'; }, expected: /reviewStatus 必须为 NOT_REQUIRED/ },
+      { name: 'Strict 否认设计门', mutate: (value) => { value.workflowProfile = 'strict'; value.designRequired = false; }, expected: /Strict walkthrough 必须声明 designRequired=true/ },
       { name: '未知 risk', mutate: (value) => { value.risk = 'urgent'; } },
       { name: 'risk 放错位置', mutate: (value) => { delete value.risk; value.task.risk = 'low'; } },
       { name: '高风险缺 review-rfc', mutate: (value) => { value.risk = 'high'; } },
@@ -355,12 +425,12 @@ test('v1.1 严格拒绝旧输入、状态冲突、严格 Verdict 和缺失高风
       '# 审查\n\n## Verdict\n\n```text\nPASS\n```\n',
       '# 审查\n\n## verdict\n\nPASS\n',
     ]) {
-      writeFileSync(join(docs, 'review-change.md'), source);
+      writeFileSync(join(docs, 'test-report.md'), source);
       const checked = runRenderer(input);
       assert.notEqual(checked.status, 0, '当前 FAIL、历史 PASS、重复或非精确 Verdict 都必须拒绝');
     }
 
-    writeFileSync(join(docs, 'review-change.md'), '# 审查\n\n## Verdict\n\n<!-- 当前阶段机器结论 -->\n\nPASS\n');
+    writeFileSync(join(docs, 'test-report.md'), '# 验证\n\n## Verdict\n\n<!-- 当前阶段机器结论 -->\n\nPASS\n');
     writeInput(input, base);
     assert.equal(runRenderer(input).status, 0, 'Verdict 后允许跳过空行与 HTML 注释');
 
@@ -525,45 +595,34 @@ test('DEFERRED 触发后在后续 task 重跑验证与审查，旧报告保持�
   }
 });
 
-test('阶段派生文档要求真实派生、会话隔离和诚实降级，不新增 attestation', () => {
-  const workflow = readFileSync(join(repoRoot, 'skills/legion-workflow/SKILL.md'), 'utf8');
-  const matrix = readFileSync(join(repoRoot, 'skills/legion-workflow/references/SUBAGENT_DISPATCH_MATRIX.md'), 'utf8');
-  const autopilot = readFileSync(join(repoRoot, 'skills/legion-workflow/references/REF_AUTOPILOT.md'), 'utf8');
-  const envelope = readFileSync(join(repoRoot, 'skills/legion-workflow/references/REF_ENVELOPE.md'), 'utf8');
-  const scheduler = readFileSync(join(repoRoot, 'scheduler/src/worker-runner.ts'), 'utf8');
-  const renderer = readFileSync(join(repoRoot, 'skills/report-walkthrough/scripts/render-report.mjs'), 'utf8');
-  const validation = readFileSync(join(repoRoot, 'skills/report-walkthrough/scripts/report-data-validation.mjs'), 'utf8');
-  for (const source of [workflow, matrix, autopilot]) {
-    assert.match(source, /真实 Codex `spawn`|真实 transport API/);
-    assert.match(source, /不.*复用.*会话/);
-    assert.match(source, /不是身份 attestation/);
-    assert.match(source, /五字段/);
-  }
-  for (const mode of ['default implementation', 'approved-design continuation', 'heavy design-only']) {
-    assert.match(matrix, new RegExp(mode.replace('-', '\\-')), `派生矩阵必须保留 ${mode} 模式`);
-  }
-  for (const chain of [
-    'engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki',
-    'spec-rfc -> review-rfc -> engineer -> verify-change -> review-change -> report-walkthrough -> legion-wiki',
-    'spec-rfc -> review-rfc -> report-walkthrough -> legion-wiki',
-  ]) {
-    assert.ok(matrix.includes(chain), `派生矩阵必须保留阶段链 ${chain}`);
-  }
-  for (const fallback of ['review-rfc FAIL -> spec-rfc', 'verify-change FAIL/实现缺口 -> engineer', 'review-change FAIL -> engineer']) {
-    assert.ok(workflow.includes(fallback), `工作流必须保留回退 ${fallback}`);
-  }
-  assert.match(matrix, /review.*卡 auto-merge\/merge/);
-  assert.match(matrix, /decide.*卡阶段转换与普通回退/);
-  assert.match(matrix, /编排器写 `plan\.md\/log\.md\/tasks\.md`/);
-  assert.match(matrix, /review-change.*安全视角/);
-  assert.match(envelope, /统一五字段判断增量/);
-  assert.doesNotMatch(envelope, /`summary`、`decisions`|`files_touched`|`open_questions`/);
-  assert.doesNotMatch(`${workflow}\n${matrix}\n${autopilot}`, /stage-executions|receipt/);
-  assert.equal(existsSync(join(repoRoot, 'skills/report-walkthrough/scripts/current-verdict.mjs')), true);
-  assert.match(scheduler, /import \{ parseCurrentVerdict \} from '.+current-verdict\.mjs'/);
-  assert.match(renderer, /validateCurrentReportEvidence/);
-  assert.match(renderer, /validateReportData/);
-  assert.match(validation, /import \{ parseCurrentVerdict \} from '.\/current-verdict\.mjs'/);
-  assert.doesNotMatch(scheduler, /function hasPassVerdict/);
-  assert.doesNotMatch(renderer, /function (?:jsonPointer|validateSchema|semanticErrors|walkStrings)\b/, 'renderer 不得保留共享校验器的重复旧实现');
+test('profile policy 以行为决定阶段与条件交付，不把阶段切换等同于派生 Agent', () => {
+  assert.deepEqual(workflowPolicy({ risk: 'low' }), {
+    profile: 'lite', designRequired: false, stages: ['engineer', 'verify-change'], deliveryDisposition: 'summary', wikiDisposition: 'no-change',
+  });
+  assert.deepEqual(workflowPolicy({ risk: 'medium' }), {
+    profile: 'standard', designRequired: false, stages: ['engineer', 'verify-change', 'review-change'], deliveryDisposition: 'summary', wikiDisposition: 'no-change',
+  });
+  assert.deepEqual(workflowPolicy({ risk: 'high' }), {
+    profile: 'strict', designRequired: true, stages: ['spec-rfc', 'review-rfc', 'engineer', 'verify-change', 'review-change'], deliveryDisposition: 'walkthrough', wikiDisposition: 'no-change',
+  });
+  const upgraded = workflowPolicy({ risk: 'low', labels: ['workflow:strict', 'wiki:write'] });
+  assert.equal(upgraded.profile, 'strict');
+  assert.equal(upgraded.wikiDisposition, 'write');
+  assert.equal(workflowPolicy({ risk: 'medium', labels: ['workflow:lite'] }).profile, 'standard');
+  assert.equal(workflowPolicy({ risk: 'medium', labels: ['delivery:walkthrough'] }).deliveryDisposition, 'walkthrough');
+  assert.equal(workflowPolicy({ risk: 'low', attention: 'review' }).deliveryDisposition, 'walkthrough');
+  assert.equal(workflowPolicy({ risk: 'high', labels: ['delivery:summary'] }).deliveryDisposition, 'walkthrough');
+  assert.equal(workflowPolicy({ risk: 'high', runKind: 'brainstorm_only' }).deliveryDisposition, 'walkthrough');
+  assert.equal(workflowPolicy({ risk: 'low', labels: ['wiki:write', 'wiki:no-change'] }).wikiDisposition, 'write');
+  assert.deepEqual(workflowPolicy({ risk: 'medium', runKind: 'design_only' }).stages, ['spec-rfc', 'review-rfc']);
+  assert.deepEqual(workflowPolicy({ risk: 'low', runKind: 'design_only', labels: ['design:rfc'] }).stages, ['spec-rfc', 'review-rfc']);
+  assert.deepEqual(workflowPolicy({ risk: 'low', labels: ['design:rfc'] }).stages, ['spec-rfc', 'review-rfc', 'engineer', 'verify-change']);
+  assert.throws(() => workflowPolicy({ risk: 'low', labels: ['workflow:stict'] }), /Unsupported workflow control label/);
+  assert.throws(() => workflowPolicy({ risk: 'low', labels: ['delivery:walkthough'] }), /Unsupported delivery control label/);
+  assert.throws(() => workflowPolicy({ risk: 'low', labels: ['wiki:required'] }), /Unsupported wiki control label/);
+  assert.throws(() => workflowPolicy({ risk: 'low', labels: ['design:rfcx'] }), /Unsupported design control label/);
+  assert.throws(() => workflowPolicy({ risk: 'low', labels: ['rfc:hevy'] }), /Unsupported rfc control label/);
+  assert.doesNotThrow(() => workflowPolicy({ risk: 'low', labels: ['owner:platform'] }), 'unrelated labels remain available to callers');
+  assert.throws(() => workflowPolicy({ risk: 'unknown' as any }), /Unsupported workflow risk/);
+  assert.throws(() => workflowPolicy({ risk: 'low', attention: 'urgent' as any }), /Unsupported attention level/);
 });

@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-07-18] writeback | workflow-profiles-model-routing-v1
+
+- 用 Lite/Standard/Strict 最低 profile 取代固定阶段长链，并把 walkthrough/Wiki 拆为独立 disposition。
+- 记录 OpenCode custom agents 退出安装面、旧 managed agents 的 fail-closed 迁移与独立上下文保留规则。
+- 修订 walkthrough resolved-policy contract、事件日志、主工作区安全刷新和行为测试模式。
+
 ## [2026-07-13] closeout | lgmind-0.4.0-publish
 
 - 记录 `lgmind@0.4.0` 发布完成：PR #53 squash merge SHA 为 `ff4c7009f967b7a897715b077ffb3a3dba76a2b3`，trusted-publishing workflow run `29242902972` 成功且来源 SHA 一致，npm fixed version 与 `latest` 均为 `0.4.0`。

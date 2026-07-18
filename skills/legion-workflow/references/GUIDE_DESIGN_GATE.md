@@ -4,13 +4,13 @@
 
 ## 风险与产物
 
-| 风险 | 信号 | 实现前门禁 |
+| 风险 / profile | 信号 | 实现前门禁 |
 |---|---|---|
-| Low | 局部、可回滚；无安全/数据迁移/基础设施/外部合约 | 稳定 `plan.md` + `docs/rfc.md` 中 design-lite；可延迟到 PR merge 批准 |
-| Medium | 公共 API、核心流程、新依赖/配置、多模块 | 标准 RFC 含 Options/Decision/Verification；`review-rfc PASS` |
-| High | 权限/密钥/支付/合规、数据迁移、难回滚、关键基础设施 | 完整 RFC；`review-rfc PASS`；PR 标注高风险及回滚 |
+| Low / Lite | 局部、可逆、contract 稳定；无安全/数据/外部合约边界 | 不强制 RFC；出现真实设计分叉时补短 RFC |
+| Medium / Standard | 公共 API/配置、核心流程、新依赖、跨模块取舍或回滚歧义 | 触发上述设计问题时先做标准 RFC 与 `review-rfc PASS` |
+| High / Strict | 权限/密钥/支付/合规、持久数据/schema、外部协议兼容、难回滚 | 完整 RFC；`review-rfc PASS`；PR 标注高风险及回滚 |
 
-Low 的 Fast Track 只省正式 RFC：大致不超过 50 行、3 文件，无合约/依赖/关键路径变化，且 `git revert` 可安全回滚；仍需 scope、假设、验收、design-lite、验证和 closing stages。条件不全即升级。
+风险只按错误代价、边界与可回滚性判断。LOC、文件数、耗时或执行者自报不能降级；安全/权限、持久数据、外部协议、秘密/签名、破坏性动作和困难回滚必须升级。
 
 ## RFC Heavy
 

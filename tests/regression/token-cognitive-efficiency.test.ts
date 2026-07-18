@@ -33,9 +33,11 @@ function validReportData() {
       reviewer: '仓库维护者',
     },
     profile: 'implementation',
+    workflowProfile: 'lite',
+    designRequired: false,
     risk: 'low',
     stageConclusion: 'PASS',
-    reviewStatus: 'PASS',
+    reviewStatus: 'NOT_REQUIRED',
     summary: '同一份 schema 数据生成三种 reviewer artifact；[危险](javascript:alert(1))；![远程图](https://example.com/x.png)\n# 伪标题',
     attention: {
       level: 'skim',
@@ -76,32 +78,26 @@ function validReportData() {
 
 test('入口把非代码工作与明确微操作留在普通路径，高风险与不确定工作仍升级 Legion', () => {
   const agents = readRepo('AGENTS.md');
-  const primary = readRepo('.opencode/agents/legion.md');
   const workflow = readRepo('skills/legion-workflow/SKILL.md');
 
   for (const [name, source] of [['AGENTS', agents], ['workflow', workflow]] as const) {
-    assert.match(source, /普通路径/, `${name} 应声明普通路径`);
-    assert.match(source, /明确微操作/, `${name} 应声明明确微操作`);
-    assert.match(source, /Legion 路径|只有 Legion 路径/, `${name} 应声明 Legion 路径`);
+    for (const route of ['普通路径', '明确微操作', 'Legion 路径']) {
+      assert.equal(source.includes(route), true, `${name} 应保留稳定入口分类 ${route}`);
+    }
   }
-  assert.match(primary, /三层入口分类/);
-  assert.match(primary, /只有 Legion 路径加载 `legion-workflow`/);
-  assert.match(agents, /不修改代码、运行时配置、协议\/schema 或持久状态.+直接完成，不加载 `legion-workflow`/s);
-  assert.match(workflow, /不改变行为的文档整理|不改变行为的文档\/格式整理/);
-  assert.match(workflow, /目标与位置明确.+无设计分叉.+低风险.+不涉及安全、数据、外部合约或跨模块.+有界检查/s);
-  assert.match(workflow, /条件失效时停止并升级/);
-  assert.match(workflow, /用户显式要求使用或 bypass Legion 始终优先/);
-  assert.match(workflow, /只整理安全政策文档的排版且不改含义，走普通路径；改变政策约束、数据处理规则或外部承诺，走 Legion 路径/);
-  assert.doesNotMatch(workflow, /\*\*1% 可能\*\*|1% 可能/, '新入口不应继续用极低概率吞掉普通请求');
-  assert.match(agents, /任何路径派生子代理前都必须运行.+subagent-name\.mjs/s);
+  assert.equal(workflow.includes('SUBAGENT-STOP'), true);
+  assert.equal(workflow.includes('scripts/subagent-name.mjs'), true);
+  assert.equal(existsSync(join(repoRoot, '.opencode', 'agents')), false, '入口行为不再由 OpenCode custom agent prompt 复制');
 });
 
 test('上下文预算覆盖热文件与中风险强制加载闭包，并保留可重算降幅', () => {
   const result = runNode(['skills/legion-workflow/scripts/audit-context.mjs', '--check']);
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const report = JSON.parse(result.stdout);
+  const manifest = JSON.parse(readRepo('skills/legion-workflow/references/context-manifest.json'));
   assert.equal(report.baselineRevision, '5359115');
-  assert.equal(report.files.length, 20);
+  const budgetedPaths = new Set([...manifest.hot, ...manifest.mediumAdditional].map((item: { path: string }) => item.path));
+  assert.equal(report.files.length, budgetedPaths.size);
   assert.equal(report.failures.length, 0);
   assert.equal(report.unbudgetedRequiredReferences.length, 0);
   assert.ok(report.hot.current <= 42000);
@@ -166,12 +162,7 @@ test('子代理命名器生成 canonical displayName 与 transport-safe id，并
   assert.notEqual(overflow.status, 0);
   assert.match(overflow.stderr, /组合上限/);
 
-  const workflow = readRepo('skills/legion-workflow/SKILL.md');
-  assert.match(workflow, /`agentType` 选择已注册职责/);
-  assert.match(workflow, /仅当 transport 有独立实例标识字段时才传 `transportId`/);
-  assert.match(workflow, /prompt、日志和交接回显 `displayName`/);
-  const primary = readRepo('.opencode/agents/legion.md');
-  assert.match(primary, /OpenCode 仍用固定 role 选择 subagent/);
+  assert.equal(existsSync(join(repoRoot, '.opencode', 'agents')), false);
 });
 
 test('报告生成器从单一 schema 数据确定性且事务式生成三份安全产物', () => {

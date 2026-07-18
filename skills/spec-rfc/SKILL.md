@@ -10,7 +10,7 @@ description: 当稳定 contract 仍有设计分叉、回滚风险、验证歧义
 ## 硬门
 
 - 必须已有稳定 `plan.md`；contract 漂移则退回 `brainstorm`。
-- 中高风险或存在真实设计取舍时，必须先完成本阶段。
+- Strict、显式 `design:rfc`，或存在真实设计取舍时，必须先完成本阶段；Medium/Standard 本身不自动要求 RFC。
 - 涉及领域能力、外部权威、延后验证或判断性决策的关键 claim，选择 verifier 前必须完成预注册。
 
 ## 何时使用
