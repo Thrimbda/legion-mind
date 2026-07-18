@@ -213,6 +213,32 @@ export function reportStageRequirements(taskId, profile, risk) {
   return [];
 }
 
+export function walkthroughStageRequirements(taskId, data) {
+  const root = `.legion/tasks/${taskId}/docs`;
+  const workflowProfile = data?.workflowProfile ?? ({ low: 'lite', medium: 'standard', high: 'strict' })[data?.risk];
+  if (data?.profile === 'contract-only') {
+    return [{ kind: 'plan', locator: `.legion/tasks/${taskId}/plan.md`, requiresPass: false }];
+  }
+  if (data?.profile === 'rfc-only') {
+    return [
+      { kind: 'rfc', locator: `${root}/rfc.md`, requiresPass: false },
+      { kind: 'review-rfc', locator: `${root}/review-rfc.md`, requiresPass: true },
+    ];
+  }
+  if (data?.profile !== 'implementation') return [];
+  const stages = [{ kind: 'test-report', locator: `${root}/test-report.md`, requiresPass: true }];
+  if (workflowProfile === 'standard' || workflowProfile === 'strict') {
+    stages.push({ kind: 'review-change', locator: `${root}/review-change.md`, requiresPass: true });
+  }
+  if (workflowProfile === 'strict' || data?.designRequired === true) {
+    stages.push(
+      { kind: 'rfc', locator: `${root}/rfc.md`, requiresPass: false },
+      { kind: 'review-rfc', locator: `${root}/review-rfc.md`, requiresPass: true },
+    );
+  }
+  return stages;
+}
+
 export function expectedReportProfile(runKind) {
   if (runKind === 'implementation') return 'implementation';
   if (runKind === 'design_only') return 'rfc-only';
@@ -272,6 +298,34 @@ export function semanticErrors(data) {
     }
   }
 
+  if (data?.workflowProfile) {
+    const rank = { lite: 0, standard: 1, strict: 2 };
+    const riskMinimum = { low: 0, medium: 1, high: 2 };
+    if (rank[data.workflowProfile] < riskMinimum[data.risk]) {
+      errors.push('$.workflowProfile 不能低于 risk 对应的最低 profile');
+    }
+    if (data.workflowProfile === 'strict' && data.designRequired !== true) {
+      errors.push('Strict walkthrough 必须声明 designRequired=true');
+    }
+    if (data.profile === 'contract-only') {
+      if (data.workflowProfile !== 'lite' || data.designRequired !== false || data.reviewStatus !== 'NOT_REQUIRED') {
+        errors.push('contract-only 只允许 Lite、designRequired=false、reviewStatus=NOT_REQUIRED');
+      }
+    } else if (data.profile === 'rfc-only') {
+      if (data.designRequired !== true || data.reviewStatus !== 'PASS') {
+        errors.push('rfc-only 必须声明 designRequired=true 且 reviewStatus=PASS');
+      }
+    } else if (data.profile === 'implementation') {
+      if (data.workflowProfile === 'lite' && data.reviewStatus !== 'NOT_REQUIRED') {
+        errors.push('Lite implementation 的 reviewStatus 必须为 NOT_REQUIRED');
+      } else if (data.workflowProfile !== 'lite' && data.reviewStatus !== 'PASS') {
+        errors.push('Standard/Strict implementation 的 reviewStatus 必须为 PASS');
+      }
+    }
+  } else if (data?.reviewStatus !== 'PASS') {
+    errors.push('legacy report-data 缺少 workflowProfile 时 reviewStatus 必须为 PASS');
+  }
+
   const unresolvedWithoutVerifier = claims.filter((claim) => (
     (claim.expertise === 'domain' || claim.expertise === 'authority')
     && !claim.verifier
@@ -312,13 +366,24 @@ export function validateReportData(data, schema) {
   return [...validateSchema(data, schema, schema), ...semanticErrors(data)];
 }
 
-export function validateCurrentReportEvidence(data, { taskId, documents }) {
+export function validateWalkthroughPolicyBinding(data) {
+  const errors = [];
+  if (!['lite', 'standard', 'strict'].includes(data?.workflowProfile)) {
+    errors.push('walkthrough 必须显式携带已解析 workflowProfile');
+  }
+  if (typeof data?.designRequired !== 'boolean') {
+    errors.push('walkthrough 必须显式携带已解析 designRequired');
+  }
+  return errors;
+}
+
+export function validateCurrentReportEvidence(data, { taskId, documents, stages }) {
   const errors = [];
   if (data?.task?.id !== taskId) {
     errors.push(`report-data.json task.id 必须等于当前 taskId ${taskId}`);
     return errors;
   }
-  for (const stage of reportStageRequirements(taskId, data?.profile, data?.risk)) {
+  for (const stage of stages ?? reportStageRequirements(taskId, data?.profile, data?.risk)) {
     const evidence = Array.isArray(data?.evidence) ? data.evidence : [];
     const matchingEvidence = evidence.filter((item) => item?.kind === stage.kind);
     if (!matchingEvidence.some((item) => item.locator === stage.locator && item.status === 'PASS')) {

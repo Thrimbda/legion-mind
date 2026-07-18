@@ -13,7 +13,7 @@ LegionMind 不是另一个“让智能体多写一点代码”的工作流包。
 - 并行执行能放大 token 吞吐量，但也会把错误方向一起放大。
 - 真正的瓶颈会从“写代码”转移到人的上下文管理、验收和决策。
 - 智能体最容易翻车的不是世界知识，而是项目里的隐含知识墙，也就是本项目中具备主见的部分：各类历史决策，局部的最佳实践。
-- 没有设计门禁（中高风险改动先在 `.legion/tasks/<task-id>/plan.md` / `.legion/tasks/<task-id>/docs/rfc.md` 说清为什么改、影响什么、怎么回滚）、分层验证（把安装校验、任务验证、文档一致性分开检查）和证据化汇报（用 `test-report.md`、`report-walkthrough.md`、`pr-body.md` 带着证据交付），多智能体只会更快地返工。
+- 没有分层设计门禁（所有任务先稳定 `.legion/tasks/<task-id>/plan.md`；Strict 或存在真实设计分叉时再用 `docs/rfc.md` 说清影响、取舍与回滚）、分层验证（把安装校验、任务验证、文档一致性分开检查）和证据化汇报（用 profile 要求的 `test-report.md`、可选/强制的 walkthrough 与 PR body 带着证据交付），多智能体只会更快地返工。
 - 当模型越来越强，工作流不该只靠感觉调参，而要走向证据驱动的工程化迭代。
 
 LegionMind 试图把这些问题当成系统问题来处理，而不是继续堆提示词、堆技能、堆智能体数量。
@@ -31,7 +31,7 @@ LegionMind 试图把这些问题当成系统问题来处理，而不是继续堆
 1. **多智能体工程操作系统内核**
    - 提供稳定的工作主干，而不是依赖会话临场发挥。
    - 明确编排器、子代理、技能、任务记忆和知识库记忆的边界。
-   - 把“意图对齐 -> 执行 -> 验证 -> 汇报 -> 记忆”收敛为固定闭环。
+   - 把“意图对齐 -> 执行 -> 验证 -> 交付 -> 记忆”收敛为按风险分层、可审计的闭环。
 
 2. **可安装的智能体编排内核**
    - 能安装到真实工作环境中，而不只是停留在仓库内工作流。
@@ -53,8 +53,8 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
   - `log.md`: 过程日志与决策记录
   - `tasks.md`: 状态板与阶段进度
 - **Wiki 记忆**：`.legion/wiki/**`
-  - **它不保存任务过程，而是沉淀跨任务仍然有效的当前知识**
-  - 统一收口决策、可复用模式、维护债务和任务摘要
+  - **它不保存任务过程，只沉淀跨任务仍然有效的当前知识**
+  - 没有 durable knowledge 时明确 `no-change`，不创建占位页
 - **规则 / 运行时层**：`skills/**` + `.opencode/**` + OpenClaw 安装入口
   - 工作流真源、技能边界、代理接线，以及本地管理脚本
 
@@ -72,8 +72,8 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 - `spec-rfc` / `review-rfc` 负责设计门禁
 - `engineer` 负责受边界约束的实现
 - `verify-change` / `review-change` 负责验证证据与交付判断
-- `report-walkthrough` 负责面向评审者的交付摘要
-- `legion-wiki` 负责固定收口写回
+- `report-walkthrough` 负责 Strict 或显式升级后的 reviewer artifact；其余任务使用简洁 summary
+- `legion-wiki` 只在产生跨任务当前知识时写回
 
 换句话说，LegionMind 的重点不是“自动化更多动作”，而是让每个阶段的职责边界清晰、可回放、可审计。
 
@@ -83,12 +83,12 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 
 - **任务契约优先**
   - 没有稳定契约，就不进入实现。
-- **设计门禁**
-  - 中高风险任务先过轻量设计或 RFC，而不是先写代码再补文档。
+- **分层设计门禁**
+  - Lite 只保留有界实现与验证；Standard 增加独立 change review；Strict 强制 RFC、独立验证/审查与 walkthrough。
 - **评审即协议**
   - 评审不是聊天记录，而是可追踪、可响应、可阻塞的结构化状态。
-- **固定收口写回**
-  - 任务结束前必须把持久知识从原始任务文档提升到 wiki 层。
+- **条件交付与记忆**
+  - walkthrough 与 Wiki 分别按 reviewer 价值和 durable knowledge 判定；两者可以独立升级。
 - **安装 / 校验 / 回滚**
   - 工作流资产可以安全同步、严格校验、必要时回滚。
 
@@ -115,7 +115,7 @@ npx lgmind@latest install --scope global
 
 ### 安装到 OpenCode
 
-OpenCode 安装入口现在是 npm package `lgmind` 提供的 CLI。它会同步 `.opencode/agents`、`.opencode/plugins`（如果存在）和固定核心 skill set，并记录 managed manifest / backup index；这是当前带完整 `install / verify / rollback / uninstall` 的路径。`setup-opencode` 仍作为描述性 alias 保留。
+OpenCode 安装入口现在是 npm package `lgmind` 提供的 CLI。它会同步 `.opencode/plugins`（如果存在）和固定核心 skill set，并记录 managed manifest / backup index；不再安装 custom agents。升级时，未漂移的旧 managed agents 会进入可回滚备份，用户已修改的旧文件会保留并告警。`setup-opencode` 仍作为描述性 alias 保留。
 
 和 Context7 CLI 一样，推荐优先使用一次性的 `npx <package>@latest` 形态：
 
@@ -277,7 +277,7 @@ LegionMind 不应该靠“看起来能跑”来证明自己，而应该把检查
 1. **安装 / 严格校验 / 回滚**
     - 证明它能安全进入用户环境，也能在失败时恢复。
 2. **任务级验证证据**
-    - 证明具体任务留下了 `test-report.md`、`review-change.md`、`report-walkthrough.md` 这类可复核交付物，而不是只说“已经测过”。
+    - 按 profile 证明要求的行为已验证：Lite 至少有 `test-report.md`，Standard 增加 `review-change.md`，Strict 再增加 RFC/review 与 walkthrough。
 3. **真源收敛**
     - 证明 README、AGENTS、工作流内核、`.legion/wiki/**`、skills 与 benchmark README 对当前入口和阶段主干的说法一致。
 

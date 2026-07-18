@@ -27,10 +27,12 @@
   "properties": {
     "schemaVersion": { "const": "1.1" },
     "task": { "$ref": "#/$defs/task" },
-    "profile": { "enum": ["implementation", "rfc-only"] },
+    "profile": { "enum": ["implementation", "rfc-only", "contract-only"] },
+    "workflowProfile": { "enum": ["lite", "standard", "strict"] },
+    "designRequired": { "type": "boolean" },
     "risk": { "enum": ["low", "medium", "high"] },
     "stageConclusion": { "const": "PASS" },
-    "reviewStatus": { "const": "PASS" },
+    "reviewStatus": { "enum": ["PASS", "NOT_REQUIRED"] },
     "summary": { "$ref": "#/$defs/nonEmptyString" },
     "attention": { "$ref": "#/$defs/attention" },
     "claims": {
@@ -77,8 +79,7 @@
         "properties": {
           "evidence": {
             "allOf": [
-              { "contains": { "properties": { "kind": { "const": "test-report" } }, "required": ["kind"] } },
-              { "contains": { "properties": { "kind": { "const": "review-change" } }, "required": ["kind"] } }
+              { "contains": { "properties": { "kind": { "const": "test-report" } }, "required": ["kind"] } }
             ]
           }
         }
@@ -89,6 +90,23 @@
         "allOf": [
           { "properties": { "profile": { "const": "implementation" } }, "required": ["profile"] },
           { "properties": { "risk": { "enum": ["medium", "high"] } }, "required": ["risk"] }
+        ]
+      },
+      "then": {
+        "properties": {
+          "evidence": {
+            "allOf": [
+              { "contains": { "properties": { "kind": { "const": "review-change" } }, "required": ["kind"] } }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "allOf": [
+          { "properties": { "profile": { "const": "implementation" } }, "required": ["profile"] },
+          { "properties": { "risk": { "const": "high" } }, "required": ["risk"] }
         ]
       },
       "then": {

@@ -6,9 +6,9 @@
 
 ## 1. 黄金法则
 
-1.  **更新频率**: **每 15-20 分钟** 或每完成一个主要子任务后，必须更新 `log.md`。不要等到会话结束才更。
-2.  **决策追踪**: 如果你花了 >5 分钟思考 "选 A 还是选 B"，**必须记录**在 `log.md` 的决策表中。
-3.  **显式阻塞**: 如果遇到卡顿，立即将问题添加到 `log.md` 的 **Blocked** (阻塞/待定) 区域。
+1.  **事件驱动**: 只在阶段/Verdict、目标/scope/风险/假设、实现或回滚决定、blocker/外部依赖、PASS/FAIL 证据、handoff/恢复点、PR lifecycle 状态发生变化时更新 `log.md`。无新信息时不按时间刷新，也不记录“仍在运行”。
+2.  **决策追踪**: 只要选择会改变实现、回滚、验证或风险接受，就记录在 `log.md` 的决策表中；与思考耗时无关。
+3.  **显式阻塞**: blocker 一旦改变下一步或 owner，立即加入 `log.md` 的 **Blocked** (阻塞/待定) 区域。
 4.  **原子任务**: `tasks.md` 中的条目必须可验证。“修复 Bug”是坏任务；“修复 AuthHandler 中的空指针异常”是好任务。
 5.  **文档语言一致**: 任务文档默认跟随当前用户与 agent 的工作语言；若仓库已有明确文档语言规范，则遵循仓库规范，不要默认写英文。
 
@@ -65,7 +65,6 @@
 1.  **Start**: `log read` 加载状态。
 2.  **Contract**: 先阅读 `.legion/tasks/<task-id>/plan.md` 恢复问题、验收、Scope 与阶段。
 3.  **Design**: 若 `plan.md` 链接 RFC，再阅读 `.legion/tasks/<task-id>/docs/rfc.md`。
-4.  **Code**: 实现 1 个单元。
-5.  **Log**: `tasks update`（标记完成）、`log update`（记录决策）。
-6.  **Repeat**: 重复步骤 4-5。
-7.  **End**: `verify-change`，然后 `log update`（交接）。
+4.  **Code**: 在当前 contract 内实现；普通编辑不按次数写日志。
+5.  **Event**: 只在阶段结论、决策/假设变化、风险/阻塞变化或可靠恢复点更新 `tasks` / `log`。
+6.  **End**: `verify-change`；Standard/Strict 再做独立 `review-change`，最后按事件写交接。

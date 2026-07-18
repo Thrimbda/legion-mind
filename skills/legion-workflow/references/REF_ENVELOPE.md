@@ -80,7 +80,7 @@ taskRoot: /repo/.legion/tasks/task-brief-plan
 docsDir: /repo/.legion/tasks/task-brief-plan/docs
 scope:
   - skills/legion-workflow/**
-  - .opencode/agents/**
+  - opencode.json
   - scripts/**
   - docs/**
 planPath: /repo/.legion/tasks/task-brief-plan/plan.md

@@ -31,7 +31,7 @@ description: 当需要创建、更新、校验 `.legion` 任务文档，或判�
 
 - alternatives / rollback / migration / verification design：`docs/rfc.md` 或附录。
 - 命令、失败输出、claim evidence：`docs/test-report.md`。
-- reviewer summary：由 `report-data.json` 生成 walkthrough 与 `pr-body.md`。
+- reviewer summary：`summary` 直接写简洁交接；`walkthrough` 才由 `report-data.json` 生成 walkthrough 与 `pr-body.md`。
 
 ## 条件引用
 

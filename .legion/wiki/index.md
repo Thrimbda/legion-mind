@@ -8,13 +8,14 @@
 ## 导航
 
 - `patterns.md`：可复用模式、约定、常见坑。
+- `decisions.md`：当前生效的跨任务硬规则。
 - `maintenance.md`：需要后续独立验证、迁移或清理的开放事项。
 - `tasks/`：任务级综合摘要，链接回 raw task docs。
 - `log.md`：wiki 层 durable writeback 记录。
 
 ## 当前重点
 
-- LegionMind token 与认知效率的当前结论见 `patterns.md` 与 `tasks/optimize-token-cognitive-efficiency.md`：普通只读和明确低风险微操作不启动 Legion；复杂或高风险工作保留完整阶段链；会话只传五字段判断增量；子代理固定权限职责与随机实例名分离；热路径和中风险加载闭包由字符预算回归守住；walkthrough 从单一 JSON 数据生成三份 artifact。精确 schema 真源仍在 `skills/**`。
+- Legion workflow 当前使用 Lite/Standard/Strict 最低 profile：Lite 为实现+验证，Standard 增加独立 change review，Strict 强制设计门、独立验证/审查与 walkthrough；显式覆盖只能升级。walkthrough 与 Wiki 分别按 reviewer 价值和 durable knowledge 决定。见 `decisions.md`、`patterns.md` 与 `tasks/workflow-profiles-model-routing-v1.md`，精确真源仍在 `skills/**`。
 - 人类注意力交接与认知验证路由的当前结论见 `patterns.md` 与 `tasks/human-attention-verification-routing.md`：RFC 审查、变更验证和实现审查先把完整摘要落盘，再把判断变化与最多三个关键发现压缩为五字段投影，并用 `none | skim | review | decide` 管理人类介入；声明级验证按三轴分类并使用五状态，阶段级 `Verdict: PASS | FAIL` 保持独立。精确 schema 真源仍在相关 `skills/**`。
 - 仓库内所有 `skills/*/SKILL.md` 当前都显式约束：默认用中文回答；若产出人类阅读型文档产物，也默认使用中文；代码、命令、路径、机器可读字段、错误原文和平台术语保持原文。见 `patterns.md` 与 `tasks/localize-skill-outputs.md`；schema 真源仍是各 `SKILL.md`。
 - CLI 相关的 durable 约定见 `patterns.md`。
@@ -27,10 +28,10 @@
 - Linear + Legion scheduler sandbox 验收执行见 `tasks/run-scheduler-sandbox-acceptance.md`：本地 regression、health、fixture scan 和 fixture dispatch 全部 PASS；live Linear/GitHub/worker stages 因 `secrets/linear-scheduler.sops.yaml` 缺失、`age` CLI 不可用、缺少 `SCHEDULER_RUN_ID` 和 worker 前置批准/状态而 `BLOCKED`。该结果不是 production-ready 证明。
 - Linear + Legion scheduler sandbox 验收逐步 checkbox 文档见 `tasks/add-sandbox-acceptance-checklist.md` 与 `scheduler/docs/sandbox-acceptance-checklist.md`；它是 operator-facing 执行版，保留 sandbox-only、secret handling、Stage 5 worker gating、stop conditions 和 production blockers。
 - 生产验收准备文档已通过 `tasks/localize-production-acceptance-docs.md` 中文化；面向用户 / reviewer 的 task 文档默认中文，命令、路径、env var、JSON/YAML key、状态枚举、labels、URL、代码符号、产品名和必要技术术语保留英文。
-- `report-walkthrough` 当前模式是 schema 驱动的 HTML-first reviewer handoff：Agent 只维护机器中间真源 `report-data.json`，脚本重读固定阶段 locator 的唯一当前 Verdict 后，一次生成 HTML、Markdown 与 PR body；无 verifier 的领域未决项可以诚实生成并按协议提升人类 attention，OpenCode 只精确开放该 JSON 路径。固定 locator 还必须绑定规范仓库根下的精确 canonical realpath，拒绝跨 task、同 task 其他文件和中间目录 symlink。`preserve-agent-review-loop` 当前报告没有未决 claim，结论为 `PASS` / `attention: skim`，HTML 使用本地 fallback；真实多任务、多模型 A/B 仅是可选、非阻塞的后续建议。RFC 写审、实现验证、独立验收与 FAIL 回退不得为 token 优化而删除。见 `patterns.md`、`tasks/preserve-agent-review-loop.md` 与 `maintenance.md`；精确真源仍是 `skills/**`、`.opencode/**` 和 scheduler 代码。
+- `report-walkthrough` 是条件化 HTML-first reviewer handoff：当前 renderer 强制 resolved `workflowProfile`/`designRequired`，按 Lite/Standard/Strict 重读精确阶段 locator；Lite design-only 的 `contract-only` 也必须绑定 canonical plan。Strict 或显式升级才生成，Wiki 与之独立。见 `patterns.md` 与 `tasks/workflow-profiles-model-routing-v1.md`。
 - `task create` 现在采用 staging + rename 物化模式，见 `patterns.md`。
 - `setup-opencode verify --strict` 现在必须校验安装资产内容与 managed ownership，见 `patterns.md` 与 `tasks/harden-strict-verify-integrity.md`。
-- `setup-opencode` 默认仍管理 OpenCode config/agents，但核心 Legion skills 现在安装到 `~/.agents/skills`，见 `patterns.md` 与 `tasks/setup-opencode-agents-skills.md`。
+- `setup-opencode` 不再安装 custom agents；核心 skills 位于 `~/.agents/skills`。升级只安全迁移未漂移的旧 managed agents，缺 required source 时 fail closed。见 `patterns.md` 与 `tasks/workflow-profiles-model-routing-v1.md`。
 - OpenCode/OpenClaw installer 的 npm CLI 当前 npm fixed version 与 `latest` 均为 `lgmind@0.4.0`；版本准备 PR #53 已 squash merge，trusted-publishing workflow run `29242902972` 从对应 merge SHA 成功发布，隔离首次安装、幂等复跑、strict verify 与 8 项关键资产一致性均已通过，见 `tasks/release-lgmind-0-4-0.md`。primary bin `lgmind` 是 product-level setup aggregator，支持 `npx lgmind@latest install` / `setup` 的交互式 project/global scope 选择；默认 first-run prompt 不再询问 OpenCode / OpenClaw。`--scope project|global` 是脚本化 scope 入口，`--agent opencode|openclaw` / `--runtime` 仅作为高级兼容路由保留；alias bin `setup-opencode` 仍是 OpenCode-only 直达入口。默认 text logs quiet，`--verbose` / `--json` 提供详细输出。发布 runtime 必须使用 JS 文件，不能从 `node_modules` 执行 `.ts` runtime；发布路径是手动 GitHub Actions trusted publishing workflow `publish-npm.yml` 从锁定的合并后 `master` SHA 发布，并验证 npm `latest` 与干净安装。见 `patterns.md`、`tasks/setup-opencode-npm-cli.md`、`tasks/publish-lgmind-npm.md`、`tasks/improve-cli-setup-ux.md`、`tasks/release-lgmind-0-2-0.md`、`tasks/add-npm-publish-action.md`、`tasks/fix-npm-bin-node-modules-ts.md`、`tasks/interactive-install-scope.md` 与 `tasks/remove-runtime-install-choice.md`。
 - `setup-openclaw` 现在采用 OpenClaw local skills root + managed manifest + strict verify 的安装路径，并已与 OpenCode 对齐 rollback / uninstall / shared lifecycle core，见 `patterns.md`、`tasks/fix-openclaw-setup-install.md` 与 `tasks/harden-v1-kernel-harness.md`。
 - 当前用户入口文档只承认 OpenCode 与 OpenClaw；根 `docs/` 历史材料已退出 current truth，现行入口为 `README.md`、`.legion/wiki/**`、`skills/**` 与 `vibe-harness-bench/README.md`，见 `tasks/harden-v1-kernel-harness.md`。

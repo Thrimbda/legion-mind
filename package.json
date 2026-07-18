@@ -36,7 +36,6 @@
     "scripts/setup-opencode.js",
     "scripts/setup-openclaw.js",
     "scripts/lib/setup-core.js",
-    ".opencode/agents/",
     ".opencode/plugins/",
     "skills/",
     "README.md",

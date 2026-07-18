@@ -13,8 +13,9 @@ description: 在 RFC 审查或实现审查已有有效证据后，用单一 repo
 
 ## 入口门
 
-- `implementation`：`risk=low` 必须有当前 `docs/test-report.md`、`docs/review-change.md`；`risk=medium|high` 还必须有当前 `docs/rfc.md`、`docs/review-rfc.md`。
+- `implementation`：按已解析 `workflowProfile` 验证。Lite 需要当前 `docs/test-report.md`；Standard 还需 `docs/review-change.md`；Strict 还需 `docs/rfc.md`、`docs/review-rfc.md`。显式设计门用 `designRequired=true` 保留。
 - `rfc-only`：无论风险等级都必须有当前 `docs/rfc.md`、`docs/review-rfc.md`，且本次只交付设计。
+- `contract-only`：只用于 Lite design-only 的稳定 contract walkthrough，不伪造 RFC 或 review；`reviewStatus=NOT_REQUIRED`。
 - 只认唯一 `## Verdict` 后的精确 `PASS`；缺失、重复、非精确、当前 `FAIL` 或历史文字冒充当前结论都拒绝。
 - 上游 `## 会话注意力摘要`、claim 状态与领域 verifier 记录必须互相一致；语义分别服从 `../legion-workflow/references/REF_HUMAN_ATTENTION.md` 与 `../verify-change/references/REF_COGNITIVE_VERIFICATION.md`。
 - 任一完成性主张必须能回到当前 task 的 repo-relative evidence locator。
@@ -36,13 +37,14 @@ node skills/report-walkthrough/scripts/render-report.mjs \
    - `report-walkthrough.html`
    - `report-walkthrough.md`
    - `pr-body.md`
-5. PR-backed HTML 交给 `pr-html-render` 获取预览路径或记录显式 bypass/blocker；随后进入 `legion-wiki`。
+5. PR-backed HTML 交给 `pr-html-render` 获取预览路径或记录显式 bypass/blocker；仅当 Wiki disposition 为 `write` 时进入 `legion-wiki`。
 
 Agent 禁止手写或局部修补上述三个生成产物。要改变内容，修改 `report-data.json` 后重新运行脚本；要改变布局，维护共享模板并重新生成。
 
 ## 数据要求
 
-- 顶层 `risk` 必须为 `low|medium|high`，与 profile 一起决定上述当前阶段门；必需 evidence 必须以 `PASS` 精确指向当前 task 的 locator。
+- 新报告必须写已解析的 `workflowProfile=lite|standard|strict` 与 `designRequired`；workflowProfile 不得低于 risk 默认值。旧数据缺字段时仅保留 legacy 兼容，不作为新任务模板。
+- 必需 evidence 必须以 `PASS` 精确指向当前 task 的 locator；Lite 无 change review 时用 `reviewStatus=NOT_REQUIRED`，不得虚报 PASS。
 - `evidence.status` 与 `verification.status` 只允许 `PASS|INFO`；claim 只允许 `INCONCLUSIVE|DEFERRED|RECOMMENDATION`，不得把 FAIL/BLOCKED 包装成 PASS 报告。
 - 页面靠前并列呈现 profile、risk、阶段结论、最高 attention、当前唯一人类动作、停止点和最终状态。
 - `INCONCLUSIVE`、`DEFERRED`、`RECOMMENDATION` 必须填写各自状态专属字段。
@@ -57,7 +59,7 @@ Agent 禁止手写或局部修补上述三个生成产物。要改变内容，�
 - reviewer artifacts：`docs/report-walkthrough.html`、`docs/report-walkthrough.md`、`docs/pr-body.md`。
 - schema、当前阶段 Verdict、taskId、evidence locator、模板、转义、确定性与事务写入由脚本统一执行；任一失败时不得留下混合版本。
 - attention 为 `review` 时不得越过 merge；为 `decide` 时不得越过阶段转换。
-- HTML 生成后才可进入 `pr-html-render`；walkthrough 完成后才可进入 `legion-wiki`。
+- HTML 生成后才可进入 `pr-html-render`。walkthrough 与 Wiki disposition 独立；需要两者时先完成 walkthrough，再写 Wiki。
 
 ## 禁止
 

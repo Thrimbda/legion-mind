@@ -5,7 +5,7 @@ import {
   readdirSync,
   readFileSync,
 } from 'fs';
-import { dirname, join, relative, resolve } from 'path';
+import { dirname, join, relative, resolve, sep } from 'path';
 import { homedir } from 'os';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
@@ -25,6 +25,7 @@ import {
   formatInstallStateSummary,
   loadJsonOrDefault,
   rollbackCore,
+  pruneRetiredManagedFilesCore,
   syncOneFileCore,
   uninstallCore,
   validateBackupIndexFile,
@@ -62,7 +63,6 @@ const MANAGED_FILES_FILE = 'managed-files.v1.json';
 const BACKUP_INDEX_FILE = 'backup-index.v1.json';
 
 const SOURCE_TARGETS = [
-  { sourceRoot: '.opencode/agents', targetRoot: 'agents' },
   { sourceRoot: '.opencode/plugins', targetRoot: 'plugins', optional: true },
 ] as const;
 
@@ -130,7 +130,7 @@ Commands:
 
 Options:
   --config-dir <path>      OpenCode config directory (default: ~/.config/opencode)
-  --opencode-home <path>   OpenCode agents home (default: ~/.agents)
+  --opencode-home <path>   Shared skills home (default: ~/.agents)
   --strategy <copy|symlink> Install strategy (default: copy)
   --to <backup-id>         Backup id for rollback
   --strict                 Enforce strict verify checks
@@ -311,6 +311,21 @@ function runInstall(opts: CliOptions, runId: string, reporter: Reporter): Instal
     entries: [],
   };
 
+  const missingSources = collectMissingExpectedSourceRoots();
+  if (missingSources.length > 0) {
+    for (const sourceRoot of missingSources) {
+      reporter.emit('E_PRECHECK', 'install', 'required-source-missing', sourceRoot, 'required install source is missing; no managed assets were changed');
+    }
+    return {
+      version: 1,
+      timestamp: new Date().toISOString(),
+      runId,
+      command: 'install',
+      code: 'E_PRECHECK',
+      summary: { copied: 0, linked: 0, skipped: 0, warnings: reporter.warnings, failures: reporter.failures },
+    };
+  }
+
   const syncItems = collectExpectedSyncItems(opts);
 
   const counters = { copied: 0, linked: 0, skipped: 0 };
@@ -318,6 +333,17 @@ function runInstall(opts: CliOptions, runId: string, reporter: Reporter): Instal
   for (const item of syncItems) {
     syncOneFileCore(item, lifecycleContext, managedState, backupBatch, reporter, counters);
   }
+  const retiredAgentRoot = resolve(opts.configDir, 'agents');
+  const retiredTargetPaths = new Set(Object.keys(managedState.files)
+    .filter((targetPath) => resolve(targetPath).startsWith(`${retiredAgentRoot}${sep}`)));
+  const pruned = pruneRetiredManagedFilesCore({
+    managedState,
+    retiredTargetPaths,
+    backupBatch,
+    ctx: lifecycleContext,
+    reporter,
+  });
+  counters.skipped += pruned.skipped;
 
   managedState.updatedAt = new Date().toISOString();
   backupIndex.updatedAt = new Date().toISOString();
@@ -361,11 +387,6 @@ function parseMcpConfigured(configPath: string): boolean {
 function requiredVerifyChecks(opts: CliOptions) {
   return [
     {
-      checkId: 'assets.agents',
-      target: join(opts.configDir, 'agents', 'legion.md'),
-      required: true,
-    },
-    {
       checkId: 'assets.skill-workflow',
       target: join(opts.opencodeHome, 'skills', 'legion-workflow', 'SKILL.md'),
       required: true,
@@ -386,7 +407,7 @@ function requiredVerifyChecks(opts: CliOptions) {
       required: true,
     },
     {
-      checkId: 'assets.subagents',
+      checkId: 'assets.skill-spec-rfc',
       target: join(opts.opencodeHome, 'skills', 'spec-rfc', 'SKILL.md'),
       required: true,
     },

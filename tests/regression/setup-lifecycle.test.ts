@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 
 const repoRoot = resolve(new URL('../..', import.meta.url).pathname);
 const regressionCacheRoot = join(repoRoot, '.cache', 'regression');
@@ -94,7 +95,7 @@ test('OpenCode setup lifecycle works in isolated directories', () => {
     nodeScript('scripts/setup-opencode.ts', ['install', ...common]);
     assert.match(nodeScript('scripts/setup-opencode.ts', ['verify', '--strict', ...common]), /READY/);
 
-    const target = join(configDir, 'agents', 'legion.md');
+    const target = join(homeDir, 'skills', 'legion-workflow', 'SKILL.md');
     writeFileSync(target, 'local unmanaged content\n');
     assert.throws(() => nodeScript('scripts/setup-opencode.ts', ['verify', '--strict', ...common]));
 
@@ -107,6 +108,113 @@ test('OpenCode setup lifecycle works in isolated directories', () => {
     nodeScript('scripts/setup-opencode.ts', ['install', '--force', ...common]);
     nodeScript('scripts/setup-opencode.ts', ['uninstall', ...common]);
     assert.equal(existsSync(join(homeDir, 'skills', 'legion-workflow', 'SKILL.md')), false);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('OpenCode upgrade prunes unchanged legacy managed agents and preserves drift', () => {
+  const root = tmpRoot('opencode-agent-prune');
+  try {
+    const configDir = join(root, 'config');
+    const homeDir = join(root, 'home');
+    const common = ['--config-dir', configDir, '--opencode-home', homeDir];
+    const manifestPath = join(configDir, '.legionmind', 'managed-files.v1.json');
+    const legacyTarget = join(configDir, 'agents', 'legion.md');
+    const legacySource = join(repoRoot, '.opencode', 'agents', 'legion.md');
+
+    nodeScript('scripts/setup-opencode.ts', ['install', ...common]);
+    mkdirSync(join(configDir, 'agents'), { recursive: true });
+    const original = 'legacy managed agent\n';
+    writeFileSync(legacyTarget, original);
+    const manifest = readJson(manifestPath);
+    manifest.files[legacyTarget] = {
+      targetPath: legacyTarget,
+      sourcePath: legacySource,
+      checksum: createHash('sha256').update(original).digest('hex'),
+      installedAt: new Date().toISOString(),
+      lastAction: 'install',
+    };
+    writeJson(manifestPath, manifest);
+
+    const pruned = nodeScript('scripts/setup-opencode.ts', ['install', '--verbose', ...common]);
+    assert.match(pruned, /OK_PRUNE/);
+    assert.equal(existsSync(legacyTarget), false);
+    assert.equal(Object.hasOwn(readJson(manifestPath).files, legacyTarget), false);
+
+    nodeScript('scripts/setup-opencode.ts', ['rollback', ...common]);
+    assert.equal(readFileSync(legacyTarget, 'utf-8'), original, 'obsolete managed file should remain recoverable');
+    assert.equal(Object.hasOwn(readJson(manifestPath).files, legacyTarget), true);
+    nodeScript('scripts/setup-opencode.ts', ['install', ...common]);
+
+    mkdirSync(join(configDir, 'agents'), { recursive: true });
+    writeFileSync(legacyTarget, 'user drift\n');
+    const driftManifest = readJson(manifestPath);
+    driftManifest.files[legacyTarget] = {
+      targetPath: legacyTarget,
+      sourcePath: legacySource,
+      checksum: createHash('sha256').update(original).digest('hex'),
+      installedAt: new Date().toISOString(),
+      lastAction: 'install',
+    };
+    writeJson(manifestPath, driftManifest);
+
+    const preserved = nodeScript('scripts/setup-opencode.ts', ['install', '--verbose', ...common]);
+    assert.match(preserved, /W_SAFE_SKIP/);
+    assert.equal(readFileSync(legacyTarget, 'utf-8'), 'user drift\n');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('main workspace refresh leaves detached HEAD on a local branch and refuses divergence', () => {
+  const root = tmpRoot('main-refresh');
+  const remote = join(root, 'remote.git');
+  const seed = join(root, 'seed');
+  const workspace = join(root, 'workspace');
+  const git = (cwd: string, args: string[]) => execFileSync('git', args, { cwd, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  try {
+    mkdirSync(seed, { recursive: true });
+    git(root, ['init', '--bare', remote]);
+    git(remote, ['symbolic-ref', 'HEAD', 'refs/heads/master']);
+    git(seed, ['init', '--initial-branch=master']);
+    git(seed, ['config', 'user.email', 'legion-test@example.com']);
+    git(seed, ['config', 'user.name', 'Legion Test']);
+    writeFileSync(join(seed, 'state.txt'), 'one\n');
+    git(seed, ['add', 'state.txt']);
+    git(seed, ['commit', '-m', 'initial']);
+    git(seed, ['remote', 'add', 'origin', remote]);
+    git(seed, ['push', '-u', 'origin', 'master']);
+    git(root, ['clone', remote, workspace]);
+    git(workspace, ['checkout', 'origin/master']);
+
+    writeFileSync(join(seed, 'state.txt'), 'two\n');
+    git(seed, ['add', 'state.txt']);
+    git(seed, ['commit', '-m', 'remote update']);
+    git(seed, ['push']);
+
+    nodeScript('skills/git-worktree-pr/scripts/refresh-main-workspace.mjs', [
+      '--repo', workspace, '--remote', 'origin', '--branch', 'master',
+    ]);
+    assert.equal(git(workspace, ['branch', '--show-current']), 'master');
+    assert.equal(git(workspace, ['rev-parse', 'HEAD']), git(workspace, ['rev-parse', 'origin/master']));
+
+    git(workspace, ['config', 'user.email', 'legion-test@example.com']);
+    git(workspace, ['config', 'user.name', 'Legion Test']);
+    writeFileSync(join(workspace, 'local.txt'), 'preserve me\n');
+    git(workspace, ['add', 'local.txt']);
+    git(workspace, ['commit', '-m', 'local divergence']);
+    const localHead = git(workspace, ['rev-parse', 'HEAD']);
+    writeFileSync(join(seed, 'remote.txt'), 'remote divergence\n');
+    git(seed, ['add', 'remote.txt']);
+    git(seed, ['commit', '-m', 'remote divergence']);
+    git(seed, ['push']);
+
+    assert.throws(() => nodeScript('skills/git-worktree-pr/scripts/refresh-main-workspace.mjs', [
+      '--repo', workspace, '--remote', 'origin', '--branch', 'master',
+    ]));
+    assert.equal(git(workspace, ['rev-parse', 'HEAD']), localHead);
+    assert.equal(readFileSync(join(workspace, 'local.txt'), 'utf-8'), 'preserve me\n');
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -153,7 +261,6 @@ test('lgmind interactive install prompts for project scope only', () => {
     assert.match(output, /Choose an install scope:/);
     assert.match(output, /Install scope \[1\/project\]:/);
     assert.match(output, /OK_INSTALL opencode/);
-    assert.match(output, new RegExp(escapeRegExp(join(root, '.legionmind', 'opencode', 'config', 'agents', 'legion.md'))));
     assert.match(output, new RegExp(escapeRegExp(join(root, '.legionmind', 'opencode', 'home', 'skills', 'legion-workflow', 'SKILL.md'))));
   } finally {
     rmSync(root, { recursive: true, force: true });
@@ -165,7 +272,7 @@ test('lgmind project scope maps runtime installs to project-local roots', () => 
   try {
     const opencodeOutput = lgmindBin(['install', '--agent', 'opencode', '--scope', 'project', '--dry-run', '--verbose'], { cwd: root });
     assert.match(opencodeOutput, /OK_INSTALL opencode/);
-    assert.match(opencodeOutput, new RegExp(escapeRegExp(join(root, '.legionmind', 'opencode', 'config', 'agents', 'legion.md'))));
+    assert.match(opencodeOutput, new RegExp(escapeRegExp(join(root, '.legionmind', 'opencode', 'home', 'skills', 'legion-workflow', 'SKILL.md'))));
 
     const openclawOutput = lgmindBin(['install', '--agent', 'openclaw', '--scope', 'project', '--dry-run', '--verbose', '--no-extra-dir'], { cwd: root });
     assert.match(openclawOutput, /OK_INSTALL openclaw/);
@@ -230,7 +337,6 @@ test('npm dry-run package includes CLI and install assets only', () => {
     'scripts/setup-opencode.js',
     'scripts/setup-openclaw.js',
     'scripts/lib/setup-core.js',
-    '.opencode/agents/legion.md',
     'skills/legion-workflow/SKILL.md',
     'README.md',
     'LICENSE',
@@ -238,6 +344,7 @@ test('npm dry-run package includes CLI and install assets only', () => {
   ]) {
     assert.equal(files.has(expected), true, `${expected} should be included in npm package`);
   }
+  assert.equal([...files].some((path) => path.startsWith('.opencode/agents/')), false, 'OpenCode custom agents should not be packaged');
 
   for (const excludedRuntimeTs of [
     'scripts/lgmind.ts',
@@ -284,7 +391,7 @@ test('packed npm package bins run from node_modules without TypeScript stripping
       '--verbose',
     ], { cwd: root });
     assert.match(projectOutput, /OK_INSTALL opencode/);
-    assert.match(projectOutput, new RegExp(escapeRegExp(join(root, '.legionmind', 'opencode', 'config', 'agents', 'legion.md'))));
+    assert.match(projectOutput, new RegExp(escapeRegExp(join(root, '.legionmind', 'opencode', 'home', 'skills', 'legion-workflow', 'SKILL.md'))));
 
     assert.match(installedPackageBin(packageRoot, 'lgmind', [
       'setup',
@@ -314,13 +421,34 @@ test('packed npm package bins run from node_modules without TypeScript stripping
   }
 });
 
+test('damaged package fails closed before pruning installed skills', () => {
+  const root = tmpRoot('damaged-package');
+  try {
+    const packageRoot = join(root, 'node_modules', 'lgmind');
+    const configDir = join(root, 'config');
+    const homeDir = join(root, 'home');
+    mkdirSync(packageRoot, { recursive: true });
+    copyDryRunPackage(packageRoot);
+    const args = ['install', '--config-dir', configDir, '--opencode-home', homeDir];
+    installedPackageBin(packageRoot, 'setup-opencode', args);
+    const target = join(homeDir, 'skills', 'engineer', 'SKILL.md');
+    const before = readFileSync(target, 'utf-8');
+
+    rmSync(join(packageRoot, 'skills', 'engineer'), { recursive: true, force: true });
+    assert.throws(() => installedPackageBin(packageRoot, 'setup-opencode', args));
+    assert.equal(readFileSync(target, 'utf-8'), before, 'required source loss must not retire an installed skill');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('rollback --to selects requested backup batch', () => {
   const root = tmpRoot('rollback-to');
   try {
     const configDir = join(root, 'config');
     const homeDir = join(root, 'home');
     const common = ['--config-dir', configDir, '--opencode-home', homeDir];
-    const target = join(configDir, 'agents', 'legion.md');
+    const target = join(homeDir, 'skills', 'legion-workflow', 'SKILL.md');
 
     nodeScript('scripts/setup-opencode.ts', ['install', ...common]);
     const original = readFileSync(target, 'utf-8');
@@ -368,16 +496,18 @@ test('tampered manifest and backup paths are rejected safely', () => {
     const common = ['--config-dir', configDir, '--opencode-home', homeDir];
     const manifestPath = join(configDir, '.legionmind', 'managed-files.v1.json');
     const backupIndexPath = join(configDir, '.legionmind', 'backup-index.v1.json');
-    const target = join(configDir, 'agents', 'legion.md');
+    const target = join(homeDir, 'skills', 'legion-workflow', 'SKILL.md');
 
     nodeScript('scripts/setup-opencode.ts', ['install', ...common]);
     const manifest = readJson(manifestPath);
     const originalFiles = manifest.files;
-    manifest.files = { [join(configDir, 'agents')]: { ...Object.values(originalFiles)[0], targetPath: join(configDir, 'agents') } };
+    manifest.files = { [join(homeDir, 'skills')]: { ...Object.values(originalFiles)[0], targetPath: join(homeDir, 'skills') } };
     writeJson(manifestPath, manifest);
     assert.throws(() => nodeScript('scripts/setup-opencode.ts', ['uninstall', '--force', ...common]));
-    assert.equal(existsSync(join(configDir, 'agents')), true);
+    assert.equal(existsSync(join(homeDir, 'skills')), true);
 
+    manifest.files = originalFiles;
+    writeJson(manifestPath, manifest);
     writeFileSync(target, 'backup me\n');
     nodeScript('scripts/setup-opencode.ts', ['install', '--force', ...common]);
     const backupIndex = readJson(backupIndexPath);

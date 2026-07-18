@@ -5,11 +5,11 @@ description: 当需要建立、更新或查询 `.legion/wiki` 的任务摘要、
 
 # legion-wiki
 
-维护 Legion synthesis 层。`.legion/tasks/**` 是 raw evidence，`.legion/wiki/**` 是跨任务当前知识，`skills/**` 与 `.opencode/**` 是 schema。它是 `legion-workflow` 的固定 closing stage，但不改 workflow/schema 真源。默认用中文；路径、字段、命令和错误原文保持原样。
+维护 Legion synthesis 层。`.legion/tasks/**` 是 raw evidence，`.legion/wiki/**` 是跨任务当前知识，`skills/**` 与 `.opencode/**` 是 schema。仅当任务产生跨任务仍有效的知识，或 disposition 已明确为 `wiki:write` 时运行；`no-change` 是有效结论，不创建占位页。默认用中文；路径、字段、命令和错误原文保持原样。
 
 ## 何时使用
 
-- 为已完成任务写可查询摘要，或在 report/render evidence 后完成 closing writeback。
+- 为已完成任务写可查询摘要，或在适用的 report/render evidence 后写回 durable knowledge。
 - 查询当前有效决定、模式、维护债务或任务综合结论。
 - 标记 `historical`、`superseded-by`、`schema-version`。
 
@@ -29,6 +29,7 @@ description: 当需要建立、更新或查询 `.legion/wiki` 的任务摘要、
 - 跨任务仍有效的强约束/结论写 `decisions.md`；可复用工作方式写 `patterns.md`；待补证据、迁移或清理写 `maintenance.md`。
 - `index.md` 只维护导航；durable writeback 后按需同步 `log.md`。
 - 不创建平行 playbook，不把 task-local 结论误提升为通用规则。
+- 若判定 `no-change`，在任务交接中写一句理由即可，不创建 task summary 或空 Wiki 条目。
 - closing handoff 使用五字段 `结果 / 变化 / 风险 / 下一步 / 证据`，变化最多三条、证据最多三个 locator，不复制 task 文档。
 
 ## 条件引用

@@ -13,7 +13,6 @@
   },
   "hot": [
     { "path": "AGENTS.md", "maxCharacters": 650 },
-    { "path": ".opencode/agents/legion.md", "maxCharacters": 900 },
     { "path": "skills/legion-workflow/SKILL.md", "maxCharacters": 5500 },
     { "path": "skills/brainstorm/SKILL.md", "maxCharacters": 3700 },
     { "path": "skills/spec-rfc/SKILL.md", "maxCharacters": 2300 },
@@ -37,12 +36,10 @@
   ],
   "closures": {
     "ordinary": [
-      "AGENTS.md",
-      ".opencode/agents/legion.md"
+      "AGENTS.md"
     ],
     "legionEntry": [
       "AGENTS.md",
-      ".opencode/agents/legion.md",
       "skills/legion-workflow/SKILL.md"
     ],
     "mediumImplementation": "hot+mediumAdditional"

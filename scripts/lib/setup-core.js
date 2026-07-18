@@ -430,6 +430,60 @@ export function syncOneFileCore(item          , ctx                  , managedSt
   reporter.emit('OK_SYNC', 'sync', ctx.strategy, item.targetPath, relativeHint(ctx.projectRoot, item.sourcePath));
 }
 
+export function pruneRetiredManagedFilesCore(input
+
+
+
+
+
+ )                                       {
+  let removed = 0;
+  let skipped = 0;
+  for (const [targetPath, meta] of Object.entries(input.managedState.files)) {
+    if (!input.retiredTargetPaths.has(targetPath)) continue;
+    if (!targetWithinManagedRoots(targetPath, input.ctx.managedRoots, { allowRoot: false, requireCanonicalInside: true, rejectSymlinkRoot: true })) {
+      input.reporter.emit('E_PRECHECK', 'prune', 'invalid-target', targetPath, 'obsolete managed file is outside managed roots or its managed root is symlinked');
+      skipped += 1;
+      continue;
+    }
+    if (!existsSync(targetPath)) {
+      delete input.managedState.files[targetPath];
+      continue;
+    }
+
+    const stat = lstatSync(targetPath);
+    const unchanged = stat.isSymbolicLink()
+      ? `symlink:${resolvedLinkTarget(targetPath)}` === meta.checksum
+      : stat.isFile()
+        ? sha256(targetPath) === meta.checksum
+        : false;
+    if (!unchanged && !input.ctx.force) {
+      input.reporter.emit('W_SAFE_SKIP', 'prune', 'user-modified', targetPath, 'obsolete managed file was preserved; review it or rerun install --force');
+      skipped += 1;
+      continue;
+    }
+
+    const backupPath = backupPathFor(targetPath, input.backupBatch.backupId);
+    if (!targetWithinManagedRoots(backupPath, input.ctx.managedRoots, { allowRoot: false, requireCanonicalInside: false, rejectSymlinkRoot: false })) {
+      input.reporter.emit('E_PRECHECK', 'prune', 'invalid-backup', backupPath, 'obsolete managed file backup is outside managed roots');
+      skipped += 1;
+      continue;
+    }
+    if (existsSync(backupPath)) removeTarget(backupPath, input.ctx.dryRun);
+    if (!input.ctx.dryRun) renameSync(targetPath, backupPath);
+    input.backupBatch.entries.push({
+      targetPath,
+      backupPath,
+      reason: 'obsolete-managed-file',
+      preManaged: { ...meta },
+    });
+    delete input.managedState.files[targetPath];
+    removed += 1;
+    input.reporter.emit('OK_PRUNE', 'prune', 'obsolete-managed-file', targetPath, backupPath);
+  }
+  return { removed, skipped };
+}
+
 function relativeHint(root        , path        )         {
   return path.startsWith(root) ? path.slice(root.length + 1) : path;
 }

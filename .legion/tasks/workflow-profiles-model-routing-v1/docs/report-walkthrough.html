@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Legion 分层流程与条件化交付 | 交付审阅</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96% 0.012 92);
+      --surface: oklch(99% 0.006 92);
+      --ink: oklch(24% 0.018 132);
+      --muted: oklch(49% 0.025 132);
+      --line: oklch(82% 0.018 105);
+      --accent: oklch(45% 0.12 153);
+      --soft: oklch(91% 0.05 144);
+      --warn: oklch(91% 0.06 82);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.62; }
+    main { width: min(1120px, calc(100vw - 32px)); margin: 0 auto; padding: 48px 0 72px; }
+    h1, h2 { line-height: 1.18; text-wrap: balance; }
+    h1 { max-width: 22ch; font-size: clamp(2.1rem, 6vw, 4.8rem); margin: .3rem 0 1rem; }
+    h2 { margin-top: 0; }
+    p, li { max-width: 72ch; }
+    code { overflow-wrap: anywhere; }
+    a { color: var(--accent); }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: 32px; align-items: end; margin-bottom: 32px; }
+    .kicker { color: var(--accent); font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+    .status, section { border: 1px solid var(--line); border-radius: 22px; background: var(--surface); padding: 24px; }
+    .status p { margin: .45rem 0; }
+    .pill { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--soft); padding: .08rem .58rem; font-weight: 750; }
+    .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 28px; align-items: start; }
+    nav { position: sticky; top: 18px; display: grid; gap: 8px; }
+    nav a { text-decoration: none; padding: .36rem .55rem; border-radius: 8px; }
+    nav a:hover { background: var(--soft); }
+    section { margin-bottom: 20px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: .94rem; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 10px; overflow-wrap: anywhere; }
+    th { color: var(--muted); }
+    ul, ol { padding-left: 1.35rem; }
+    .empty { color: var(--muted); }
+    .boundary { background: var(--warn); border-radius: 12px; padding: 12px 14px; }
+    @media (max-width: 820px) {
+      .hero, .layout { grid-template-columns: 1fr; }
+      nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      section { overflow-x: auto; }
+    }
+    @media print {
+      body { background: var(--surface); }
+      main { width: 100%; padding: 0; }
+      nav { display: none; }
+      .status, section { break-inside: avoid; box-shadow: none; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">workflow-profiles-model-routing-v1 · 交付审阅</p>
+        <h1>Legion 分层流程与条件化交付</h1>
+        <p>用只升不降的风险 profile 消除固定阶段链悬崖，并让 walkthrough、Wiki、日志、OpenCode 安装权限和主工作区刷新按真实需要工作。</p>
+        <p>审阅者：LegionMind 仓库维护者与工作流使用者</p>
+      </div>
+      <aside class="status" aria-label="当前结论与动作">
+        <p><span class="pill">交付类型 implementation</span> <span class="pill">Profile strict</span> <span class="pill">风险 high</span> <span class="pill">结论 PASS</span></p>
+        <p>审查：<strong>PASS</strong></p>
+        <p>注意力：<strong>skim</strong></p>
+
+        <p><strong>当前唯一人类动作</strong></p>
+        <p>知悉；无需介入。</p>
+        <p class="boundary"><strong>停止点：</strong>允许继续 commit、rebase、push、PR、checks/review、merge、cleanup 与主工作区刷新。</p>
+        <p><strong>最终状态：</strong>实现、验证、独立审查、Wiki 写回与 reviewer artifact 已完成；PR lifecycle 尚未完成</p>
+      </aside>
+    </header>
+    <div class="layout">
+      <nav aria-label="交付审阅导航">
+        <a href="#summary">审阅结论</a>
+        <a href="#attention">当前动作</a>
+        <a href="#claims">认知状态</a>
+        <a href="#verifiers">领域验证</a>
+        <a href="#scope">范围</a>
+        <a href="#evidence">证据地图</a>
+        <a href="#path">交付路径</a>
+        <a href="#changes">变更决定</a>
+        <a href="#verification">验证审查</a>
+        <a href="#risks">风险限制</a>
+        <a href="#checklist">审阅清单</a>
+        <a href="#render">渲染交接</a>
+        <a href="#final">下一阶段</a>
+      </nav>
+      <div>
+        <section id="summary"><h2>审阅结论</h2><p>Lite、Standard、Strict 三档 profile 与独立 delivery/wiki disposition 已落地；控制标签 fail-closed，Strict 强制 walkthrough。OpenCode custom agents 已退出安装面，旧 managed agents 可回滚迁移；权限和主工作区刷新缺口已修复。独立 RFC 与 change review 均 PASS，root 44/44、scheduler 59/59 及完整交付验证通过。</p></section>
+        <section id="attention"><h2>人类注意力与当前动作</h2><p>实现与独立审查均通过；需知悉 scheduler、per-spawn 模型路由与真实效率 benchmark 明确延期，旧 managed agents 需在下次 installer 运行时迁移。</p><p><strong>当前唯一人类动作：</strong>知悉；无需介入。</p><p class="boundary"><strong>lifecycle 边界：</strong>允许继续 commit、rebase、push、PR、checks/review、merge、cleanup 与主工作区刷新。</p><p><strong>证据：</strong><code>.legion/tasks/workflow-profiles-model-routing-v1/docs/test-report.md</code>、<code>.legion/tasks/workflow-profiles-model-routing-v1/docs/review-change.md</code></p></section>
+        <section id="claims"><h2>未解决的认知状态</h2><p class="empty">当前证据未登记需要单独聚合的未解决 claim。</p></section>
+        <section id="verifiers"><h2>领域验证摘要</h2><p class="empty">当前证据未登记领域或权威 verifier。</p></section>
+        <section id="scope"><h2>范围</h2><h3>范围内</h3><ul><li>Lite/Standard/Strict profile、只升不降控制标签与阶段/独立性规则</li><li>条件化 walkthrough、Wiki 与事件驱动日志</li><li>OpenCode custom agents 退役、权限修复与 installer 迁移</li><li>本地默认分支 fast-forward 刷新脚本与回归</li><li>将旧措辞锁定测试改为 profile、迁移、权限和刷新行为测试</li></ul><h3>范围外</h3><ul><li>缩窄外部交付授权</li><li>scheduler prompt、CLI、evidence verifier 或业务源码修改</li><li>Codex/OpenCode per-spawn 模型路由</li><li>真实效率 benchmark</li></ul></section>
+        <section id="evidence"><h2>证据地图</h2><table><thead><tr><th scope="col">证据</th><th scope="col">类型</th><th scope="col">状态</th><th scope="col">locator</th></tr></thead><tbody><tr><td>任务契约</td><td>plan</td><td>PASS</td><td><code>.legion/tasks/workflow-profiles-model-routing-v1/plan.md</code></td></tr><tr><td>最终设计真源</td><td>rfc</td><td>PASS</td><td><code>.legion/tasks/workflow-profiles-model-routing-v1/docs/rfc.md</code></td></tr><tr><td>三轮独立 RFC 审查</td><td>review-rfc</td><td>PASS</td><td><code>.legion/tasks/workflow-profiles-model-routing-v1/docs/review-rfc.md</code></td></tr><tr><td>最终验证报告</td><td>test-report</td><td>PASS</td><td><code>.legion/tasks/workflow-profiles-model-routing-v1/docs/test-report.md</code></td></tr><tr><td>独立变更审查</td><td>review-change</td><td>PASS</td><td><code>.legion/tasks/workflow-profiles-model-routing-v1/docs/review-change.md</code></td></tr></tbody></table></section>
+        <section id="path"><h2>交付路径</h2><ol><li>与用户讨论并锁定最终范围，明确 scheduler、模型路由与 benchmark 延期</li><li>完成 Strict RFC；独立 review-rfc 两轮 FAIL 后关闭 resolved-policy、retired-source 与 contract-only blocker，第三轮 PASS</li><li>实现 profile/disposition、OpenCode 迁移与权限、事件日志和安全刷新</li><li>执行完整回归、scheduler compatibility、context audit、npm package 与 patch hygiene 验证</li><li>独立 review-change 关闭控制标签静默降级与旧规则漂移后 PASS</li><li>生成 Strict walkthrough、写回 durable Wiki 并进入 PR lifecycle</li></ol></section>
+        <section id="changes"><h2>变更与决定</h2><ul><li>风险 low/medium/high 默认映射 Lite/Standard/Strict；显式 profile 只能升级，控制标签错误 fail-closed。</li><li>Lite 为 engineer+verify，Standard 增加独立 change review，Strict 强制 RFC、独立验证/审查和 walkthrough。</li><li>walkthrough 与 Wiki 成为独立 disposition：Strict 强制 walkthrough，Wiki 只写 durable cross-task knowledge。</li><li>日志只在阶段、决策/假设、风险/阻塞或可靠恢复点变化时更新，不再按分钟或编辑单元机械记录。</li><li>删除 `.opencode/agents/*` 和默认 agent；独立执行上下文由会话、内置 review 或 subagent 保留。</li><li>OpenCode 允许 webfetch/websearch，外部目录改为 ask，危险 shell deny 保持。</li><li>installer 只退役显式 agents 根内的旧 managed 文件，缺必需源码 fail-closed，clean 文件备份迁移，用户 drift 默认保留。</li><li>主工作区刷新切回本地默认分支并 merge --ff-only；detached HEAD 被修复，分叉不覆盖。</li></ul></section>
+        <section id="verification"><h2>验证与审查状态</h2><table><thead><tr><th scope="col">检查</th><th scope="col">状态</th><th scope="col">证据</th></tr></thead><tbody><tr><td>根回归 44/44</td><td>PASS</td><td><code>.legion/tasks/workflow-profiles-model-routing-v1/docs/test-report.md</code></td></tr><tr><td>scheduler compatibility 59/59 且核心源码无 diff</td><td>PASS</td><td><code>.legion/tasks/workflow-profiles-model-routing-v1/docs/test-report.md</code></td></tr><tr><td>context audit 与 npm pack dry-run（64 entries）</td><td>PASS</td><td><code>.legion/tasks/workflow-profiles-model-routing-v1/docs/test-report.md</code></td></tr><tr><td>三轮 RFC 审查与最终独立 change review</td><td>PASS</td><td><code>.legion/tasks/workflow-profiles-model-routing-v1/docs/review-change.md</code></td></tr></tbody></table></section>
+        <section id="risks"><h2>风险与限制</h2><table><thead><tr><th scope="col">风险</th><th scope="col">缓解</th></tr></thead><tbody><tr><td>scheduler 仍使用 legacy 全证据链，尚未采用新的 profile 输入。</td><td>本任务保持 scheduler 源码无 diff并运行 59/59 compatibility suite；待系统测试后单独设计迁移。</td></tr><tr><td>旧 managed agents 只在 installer 下次运行时迁移，unmanaged 或用户漂移文件不会自动删除。</td><td>这是保守迁移边界；clean managed 文件进入 backup index 可 rollback，漂移文件告警并保留。</td></tr><tr><td>文件系统 canonical 检查存在通常的 TOCTOU 残余。</td><td>删除范围限定在 manifest 与显式 retired root，拒绝 symlink managed root，并在 destructive action 前复核路径。</td></tr></tbody></table></section>
+        <section id="checklist"><h2>审阅清单</h2><ul><li>确认外部交付授权未被缩窄。</li><li>确认 scheduler prompt/CLI/evidence verifier 与 per-spawn 模型路由没有进入 diff。</li><li>确认控制标签 typo 不会静默降级，Strict 在任一 runKind 都保持 walkthrough。</li><li>确认 OpenCode custom agents 不再打包/安装，迁移与 rollback 行为有回归。</li><li>确认主工作区刷新不 checkout 远端 tracking ref、不 reset、不覆盖分叉。</li><li>确认 PR 合并、worktree cleanup 与主工作区刷新仍需在本报告之后完成。</li></ul></section>
+        <section id="render"><h2>渲染交接</h2><p><strong>PR-backed：</strong>是</p><p><strong>状态：</strong>artifact-only</p><p>本任务不新增 HTML 托管发布链；reviewer 可在 PR 中查看仓库内 HTML/Markdown artifact，PR body 由同一 JSON 生成。</p></section>
+        <section id="final"><h2>最终状态与下一阶段</h2><p><strong>当前状态：</strong>实现、验证、独立审查、Wiki 写回与 reviewer artifact 已完成；PR lifecycle 尚未完成</p><p><strong>下一阶段：</strong>完成 commit、rebase、push、PR、checks/review、merge、cleanup 与主工作区刷新</p><p class="boundary">本报告只证明当前工作树中的实现和 reviewer artifact 已准备，不证明 PR 已创建、checks 已通过、PR 已合并、worktree 已清理或主工作区已刷新。</p></section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
