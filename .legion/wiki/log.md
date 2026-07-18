@@ -1,5 +1,11 @@
 # Legion Wiki Log
 
+## [2026-07-18] release | lgmind-0.5.0-publish
+
+- `lgmind@0.5.0` 已从版本准备 PR #57 的 merge SHA `11890ac495e51f744e68897374a395e26e1dfa08` 通过 trusted-publishing workflow run `29640042610` 发布。
+- npm fixed version 与 `latest` 均为 `0.5.0`；隔离首次安装、幂等复跑、strict verify 与 profile/refresh 关键资产一致性均通过。
+- 新增 `tasks/release-lgmind-0-5-0.md`，将当前 CLI 分发真相从 `0.4.0` 更新为 `0.5.0`。
+
 ## [2026-07-18] writeback | workflow-profiles-model-routing-v1
 
 - 用 Lite/Standard/Strict 最低 profile 取代固定阶段长链，并把 walkthrough/Wiki 拆为独立 disposition。
