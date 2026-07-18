@@ -1,4 +1,4 @@
-# `lgmind` 0.5.0 版本准备验证
+# `lgmind` 0.5.0 发布验证
 
 ## 验证范围
 
@@ -24,12 +24,14 @@
 ## 主张状态
 
 - `REL-050-ARTIFACT`：PASS。待发布包完整包含本次 CLI 安装所需的新资产，版本与包边界一致。
-- `REL-050-DISTRIBUTION`：DEFERRED。必须在版本准备 PR 合并后，从锁定的 `master` 触发 trusted-publishing workflow，并以 registry 与隔离安装结果形成继任结论。
+- `REL-050-DISTRIBUTION`：DEFERRED。该历史状态对应版本准备时点，不追溯改写。
+- `REL-050-DISTRIBUTION-RESULT`：PASS。版本准备 PR #57 合并后，workflow run `29640042610` 从同一 locked SHA 成功发布；registry、首次安装、幂等复跑、strict verify 与关键资产一致性全部通过。完整证据见 `docs/publish-result.md`。
 
 ## 残余风险
 
-- npm 版本不可覆盖；发布 workflow 失败时先查询 registry，禁止盲目重跑。
+- npm 版本不可覆盖；本次已成功发布，后续缺陷只能用新 patch/minor forward-fix。
 - `npm` 输出存在本机 `Unknown env config "tmp"` warning，不影响退出码、artifact 或验证结论。
+- 首轮 smoke fixture 的 `npm init --prefix` 误改主工作区后已精确恢复；当前 `package.json` 与 `HEAD` 无 diff。
 
 ## Verdict
 
@@ -40,10 +42,10 @@ PASS
 - **阶段**: `verify-change`
 - **阶段结论**: `PASS`
 - **注意力等级**: `skim`
-- **判断变化**: `lgmind@0.5.0` artifact 已通过版本、回归、预算、pack 与唯一性门；公开分发仍按 contract 延后到 merge 后。
-- **关键发现**: 新 profile/refresh scripts 已进入包，custom agents 未进入包，scheduler 保持范围外。
+- **判断变化**: `lgmind@0.5.0` artifact 与公开分发均已通过；历史 DEFERRED 由新的 distribution result PASS 继任。
+- **关键发现**: workflow SHA、registry fixed/latest、首次安装、幂等复跑、strict verify 与 profile/refresh 资产一致性全部闭环；custom agents 未进入安装树。
 - **阻塞项**: 无。
-- **残余风险**: npm 版本不可覆盖；发布后必须执行 registry 与干净安装验证。
-- **人类动作**: 知悉；用户已明确要求发布，无需再次确认。
-- **自动下一步**: 独立 `review-change` 后推进版本准备 PR。
-- **完整证据**: `.legion/tasks/release-lgmind-0-5-0/docs/test-report.md`
+- **残余风险**: npm 版本不可覆盖；既有 workflow actions 使用主版本标签，CLI 不覆盖用户 `opencode.json`。
+- **人类动作**: 知悉；无需介入。
+- **自动下一步**: 独立复核发布结果后完成收口 PR。
+- **完整证据**: `.legion/tasks/release-lgmind-0-5-0/docs/test-report.md`、`.legion/tasks/release-lgmind-0-5-0/docs/publish-result.md`
