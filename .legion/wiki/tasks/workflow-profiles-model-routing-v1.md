@@ -3,7 +3,7 @@
 ## Metadata
 
 - `task-id`: `workflow-profiles-model-routing-v1`
-- `status`: `active`
+- `status`: `completed`
 - `risk`: `high`
 - `schema-version`: `profile-disposition-v1`
 - `historical`: `false`
@@ -35,4 +35,4 @@ scheduler 与 per-spawn 模型路由明确延期，本任务未修改 scheduler 
 ## Notes
 
 - 精确规则以 `skills/**`、`opencode.json`、setup scripts 和行为测试为真源。
-- 当前 status 在 PR lifecycle 完成前保持 active。
+- 实现 PR [#55](https://github.com/Thrimbda/legion-mind/pull/55) 已 squash merge；主工作区已切回本地 `master` 并 fast-forward 到 `origin/master`，任务 worktree 已清理。
