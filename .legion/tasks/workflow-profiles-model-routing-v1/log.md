@@ -59,3 +59,10 @@
 - Wiki disposition 判为 `write`：三档 profile、条件 delivery/wiki、custom-agent 退役与安全迁移均是跨任务当前规则。
 - 独立 `review-change-cosmic-panda` 发现并推动关闭控制标签静默降级与旧规则措辞；最终 `Verdict: PASS`、attention `skim`。
 - Strict delivery disposition 判为 `walkthrough`；进入单一 `report-data.json` 渲染交付阶段。
+
+## Lifecycle 终态 (2026-07-18)
+
+- Commit `d8012ca` 已 push 到 `codex/workflow-profiles-model-routing-v1`；PR [#55](https://github.com/Thrimbda/legion-mind/pull/55) 已 squash merge 为 `6522c03`。
+- 仓库无额外 required checks/review 阻塞；独立 change review 与本地完整验证为最终交付门。
+- 新刷新脚本已把主工作区从 detached HEAD 切回本地 `master` 并 fast-forward 到 `origin/master`。
+- `.worktrees/workflow-profiles-model-routing-v1` 已删除；其他用户 worktree 保持不动。
