@@ -1,5 +1,13 @@
 # Legion Decisions
 
+## 决策：同一 Legion task 的 PR 配额固定为 0..1
+
+- 来源任务：`enforce-single-pr-lifecycle-v1`
+- 当前规则：每个 `repoKey + taskId` 最多绑定一个 PR；首次绑定的 host/owner/repo/number identity 不可替换。所有仓库产物与修订必须在该唯一 PR terminal 前进入同一分支。
+- 终态边界：PR merged/closed 后进入 external-only；只允许外部发布/部署、只读验证、worktree cleanup、主工作区 refresh 与最终报告，不再改 task/wiki/report，也不创建 closeout、publish-result、deploy-result、wiki-only 或其他第二 PR。
+- 状态语义：PR-backed task 的 repo evidence 以 `delivery-ready` 结束；GitHub 与 Scheduler 保存 checks/review/merge/cleanup/refresh 的 delivery terminal，不要求合并后把仓库状态追写为 `completed`。
+- 失败语义：纯外部动作可重试；任何需要仓库改动的修复或回滚都结束原 task，只有用户明确创建的新 task 才拥有新的 `0..1` PR 配额。
+
 ## 决策：Legion 任务使用只升不降的三档 profile
 
 - 来源任务：`workflow-profiles-model-routing-v1`

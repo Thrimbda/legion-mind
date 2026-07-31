@@ -21,6 +21,32 @@ function tmpRoot(name: string) {
   return mkdtempSync(join(regressionCacheRoot, `${name}-`));
 }
 
+function git(cwd: string, args: string[]): string {
+  return execFileSync('git', args, { cwd, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+}
+
+function createLifecycleRepo(root: string): { repoPath: string; remotePath: string; head: string } {
+  const remotePath = join(root, 'remote.git');
+  const repoPath = join(root, 'repo');
+  git(root, ['init', '--bare', remotePath]);
+  git(root, ['init', '--initial-branch=master', repoPath]);
+  git(repoPath, ['config', 'user.name', 'Scheduler Test']);
+  git(repoPath, ['config', 'user.email', 'scheduler@example.test']);
+  writeFileSync(join(repoPath, 'README.md'), '# lifecycle fixture\n');
+  git(repoPath, ['add', 'README.md']);
+  git(repoPath, ['commit', '-m', 'initial']);
+  git(repoPath, ['remote', 'add', 'origin', remotePath]);
+  git(repoPath, ['push', '-u', 'origin', 'master']);
+  return { repoPath, remotePath, head: git(repoPath, ['rev-parse', 'HEAD']) };
+}
+
+function commitAndPush(repoPath: string, message: string): string {
+  git(repoPath, ['add', '.']);
+  git(repoPath, ['commit', '-m', message]);
+  git(repoPath, ['push', 'origin', 'master']);
+  return git(repoPath, ['rev-parse', 'HEAD']);
+}
+
 function snapshot(overrides: Partial<WorkItemSnapshotInput> = {}): WorkItemSnapshotInput {
   return {
     linearIssueId: overrides.linearIssueId ?? 'issue-60',
@@ -48,6 +74,7 @@ function prSnapshot(overrides: Partial<PullRequestSnapshot> = {}): PullRequestSn
     mergedAt: overrides.mergedAt ?? null,
     closedAt: overrides.closedAt ?? null,
     headSha: overrides.headSha ?? 'abc123',
+    mergeCommitSha: overrides.mergeCommitSha ?? null,
     checks: overrides.checks ?? { status: 'pending', summary: 'CI pending.' },
     review: overrides.review ?? { decision: 'review_required', summary: 'Awaiting review.' },
     closeReason: overrides.closeReason ?? null,
@@ -98,12 +125,70 @@ test('PR open maps run to in_review and enqueues idempotent Linear native writeb
   }
 });
 
+test('tracker binds explicit and snapshot PR URLs before fetch follow-up or writeback side effects', async () => {
+  const root = tmpRoot('pr-tracker-binding-order');
+  const store = openSchedulerStore(':memory:');
+  try {
+    const explicitConflict = claimRun(store, {
+      linearIssueId: 'issue-explicit-conflict',
+      linearIdentifier: '0XC-60-EXPLICIT-CONFLICT',
+      resourceHints: ['area:explicit-conflict'],
+    }, 'linear-0xc-60-explicit-conflict');
+    store.compareAndBindTaskPr(explicitConflict.runId, 'https://github.com/Thrimbda/legion-mind/pull/301');
+    let fetchCount = 0;
+    const client = {
+      async fetchPullRequest() {
+        fetchCount += 1;
+        return prSnapshot({ url: 'https://github.com/Thrimbda/legion-mind/pull/302' });
+      },
+    };
+    await assert.rejects(
+      trackPrDelivery(store, client, {
+        runId: explicitConflict.runId,
+        prUrl: 'https://github.com/Thrimbda/legion-mind/pull/302',
+        repoPath: root,
+      }),
+      /pr_identity_conflict/,
+    );
+    assert.equal(fetchCount, 0);
+    assert.equal(store.timelineForRun(explicitConflict.runId).some((event) => event.event_type === 'pr_snapshot_observed'), false);
+
+    store.requestNativeStop(explicitConflict.runId, 'finish explicit conflict fixture', { actor: 'test' });
+    const snapshotConflict = claimRun(store, {
+      linearIssueId: 'issue-snapshot-conflict',
+      linearIdentifier: '0XC-60-SNAPSHOT-CONFLICT',
+      resourceHints: ['area:snapshot-conflict'],
+    }, 'linear-0xc-60-snapshot-conflict');
+    const snapshotClient = {
+      async fetchPullRequest() {
+        fetchCount += 1;
+        return prSnapshot({ url: 'https://github.com/Thrimbda/legion-mind/pull/312' });
+      },
+    };
+    await assert.rejects(
+      trackPrDelivery(store, snapshotClient, {
+        runId: snapshotConflict.runId,
+        prUrl: 'https://github.com/Thrimbda/legion-mind/pull/311',
+        repoPath: root,
+      }),
+      /pr_identity_conflict/,
+    );
+    assert.equal(fetchCount, 1);
+    assert.equal(store.timelineForRun(snapshotConflict.runId).some((event) => event.event_type === 'pr_snapshot_observed'), false);
+    assert.equal(store.outboxForRun(snapshotConflict.runId).some((row) => row.idempotency_key.includes(':delivery:pr-url:')), false);
+  } finally {
+    store.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('checks failure and review changes requested block run without downstream unlock', async () => {
   const root = tmpRoot('pr-tracker-blocked');
   const store = openSchedulerStore(':memory:');
   try {
     const claim = claimRun(store, { linearIssueId: 'issue-checks-fail', linearIdentifier: '0XC-60-CHECKS', resourceHints: ['area:checks-fail'] }, 'linear-0xc-60-checks');
     const outcome = await trackPrDelivery(store, new StaticPullRequestClient(prSnapshot({
+      url: 'https://github.com/Thrimbda/legion-mind/pull/61',
       checks: { status: 'failure', summary: 'test failed' },
       review: { decision: 'approved', summary: 'approved' },
     })), { runId: claim.runId, prUrl: 'https://github.com/Thrimbda/legion-mind/pull/61', repoPath: root });
@@ -123,16 +208,19 @@ test('merged PR reaches done only after evidence and lifecycle verifier pass', a
   const root = tmpRoot('pr-tracker-success');
   const store = openSchedulerStore(':memory:');
   try {
+    const lifecycleRepo = createLifecycleRepo(root);
     const claim = claimRun(store);
-    writeEvidenceFixture(root, 'linear-0xc-60', { includeRfc: true });
+    writeEvidenceFixture(lifecycleRepo.repoPath, 'linear-0xc-60', { includeRfc: true });
+    const mergeCommitSha = commitAndPush(lifecycleRepo.repoPath, 'add scheduler evidence');
     const merged = prSnapshot({
       state: 'closed',
       merged: true,
       mergedAt: '2026-06-25T01:00:00.000Z',
+      mergeCommitSha,
       checks: { status: 'success', summary: 'Required checks passed.' },
       review: { decision: 'approved', summary: 'Approved.' },
     });
-    const outcome = await trackPrDelivery(store, new StaticPullRequestClient(merged), { runId: claim.runId, prUrl: merged.url, repoPath: root });
+    const outcome = await trackPrDelivery(store, new StaticPullRequestClient(merged), { runId: claim.runId, prUrl: merged.url, repoPath: lifecycleRepo.repoPath });
 
     assert.equal(outcome.decision, 'done');
     assert.equal(outcome.terminalKind, 'run_terminal_success');
@@ -154,31 +242,41 @@ test('merged PR reaches done only after evidence and lifecycle verifier pass', a
   }
 });
 
-test('merged PR with missing evidence or lifecycle gap remains blocked', async () => {
+test('merged PR with missing repo evidence is terminal non-success while lifecycle gaps remain externally retryable', async () => {
   const root = tmpRoot('pr-tracker-evidence-blocked');
   const store = openSchedulerStore(':memory:');
   try {
+    const lifecycleRepo = createLifecycleRepo(root);
     const merged = prSnapshot({
       state: 'closed',
       merged: true,
       mergedAt: '2026-06-25T01:00:00.000Z',
+      mergeCommitSha: lifecycleRepo.head,
       checks: { status: 'success', summary: 'Required checks passed.' },
       review: { decision: 'approved', summary: 'Approved.' },
     });
 
     const missing = claimRun(store, { linearIssueId: 'issue-missing-evidence', linearIdentifier: '0XC-60-MISSING', resourceHints: ['area:missing-evidence'] }, 'linear-0xc-60-missing');
-    const missingOutcome = await trackPrDelivery(store, new StaticPullRequestClient(merged), { runId: missing.runId, prUrl: merged.url, repoPath: root });
-    assert.equal(missingOutcome.decision, 'blocked');
+    const missingOutcome = await trackPrDelivery(store, new StaticPullRequestClient(merged), { runId: missing.runId, prUrl: merged.url, repoPath: lifecycleRepo.repoPath });
+    assert.equal(missingOutcome.decision, 'terminal_non_success');
+    assert.equal(missingOutcome.terminalKind, 'run_terminal_non_success');
     assert.equal(missingOutcome.verification?.failureType, 'legion_evidence_missing');
+    assert.equal(store.getRun(missing.runId)?.state, 'failed');
     assert.equal(store.getRun(missing.runId)?.failure_type, 'legion_evidence_missing');
+    assert.match(store.getRun(missing.runId)?.failure_reason ?? '', /user-created new task/);
     assert.equal(store.isBlockerSatisfiedByRun(missing.runId).satisfied, false);
+    assert.equal(store.heldLockConflicts(['area:missing-evidence']).length, 0);
+    assert.match(store.outboxForRun(missing.runId).find((row) => row.side_effect === 'final_response')?.payload_json ?? '', /run_terminal_non_success/);
+    assert.equal(store.outboxForRun(missing.runId).some((row) => row.side_effect === 'create_comment'), true);
 
     const lifecycle = claimRun(store, { linearIssueId: 'issue-lifecycle-gap', linearIdentifier: '0XC-60-LIFECYCLE', repoKey: 'legion-mind-lifecycle', resourceHints: ['area:lifecycle-gap'] }, 'linear-0xc-60-lifecycle');
-    const evidence = writeEvidenceFixture(root, 'linear-0xc-60-lifecycle', { includeRfc: true });
-    writeFileSync(join(root, evidence.lifecycle as string), JSON.stringify({ prMerged: true, checksAndReviewComplete: true, worktreeRemoved: true, mainRefreshed: false }));
-    const lifecycleOutcome = await trackPrDelivery(store, new StaticPullRequestClient(merged), { runId: lifecycle.runId, prUrl: merged.url, repoPath: root });
+    writeEvidenceFixture(lifecycleRepo.repoPath, 'linear-0xc-60-lifecycle', { includeRfc: true });
+    const lifecycleMergeSha = commitAndPush(lifecycleRepo.repoPath, 'add lifecycle task evidence');
+    mkdirSync(join(lifecycleRepo.repoPath, '.worktrees', 'linear-0xc-60-lifecycle'), { recursive: true });
+    const lifecycleSnapshot = { ...merged, mergeCommitSha: lifecycleMergeSha };
+    const lifecycleOutcome = await trackPrDelivery(store, new StaticPullRequestClient(lifecycleSnapshot), { runId: lifecycle.runId, prUrl: lifecycleSnapshot.url, repoPath: lifecycleRepo.repoPath });
     assert.equal(lifecycleOutcome.decision, 'blocked');
-    assert.equal(lifecycleOutcome.verification?.failureType, 'lifecycle_blocked');
+    assert.equal(lifecycleOutcome.lifecycle?.failureType, 'lifecycle_blocked');
     assert.equal(store.getRun(lifecycle.runId)?.failure_type, 'lifecycle_blocked');
     assert.equal(store.isBlockerSatisfiedByRun(lifecycle.runId).satisfied, false);
   } finally {
@@ -191,6 +289,7 @@ test('closed-unmerged PR is terminal non-success and does not satisfy downstream
   const root = tmpRoot('pr-tracker-non-success');
   const store = openSchedulerStore(':memory:');
   try {
+    const lifecycleRepo = createLifecycleRepo(root);
     const claim = claimRun(store);
     const closed = prSnapshot({
       state: 'closed',
@@ -200,7 +299,7 @@ test('closed-unmerged PR is terminal non-success and does not satisfy downstream
       checks: { status: 'success', summary: 'Checks passed before rejection.' },
       review: { decision: 'changes_requested', summary: 'Human rejected the change.' },
     });
-    const outcome = await trackPrDelivery(store, new StaticPullRequestClient(closed), { runId: claim.runId, prUrl: closed.url, repoPath: root });
+    const outcome = await trackPrDelivery(store, new StaticPullRequestClient(closed), { runId: claim.runId, prUrl: closed.url, repoPath: lifecycleRepo.repoPath });
 
     assert.equal(outcome.decision, 'terminal_non_success');
     assert.equal(outcome.terminalKind, 'run_terminal_non_success');
@@ -210,6 +309,54 @@ test('closed-unmerged PR is terminal non-success and does not satisfy downstream
     assert.deepEqual(store.isBlockerSatisfiedByRun(claim.runId), { satisfied: false, reason: 'run_terminal_non_success' });
     assert.equal(store.heldLockConflicts(['area:scheduler']).length, 0);
     assert.match(store.outboxForRun(claim.runId).find((row) => row.side_effect === 'final_response')?.payload_json ?? '', /run_terminal_non_success/);
+  } finally {
+    store.close();
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('closed-unmerged PR remains lifecycle_blocked until cleanup and refresh are directly observed', async () => {
+  const root = tmpRoot('pr-tracker-closed-lifecycle');
+  const store = openSchedulerStore(':memory:');
+  try {
+    const lifecycleRepo = createLifecycleRepo(root);
+    const taskId = 'linear-0xc-60-closed-lifecycle';
+    const claim = claimRun(store, {
+      linearIssueId: 'issue-closed-lifecycle',
+      linearIdentifier: '0XC-60-CLOSED-LIFECYCLE',
+      resourceHints: ['area:closed-lifecycle'],
+    }, taskId);
+    const closed = prSnapshot({
+      url: 'https://github.com/Thrimbda/legion-mind/pull/62',
+      state: 'closed',
+      merged: false,
+      closedAt: '2026-06-25T02:00:00.000Z',
+      closeReason: 'closed_unmerged',
+      checks: { status: 'success', summary: 'Checks passed before close.' },
+      review: { decision: 'none', summary: 'No review required.' },
+    });
+    const taskWorktree = join(lifecycleRepo.repoPath, '.worktrees', taskId);
+    mkdirSync(taskWorktree, { recursive: true });
+    const blocked = await trackPrDelivery(store, new StaticPullRequestClient(closed), {
+      runId: claim.runId,
+      prUrl: closed.url,
+      repoPath: lifecycleRepo.repoPath,
+    });
+    assert.equal(blocked.decision, 'blocked');
+    assert.equal(blocked.lifecycle?.ok, false);
+    assert.equal(store.getRun(claim.runId)?.failure_type, 'lifecycle_blocked');
+    assert.equal(store.getTaskPrBindingForRun(claim.runId)?.pr_state, 'closed');
+    assert.equal(store.outboxForRun(claim.runId).some((row) => row.side_effect === 'final_response'), false);
+
+    rmSync(taskWorktree, { recursive: true, force: true });
+    const terminal = await trackPrDelivery(store, new StaticPullRequestClient(closed), {
+      runId: claim.runId,
+      prUrl: closed.url,
+      repoPath: lifecycleRepo.repoPath,
+    });
+    assert.equal(terminal.decision, 'terminal_non_success');
+    assert.equal(terminal.lifecycle?.ok, true);
+    assert.equal(store.getRun(claim.runId)?.state, 'failed');
   } finally {
     store.close();
     rmSync(root, { recursive: true, force: true });

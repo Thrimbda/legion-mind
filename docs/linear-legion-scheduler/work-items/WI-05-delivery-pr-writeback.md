@@ -61,20 +61,20 @@ Final comment 至少包含：
 
 只有 `run_terminal_success` 才能默认解锁 downstream WI。PR open / in_review / canceled / abandoned / closed-unmerged 不解锁。
 
-PR merged 也不是单独的充分条件：scheduler-side Legion evidence verifier 必须通过，且 `git-worktree-pr` lifecycle 必须完成 worktree cleanup 与 main refresh。若 PR merged 但缺少 required evidence，run 进入 `blocked` / `legion_evidence_missing`；若 lifecycle follow-up 缺失，run 进入 `blocked` / `lifecycle_blocked`。两者都不解锁下游。
+PR merged 也不是单独的充分条件：scheduler-side Legion evidence verifier 必须通过，且 Scheduler 必须直接确认 worktree registry/path cleanup、fetch、默认分支、remote base、dirty state 与 merge SHA ancestry。若 PR merged 但缺少 required evidence，run 直接进入 final `run_terminal_non_success` / `failed`，保留 `legion_evidence_missing`、释放 run locks 并写 final response/comment；不得修仓库或用 admin override 恢复原 task，只能由用户新建 task。若直接 lifecycle 观测失败，run 进入 `blocked` / `lifecycle_blocked`。Closed-unmerged 同样先通过 cleanup/refresh 才能进入 terminal non-success。
 
 Closed-unmerged、native stop、admin cancel、human rejected、superseded 必须记录为 `run_terminal_non_success`，释放 locks 只表示该 run 不再活动，不表示 blocker satisfied。
 
 ## 验收标准
 
-- [ ] Run 能关联 PR URL。
+- [ ] `repo_key + task_id` 只能原子绑定一个 PR identity；worker、CLI 和 snapshot URL 不能覆盖或续绑。
 - [ ] Scheduler 能查询 PR checks / review / merge / closed 状态。
 - [ ] PR open 时 Linear 显示 In Review / equivalent。
 - [ ] PR open 时 AgentSession externalUrls 包含 PR URL，并有 activity 说明等待 checks/review。
 - [ ] PR merged、evidence verifier PASS、worktree cleanup 完成、main refresh 完成后，run 才标记 done，释放 locks，触发 reconcile。
-- [ ] PR merged 但 Legion evidence 缺失时不会标记 done，也不会释放 downstream。
+- [ ] PR merged 但 Legion evidence 缺失时进入 final non-success，释放 run locks 但不释放 downstream，并且只能由用户新建 task 恢复。
 - [ ] PR merged 但 cleanup / main refresh 缺失时进入 `lifecycle_blocked`，不会释放 downstream。
-- [ ] Closed-unmerged / cancelled / abandoned 被标记 terminal non-success，不会默认释放 downstream。
+- [ ] Closed-unmerged cleanup / refresh 缺失时同样进入 `lifecycle_blocked`；通过后才标记 terminal non-success。
 - [ ] Checks failing 或 review changes requested 时 run 标记 blocked，并写明 owner / next step。
 - [ ] Linear native writeback 幂等，不因 repeated reconcile 重复发同一条 activity/comment。
 

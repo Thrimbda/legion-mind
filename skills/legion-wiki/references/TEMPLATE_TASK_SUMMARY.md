@@ -3,7 +3,7 @@
 ## Metadata
 
 - `task-id`: `<task-id>`
-- `status`: `active | completed | historical | archived`
+- `status`: `active | delivery-ready | completed | historical | archived`
 - `risk`: `low | medium | high`
 - `schema-version`: `<current-schema-generation>`
 - `historical`: `true | false`
@@ -37,3 +37,4 @@
 - 这里写 summary，不复制 raw docs 正文
 - 若需要更多证据，回到 raw docs
 - 若某个 raw source 在当前 schema 下不存在，就省略该条，不要制造死链，也不要引入 legacy 命名兼容说明。
+- PR-backed task 使用 `delivery-ready`，不在 PR terminal 后追写 `completed`；delivery terminal 查唯一 PR、Scheduler 或最终交接。

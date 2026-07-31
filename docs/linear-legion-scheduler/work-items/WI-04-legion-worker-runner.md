@@ -104,7 +104,7 @@ Worker 返回 PR URL 不足以证明完成。Runner 必须提供 verifier，至�
 - implementation run 有 `plan.md`、`tasks.md`、`log.md`、`docs/test-report.md`、`docs/review-change.md`、`docs/report-walkthrough.md` 和 wiki writeback pointer；
 - medium/high risk implementation 还必须有 `docs/rfc.md`、`docs/review-rfc.md` 且 review PASS；
 - design-only run 必须有 `docs/rfc.md`、`docs/review-rfc.md` PASS、`docs/report-walkthrough.md` 和 wiki writeback pointer；
-- PR-backed run 必须有 `git-worktree-pr` lifecycle evidence：PR merged、checks/review 完成、worktree 已删除、主工作区已刷新；
+- PR-backed run 的所有 PR URL 必须先绑定同一 task-level identity；worker 不自报或写入 merge/cleanup/refresh lifecycle JSON；
 - 缺失 evidence 时 run 不得 Done，不得解锁 downstream。
 
 ## 验收标准
@@ -118,7 +118,7 @@ Worker 返回 PR URL 不足以证明完成。Runner 必须提供 verifier，至�
 - [ ] Native stop/admin cancel 会让 worker 停止后续 tool/code/API side effects，并进入 canceling/cancelled attempt。
 - [ ] Worker result parser 能提取 PR URL、blocked reason、evidence paths。
 - [ ] Evidence verifier 能拒绝“只有 PR URL、缺 Legion evidence”的结果。
-- [ ] Evidence verifier 能拒绝“PR merged 但缺 cleanup / main refresh lifecycle evidence”的结果。
+- [ ] terminal PR binding 后 worker dispatch fail closed；cleanup / refresh 只由 PR tracker 直接观测。
 - [ ] Worker 非零退出不会释放 run 为 done。
 
 ## 验证

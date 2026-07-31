@@ -48,6 +48,7 @@ test('SQLite migration creates WI-02 core tables and service health', () => {
       'run_attempts',
       'runs',
       'scheduler_events',
+      'task_pr_bindings',
       'webhook_events',
       'work_item_snapshots',
     ]);

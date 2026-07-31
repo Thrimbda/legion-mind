@@ -54,6 +54,7 @@ Legion 的入口门、三档 profile 与阶段路由真源。CLI 只是文件工
 - `verify-change`：验证；`review-change`：交付判断；`report-walkthrough`：条件化评审摘要；`legion-wiki`：条件化长期真相写回。
 - 编排器维护 `plan.md`、`log.md`、`tasks.md`；阶段代理写 task `docs/`；wiki 阶段写 `.legion/wiki/**`。
 - 完整判断、日志、diff 和证据落文件；会话与普通 subagent 交接只使用下述五字段格式，不复制 contract 或正文。
+- PR-backed task 的仓库证据在唯一 PR terminal 前收敛为 `delivery-ready`；terminal 后的 merge/checks/cleanup/refresh 或 publish/deploy 事实只进入外部 lifecycle 与最终交接，不再反写 task/wiki。
 
 ```text
 结果: <displayName> · <stage> · <PASS|FAIL|BLOCKED|DONE> · attention:<level>
@@ -77,9 +78,11 @@ Legion 的入口门、三档 profile 与阶段路由真源。CLI 只是文件工
 
 ## 修改型任务终态
 
-进入 `git-worktree-pr` 后默认完成 commit、push 前 fetch/rebase、push、squash PR、auto-merge 尝试、checks/review、merge/closed/confirmed-abandoned 终态、worktree cleanup 与主工作区刷新；用户沉默不是停止条件。禁止直接提交或 push `master/main`，所有产物留在仓库内。
+进入 `git-worktree-pr` 后，每个 `taskId` 的 PR 配额固定为 `0..1`。首次创建或识别 PR 后 identity 不可替换；所有修订只能在该唯一 open PR 中完成。默认完成 commit、push 前 fetch/rebase、push、squash PR、auto-merge 尝试、checks/review、merge/closed/confirmed-abandoned 终态、worktree cleanup 与主工作区刷新；用户沉默不是停止条件。禁止直接提交或 push `master/main`。
 
-只有适用阶段证据、delivery/wiki disposition 已满足，且 PR 到终态、review/checks 已处理、worktree 已删除、主工作区已刷新，才可声明 done。`summary`/`no-change` 是明确判定，不要求占位 walkthrough/Wiki。PR created、blocked handoff、保留 worktree或跳过刷新都不是完成。
+唯一 PR terminal 后设置 external-only 边界：禁止新建或修改 branch、在 worktree 内写文件、commit/push/PR create/update 与 task/log/wiki/report/publish-result/deploy-result 仓库写回；只允许外部 publish/deploy、只读验证、worktree cleanup、refresh 与最终报告。纯外部动作可重试；任何需要仓库修改的修复或回滚都结束当前 task，等待用户明确创建新 task。
+
+只有适用阶段证据、delivery/wiki disposition 已满足，且唯一 PR 到终态、review/checks 已处理、worktree 已删除、主工作区已刷新，才可在外部 lifecycle 中声明 done。repo 内 `delivery-ready` 不等于 delivery terminal，也不要求 terminal 后改写为 `completed`。`summary`/`no-change` 是明确判定，不要求占位 walkthrough/Wiki。PR created、blocked handoff、保留 worktree或跳过刷新都不是完成。
 
 ## 条件参考
 

@@ -14,7 +14,7 @@
 
 ## RFC Heavy
 
-High 或规模信号（跨服务、2+ 里程碑、明显未知项）使用 Heavy：`plan.md + docs/research.md + docs/rfc.md + docs/review-rfc.md`。可用仅设计 Draft PR 集中评审；设计 PR merge 后以 approved-design continuation 实现。
+High 或规模信号（跨服务、2+ 里程碑、明显未知项）使用 Heavy：`plan.md + docs/research.md + docs/rfc.md + docs/review-rfc.md`。设计与实现属于同一 task 时可先在该 task 的唯一 Draft PR 集中评审设计，再在同一 branch/PR 完成实现；不得先 merge 设计 PR 再为同一 task 创建实现 PR。用户明确要求 plan-only/rfc-only 时，该 task 以设计 PR 结束，后续实现必须由用户明确创建新 task。
 
 ## 批准与漂移
 

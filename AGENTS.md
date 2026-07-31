@@ -1,11 +1,9 @@
 # LegionMind 入口规则
 
-先按请求本身分类：
+1. **普通路径**：只读回答/诊断、命令建议或无行为变化的文档整理；不改代码/运行时配置/协议/schema/持久状态，直接完成，不加载 `legion-workflow`。
+2. **明确微操作**：目标明确、无设计分叉、低风险、不涉安全/数据/外部合约/跨模块，且单个检查可验收；直接修改验证，否则升级。
+3. **Legion 路径**：多步骤、范围/验收不稳、中高风险、跨模块或用户明确要求 Legion。探索、追问、写入或派生前先加载 `legion-workflow`；bypass 优先。
 
-1. **普通路径**：不修改代码、运行时配置、协议/schema 或持久状态的工作，包括回答、解释、总结、状态检查、只读审阅/诊断、给命令及不改变行为的文档整理，直接完成，不加载 `legion-workflow`。
-2. **明确微操作**：目标和位置明确、无设计分叉、低风险、不涉及安全/数据/外部合约/跨模块，且一个有界检查即可验收，直接修改并验证；任一条件失效就停止并升级。
-3. **Legion 路径**：多步骤、范围或验收不稳、中高风险、跨模块，或用户明确要求 Legion。探索文件/git、追问、写入或派生前必须先加载 `legion-workflow`；用户显式 bypass 优先。
+仅为并行或 Standard/Strict 独立审查/验证派生子代理。运行 `skills/legion-workflow/scripts/subagent-name.mjs`；职责用 `agentType`，回显用 `displayName`，API 支持才传 `transportId`。
 
-只为并行工作或 Standard/Strict 的独立审查/验证派生子代理。派生前运行 `skills/legion-workflow/scripts/subagent-name.mjs`；职责用 `agentType`，回显用 `displayName`，API 支持时才传 `transportId`。
-
-修改型 Legion 任务还必须加载 `git-worktree-pr`：只在 `.worktrees/<task-id>/` 开发，完成 commit、push 前 rebase、squash PR、checks/review、终态、cleanup 与主工作区刷新；禁止直接修改或提交主分支。所有产物留在仓库内。
+修改型 Legion 任务须加载 `git-worktree-pr`，仅在 `.worktrees/<task-id>/` 开发，完成 rebase、squash PR、checks/review、终态、cleanup 与主工作区刷新；不得提交主分支。每个 `taskId` 的 PR 配额为 `0..1`；仓库变更须在唯一 PR terminal 前进入其分支，terminal 后只允许外部验证/报告、cleanup、refresh，禁止第二 PR。

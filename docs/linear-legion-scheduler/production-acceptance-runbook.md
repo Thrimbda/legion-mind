@@ -164,7 +164,7 @@ sops exec-env secrets/linear-scheduler.sops.yaml 'npm --prefix scheduler run deb
 - open / draft / pending PR 不会变成 Done。
 - checks failure 和 review changes requested 会进入 blocked。
 - closed-unmerged 会成为 terminal non-success。
-- merged PR 仍然要求 Legion evidence 和 lifecycle evidence。
+- merged PR 仍然要求 Legion evidence，并由 Scheduler 直接通过 Git/worktree/fetch/base/merge ancestry 观测 lifecycle；不接受 task 目录内的 lifecycle JSON。
 
 停止条件：
 

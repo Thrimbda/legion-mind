@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-07-31] writeback | enforce-single-pr-lifecycle-v1
+
+- 把每个 `repoKey + taskId` 的 PR 配额固定为 `0..1`，首次 identity write-once；同一 task 不再允许 closeout、publish-result、deploy-result、wiki-only 或 replacement PR。
+- 引入 `delivery-ready` repo 状态与 external-only terminal：merge/closed 后的 checks/review、publish/deploy、cleanup、refresh 只进入 GitHub/Scheduler/最终交接，不再反写 task/wiki/report。
+- Scheduler 新增 task-level 原子 binding 与 direct Git/worktree lifecycle observer；legacy 多 identity 冲突冻结，terminal 后 worker dispatch fail closed。
+- migration 对历史 `done` 绑定写 `merged`，其他单一 legacy identity 写 `unknown` 并等待同一 PR 的 tracker 观察；merged 后缺 repo evidence 直接 final non-success，不再允许 original-task repair。
+
 ## [2026-07-18] release | lgmind-0.5.0-publish
 
 - `lgmind@0.5.0` 已从版本准备 PR #57 的 merge SHA `11890ac495e51f744e68897374a395e26e1dfa08` 通过 trusted-publishing workflow run `29640042610` 发布。

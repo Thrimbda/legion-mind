@@ -1,0 +1,89 @@
+Adversarial probes — enforce-single-pr-lifecycle-v1
+Date: 2026-07-31
+
+These probes were executed against the current implementation after the independent
+review-change FAIL. They intentionally exercise the two previously blocking paths.
+
+1. Fresh, historical-done, and ambiguous legacy bindings
+--------------------------------------------------------
+Observed:
+{
+  "fresh": {
+    "state": "open"
+  },
+  "legacyDone": {
+    "state": "merged",
+    "launched": false,
+    "outcome": "launch_failed"
+  },
+  "legacyUnknown": {
+    "initialOutcome": "launch_failed",
+    "launchedBeforeTracker": false,
+    "trackerDecision": "in_review",
+    "stateAfterTracker": "open",
+    "launchedAfterTracker": true,
+    "resumedOutcome": "in_review"
+  }
+}
+
+Interpretation:
+- A brand-new task is bound to exactly one PR and starts in open state.
+- A legacy binding with any historical done run backfills to merged; a later run
+  cannot invoke the repository worker.
+- An ambiguous legacy binding backfills to unknown; the worker is rejected before
+  launch. Only tracker observation of the same bound PR as open changes it to open,
+  after which work may resume on that same PR identity.
+
+2. Real schema migration, v5 to v6
+----------------------------------
+Passing targeted regression:
+  ✔ v5 PR binding migration marks ambiguous legacy rows unknown and historical done rows merged
+
+Fixture semantics:
+- Recreated the actual v5 task_pr_bindings CHECK constraint
+  (pr_state IN ('open', 'merged', 'closed')).
+- Removed migration record 6, closed the store, and reopened it through the current
+  migration path.
+- Verified ambiguous legacy rows become unknown.
+- Verified rows associated with historical done runs become merged.
+- Verified migration 6 is recorded and rebuilt table SQL accepts unknown.
+
+This is an exercised v5-to-v6 migration, not merely a fresh-database schema check.
+
+3. Merged PR with missing repository evidence
+---------------------------------------------
+Observed:
+{
+  "terminal": {
+    "decision": "terminal_non_success",
+    "terminalKind": "run_terminal_non_success",
+    "runState": "failed",
+    "failureType": "legion_evidence_missing",
+    "deliveryGate": "failed",
+    "evidenceStatus": "missing",
+    "locksHeld": 0,
+    "blockerSatisfied": false,
+    "downstreamEvent": false,
+    "finalResponse": true,
+    "comment": true
+  },
+  "sameTaskRetry": {
+    "bindingState": "merged",
+    "launched": false,
+    "outcome": "launch_failed"
+  }
+}
+
+Interpretation:
+- Missing repository evidence after merge is a final non-success state.
+- Locks are released, but the blocker is not satisfied and no downstream event is
+  emitted.
+- The terminal result is surfaced through a final response and comment.
+- The original task remains bound to the merged PR and cannot launch repair work or
+  create another PR. Recovery requires a user-created new task.
+
+Probe conclusion
+----------------
+Both former blockers are closed under active counterexample testing. No observed
+path allows the original task to launch repository work after its bound PR is merged,
+closed, conflicted, or still unknown.

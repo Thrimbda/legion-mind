@@ -6,7 +6,7 @@
 
 ## 1. 黄金法则
 
-1.  **事件驱动**: 只在阶段/Verdict、目标/scope/风险/假设、实现或回滚决定、blocker/外部依赖、PASS/FAIL 证据、handoff/恢复点、PR lifecycle 状态发生变化时更新 `log.md`。无新信息时不按时间刷新，也不记录“仍在运行”。
+1.  **事件驱动**: 只在阶段/Verdict、目标/scope/风险/假设、实现或回滚决定、blocker/外部依赖、PASS/FAIL 证据、handoff/恢复点发生变化时更新 `log.md`。唯一 PR open 时可在同一 PR 中记录有恢复价值的 lifecycle 变化；PR terminal 后的 merge/cleanup/refresh/publish/deploy 状态只写外部交接，禁止再改 `log.md` 或创建第二 PR。无新信息时不按时间刷新，也不记录“仍在运行”。
 2.  **决策追踪**: 只要选择会改变实现、回滚、验证或风险接受，就记录在 `log.md` 的决策表中；与思考耗时无关。
 3.  **显式阻塞**: blocker 一旦改变下一步或 owner，立即加入 `log.md` 的 **Blocked** (阻塞/待定) 区域。
 4.  **原子任务**: `tasks.md` 中的条目必须可验证。“修复 Bug”是坏任务；“修复 AuthHandler 中的空指针异常”是好任务。
@@ -68,3 +68,5 @@
 4.  **Code**: 在当前 contract 内实现；普通编辑不按次数写日志。
 5.  **Event**: 只在阶段结论、决策/假设变化、风险/阻塞变化或可靠恢复点更新 `tasks` / `log`。
 6.  **End**: `verify-change`；Standard/Strict 再做独立 `review-change`，最后按事件写交接。
+
+PR-backed task 在仓库内以 `delivery-ready` 结束；外部 lifecycle 再决定 delivery terminal。不要把 repo 状态保持 `active` 当成 post-merge closeout PR 的理由。

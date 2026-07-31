@@ -46,7 +46,7 @@ Usage:
   npm run debug -- scan fixture --fixture <snapshot.json> [--db <path|:memory:>]
   npm run debug -- dispatch fixture --fixture <snapshot.json> [--db <path|:memory:>] [--global-concurrency <n>] [--per-project-concurrency <n>] [--per-repo-concurrency <n>]
   npm run debug -- worker dispatch --run <run-id> --attempt <attempt-id> --repo <repo-path> [--db <path|:memory:>] [--timeout-ms <ms>]
-  npm run debug -- delivery track --run <run-id> --repo <repo-path> [--pr-url <url>] [--fixture <pr-snapshot.json>] [--db <path|:memory:>] [--token-env GITHUB_TOKEN]
+  npm run debug -- delivery track --run <run-id> --repo <repo-path> [--pr-url <url>] [--fixture <pr-snapshot.json>] [--base-ref origin/master] [--db <path|:memory:>] [--token-env GITHUB_TOKEN]
 
 Commands:
   health        Apply migrations and print DB health as JSON
@@ -234,10 +234,17 @@ async function runDelivery(argv: string[], dbPath: string) {
     const client = fixtureSnapshot
       ? new StaticPullRequestClient(fixtureSnapshot)
       : createGitHubRestPullRequestClient({ token: process.env[valueAfter(argv, '--token-env') ?? 'GITHUB_TOKEN'] });
+    const baseRef = valueAfter(argv, '--base-ref') ?? 'origin/master';
+    const separator = baseRef.indexOf('/');
+    if (separator <= 0 || separator === baseRef.length - 1) {
+      throw new Error('delivery track --base-ref must be <remote>/<branch>.');
+    }
     const result = await trackPrDelivery(store, client, {
       runId,
       prUrl: explicitPrUrl ?? fixtureSnapshot?.url ?? null,
       repoPath,
+      remote: baseRef.slice(0, separator),
+      baseBranch: baseRef.slice(separator + 1),
       traceId: valueAfter(argv, '--trace-id'),
     });
     printJson(result);
