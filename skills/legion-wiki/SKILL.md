@@ -9,7 +9,7 @@ description: 当需要建立、更新或查询 `.legion/wiki` 的任务摘要、
 
 ## 何时使用
 
-- 为已完成任务写可查询摘要，或在适用的 report/render evidence 后写回 durable knowledge。
+- 为 repo evidence 已完成的任务写可查询摘要，或在适用的 report/render evidence 后写回 durable knowledge。
 - 查询当前有效决定、模式、维护债务或任务综合结论。
 - 标记 `historical`、`superseded-by`、`schema-version`。
 
@@ -31,6 +31,7 @@ description: 当需要建立、更新或查询 `.legion/wiki` 的任务摘要、
 - 不创建平行 playbook，不把 task-local 结论误提升为通用规则。
 - 若判定 `no-change`，在任务交接中写一句理由即可，不创建 task summary 或空 Wiki 条目。
 - closing handoff 使用五字段 `结果 / 变化 / 风险 / 下一步 / 证据`，变化最多三条、证据最多三个 locator，不复制 task 文档。
+- PR-backed task 的 summary 在唯一 PR terminal 前写为 `delivery-ready`，只描述该 commit 可证明的当前规则与证据。merge/closed、cleanup、refresh 或 publish/deploy 结果留在 GitHub/Scheduler/最终交接；禁止为改成 `completed` 或追写终态创建第二 PR。
 
 ## 条件引用
 

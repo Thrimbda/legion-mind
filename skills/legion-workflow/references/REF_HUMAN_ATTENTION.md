@@ -50,7 +50,7 @@
 |---|---|---|
 | `none` | PASS 且无判断变化、阻塞或残余风险 | 一行投影后正常前进；完整 lifecycle 可继续 |
 | `skim` | 有信息增量但无需介入；明确的普通实现失败至少为此级 | 投影最多三条变化后，按 Verdict 前进或回退；完整 lifecycle 可继续 |
-| `review` | 非阻塞证据限制、高影响残余风险或需最终复核 | 可继续后续证据、walkthrough、wiki、commit、push、PR、checks；禁止 auto-merge、merge、cleanup 和完成声明，直至复核落盘 |
+| `review` | 非阻塞证据限制、高影响残余风险或需最终复核 | 可继续后续证据、walkthrough、wiki、commit、push、唯一 PR、checks；禁止 auto-merge、merge、cleanup 和完成声明，直至复核落盘 |
 | `decide` | 互斥方案、风险接受、权限/权威证据，或核心主张不可证明 | 停止阶段转换、自动重试和普通 FAIL 回退；只可落盘证据或更新决策说明，等待决定后重跑 |
 
 `decide` 高于阶段 `FAIL`；其下一步必须是“等待人类决定”。`review` 是 merge 门，不阻止准备 reviewer artifact。
@@ -61,6 +61,8 @@
 2. 在派生、普通回退或继续 PR lifecycle 前向用户投影五字段消息。
 3. 执行对应门禁；不能用“详见文件”隐藏 `FAIL/review/decide`。
 4. `review/decide` 的复核或决定写入 `log.md`，同步 `tasks.md`，再从声明点恢复。
+
+所有 PR 动作服从 task 的 `0..1` 配额。attention 只能暂停或恢复同一 PR lifecycle，不能授权 replacement、follow-up 或 terminal 后的第二 PR。
 
 `none` 可压成一行；`skim` 只展示增量；`review` 明示复核原因与 merge 停止点；`decide` 只问一个问题，提供必要选项、取舍、推荐和恢复阶段。同一事实由多个 verifier 报告时合并，不按代理数量放大置信度；额外建议只报数量和证据入口。
 

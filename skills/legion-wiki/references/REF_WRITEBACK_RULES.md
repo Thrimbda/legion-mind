@@ -43,3 +43,11 @@
 - `outcome summary`
 - `reusable decisions`
 - raw source links
+
+## PR-backed task 状态边界
+
+- 唯一 PR 内 repo evidence 完成时使用 `delivery-ready`。
+- `delivery-ready` 不声称 PR merged，也不需要 terminal 后改成 `completed`。
+- GitHub/checks/review、cleanup、refresh 与 publish/deploy 终态只写外部 lifecycle。
+- 禁止 closeout、publish-result、deploy-result、wiki-only 或任何第二 PR。
+- `completed` 只用于无 PR 即可在当前仓库快照内完整证明的任务和历史兼容。

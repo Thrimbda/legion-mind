@@ -19,6 +19,8 @@ description: 当需要创建、更新、校验 `.legion` 任务文档，或判�
 
 `plan.md` 是面向 tech lead 的唯一任务契约，不写 mini-RFC、测试输出或调试日志；`tasks.md` 只保留状态；raw task docs 不兼任 wiki。
 
+PR-backed task 的 raw docs 在唯一 PR 内停在 `delivery-ready`。PR terminal、cleanup、refresh 或 publish/deploy 结果属于外部 lifecycle，不得为了追写这些事实再修改 `plan.md`、`log.md`、`tasks.md` 或创建第二 PR。
+
 ## 注意力与决定
 
 - `review-rfc`、`verify-change`、`review-change` 的完整 `## 会话注意力摘要` 分别内嵌于 `docs/review-rfc.md`、`docs/test-report.md`、`docs/review-change.md`。

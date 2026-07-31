@@ -1,0 +1,87 @@
+Verification matrix — enforce-single-pr-lifecycle-v1
+Date: 2026-07-31
+
+Supersession
+------------
+The earlier verifier PASS (70 scheduler tests / 47 regression tests) applied to an
+older diff. Independent review-change subsequently found two blocking gaps. That
+PASS is invalidated and is not evidence for this verdict. Everything below was
+rerun against the current post-fix diff.
+
+1. Scheduler unit/integration suite
+-----------------------------------
+Command:
+  npm --prefix scheduler test
+
+Result:
+  exit 0
+  tests 73
+  pass 73
+  fail 0
+
+Relevant passing cases:
+  ✔ task PR binding write-once semantics reject a second PR identity
+  ✔ v5 PR binding migration marks ambiguous legacy rows unknown and historical done rows merged
+  ✔ concurrent first bind allows only one PR identity
+  ✔ merged PR with missing repo evidence is terminal non-success while lifecycle gaps remain externally retryable
+  ✔ legacy done PR backfills as merged and a new run never launches a repository worker
+  ✔ legacy non-done PR remains unknown until tracker observes open, then the same PR may resume
+
+2. Repository regression suite
+------------------------------
+Command:
+  npm run test:regression
+
+Result:
+  exit 0
+  tests 48
+  pass 48
+  fail 0
+
+Relevant passing cases:
+  ✔ Legion policy surfaces preserve one-PR task lifecycle
+  ✔ terminal external-only/delivery-ready boundaries remain explicit
+  ✔ legacy text cannot authorize a second PR or post-terminal repair
+  ✔ Scheduler legacy bindings and terminal evidence failures cannot reopen repository work
+
+3. Context audit
+----------------
+Command:
+  npm run audit:context
+
+Result:
+  exit 0
+  hot: 26742 / 42000
+  medium: 38095 / 59000
+  unbudgetedRequiredReferences: []
+  failures: []
+
+4. Package dry run
+------------------
+Command:
+  npm run pack:dry-run
+
+Result:
+  exit 0
+  package: lgmind@0.5.0
+  package size: 108919 bytes
+  unpacked size: 365297 bytes
+  shasum: 4f047bf67f932c502c7b20e86b410857ad481ad4
+  entry count: 64
+  bundled dependencies: []
+
+5. Patch hygiene
+----------------
+Command:
+  git diff --check
+
+Result:
+  exit 0
+  no output
+
+Matrix conclusion
+-----------------
+All required automated checks passed on the current diff. The targeted cases cover
+fresh task binding, real v5-to-v6 legacy migration, pre-launch unknown/merged gates,
+terminal missing-evidence behavior, policy-surface consistency, packaging, and patch
+hygiene.

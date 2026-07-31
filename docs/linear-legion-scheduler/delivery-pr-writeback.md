@@ -9,10 +9,10 @@
 
 WI-05 增加 scheduler-side delivery layer，用来在 worker 产出 PR 后观察 GitHub PR state。Worker runner 仍能解析 PR URL 并验证 Legion evidence，但不再把 worker 自报的 `done` 结果单独视为 terminal success。现在 terminal success 必须由 PR tracker 组合判断：
 
-1. 持久化的 scheduler run identity 和 PR URL；
+1. `task_pr_bindings` 中以 `repo_key + task_id` 持久化、write-once 的 PR identity；
 2. GitHub PR snapshot：open/draft、checks、review、merged/closed state；
 3. scheduler-side Legion evidence verifier result；
-4. `git-worktree-pr` lifecycle evidence：PR merged、checks/review complete、worktree removed、main refreshed；
+4. Scheduler 对 Git worktree registry、固定 worktree path、fetch、默认分支、remote base、dirty state 与 merge commit ancestry 的直接观测；
 5. 最终 Linear native writeback 被幂等排队。
 
 交付源码：
@@ -20,14 +20,15 @@ WI-05 增加 scheduler-side delivery layer，用来在 worker 产出 PR 后观�
 | 路径 | 用途 |
 |---|---|
 | `scheduler/src/pr-tracker.ts` | PR snapshot model、GitHub adapter boundary、PR delivery decision mapping、terminal success/non-success gate 和 Linear writeback outbox enqueueing |
-| `scheduler/src/sqlite-store.ts` | 增加 WI-05 native writeback side effects 和 migration guard；暴露 evaluated snapshot lookup 供 risk-aware evidence verification 使用 |
-| `scheduler/src/worker-runner.ts` | 把 worker `done` handling 改为停在 `in_review`，直到 PR tracker 验证 GitHub terminal state；扩展 comments、labels 和 state mapping 的 native adapter payloads |
+| `scheduler/src/sqlite-store.ts` | 提供 task-level PR binding migration、原子 compare-and-bind、terminal latch 与 evaluated snapshot lookup |
+| `scheduler/src/git-lifecycle.ts` | 直接执行并记录 cleanup/refresh 与 merge ancestry 观测，不读取 worker 自报 lifecycle JSON |
+| `scheduler/src/worker-runner.ts` | 把 worker `done` 停在 `in_review`，并在任何 PR URL 结果副作用前绑定 identity；terminal latch 后拒绝 repository worker |
 | `scheduler/src/cli.ts` | 增加支持 fixture 或 GitHub REST mode 的 `delivery track` debug command |
 | `scheduler/tests/linear-pr-tracker.test.ts` | 覆盖 PR state mapping、terminal gate、writeback idempotency、evidence/lifecycle negative cases 和 CLI fixture |
 
 ## 2. PR delivery decision model
 
-`trackPrDelivery(store, client, options)` 是 scheduler entry point。它从 DB 读取 run，从显式输入或 `runs.pr_url` 解析 PR URL，通过 adapter 获取 `PullRequestSnapshot`，记录 `pr_snapshot_observed`，并应用集中 decision table：
+`trackPrDelivery(store, client, options)` 是 scheduler entry point。显式 URL、兼容 `runs.pr_url` 与 GitHub snapshot URL 都必须先经过同一 `compareAndBindTaskPr()`；identity 冲突在 fetch 或后续 writeback/state 副作用前 fail closed。随后 tracker 记录 `pr_snapshot_observed` 并应用集中 decision table：
 
 | PR snapshot | Run effect | Downstream unlock |
 |---|---|---|
@@ -35,9 +36,10 @@ WI-05 增加 scheduler-side delivery layer，用来在 worker 产出 PR 后观�
 | checks failing | `blocked`, `failure_type = pr_blocked` | no |
 | review changes requested | `blocked`, `failure_type = pr_blocked` | no |
 | merged + checks/review resolved + Legion evidence PASS + lifecycle complete | `done`, `delivery_gate_status = passed`, `evidence_status = passed`, locks released, downstream reconcile event recorded, enqueue final response/comment/state/labels | yes |
-| merged + missing Legion evidence | `blocked`, `failure_type = legion_evidence_missing` | no |
-| merged + lifecycle evidence incomplete | `blocked`, `failure_type = lifecycle_blocked` | no |
-| closed-unmerged / rejected / duplicate | terminal non-success（`failed`），delivery gate failed，locks released，enqueue final non-success writeback | no |
+| merged + missing Legion evidence | final non-success（`failed`），preserve `failure_type = legion_evidence_missing`，release locks，enqueue final response/comment；repository repair is forbidden and recovery requires a user-created new task | no |
+| merged + direct cleanup/refresh/ancestry observation incomplete | `blocked`, `failure_type = lifecycle_blocked` | no |
+| closed-unmerged / rejected / duplicate + direct cleanup/refresh complete | terminal non-success（`failed`），delivery gate failed，locks released，enqueue final non-success writeback | no |
+| closed-unmerged + cleanup/refresh incomplete | `blocked`, `failure_type = lifecycle_blocked`; only external lifecycle retry is allowed | no |
 | cancelled | terminal non-success（`cancelled`） | no |
 | abandoned / superseded | terminal non-success（`abandoned`） | no |
 
@@ -89,7 +91,7 @@ WI-05 之前，`processOpenCodeWorkerDispatch()` 可以在 evidence verification
 2. Worker dispatch outbox row 标记为 sent，并记录 `pr_tracking_required` event。
 3. PR tracker 后续必须验证 GitHub merged/checks/review state，才能给出 terminal success。
 
-这可以防止 worker self-attestation 或 lifecycle evidence 单独 unlock downstream WIs。
+这可以防止 worker self-attestation 解锁 downstream WIs。当前入口首次绑定的新 PR 直接记为 `open`。只有旧数据存在唯一 PR identity 但无法证明状态时，binding 才迁移为 `unknown`，repository worker 必须等待 tracker 对同一 PR 观测到 `open` 才能恢复；历史 Scheduler run 已是 `done` 时直接迁移为 `merged`。PR 一旦观测为 merged/closed，task binding 进入不可逆 external-only latch；worker dispatch 和新的 repository/PR 路径 fail closed，仅 tracker cleanup/refresh、纯外部动作和只读验证可重试。若 merged 后发现 Legion evidence 缺失，则直接写入 final non-success 并释放 run locks，不能通过修仓库或 admin override 恢复原 task；只能由用户新建 task。
 
 ## 6. Debug 命令
 
@@ -109,6 +111,7 @@ GitHub REST mode：
 GITHUB_TOKEN=... npm --prefix scheduler run debug -- delivery track \
   --run <run-id> \
   --repo <repo-path> \
+  --base-ref origin/master \
   --pr-url https://github.com/OWNER/REPO/pull/123 \
   --db .cache/linear-scheduler/dev.sqlite
 ```

@@ -1,0 +1,63 @@
+Static policy audit — enforce-single-pr-lifecycle-v1
+Date: 2026-07-31
+
+Surfaces scanned
+----------------
+- AGENTS.md
+- README.md
+- skills/legion-workflow/**
+- skills/git-worktree-pr/**
+- skills/legion-docs/**
+- skills/legion-wiki/**
+- skills/report-walkthrough/**
+- docs/linear-legion-scheduler/rfc.md
+- docs/linear-legion-scheduler/delivery-pr-writeback.md
+- docs/linear-legion-scheduler/worker-runner.md
+- docs/linear-legion-scheduler/scheduler-core-sqlite.md
+- docs/linear-legion-scheduler/linear-wi-contract-policy.md
+- docs/linear-legion-scheduler/WI-05-delivery-pr-writeback.md
+
+Result
+------
+{
+  "forbiddenMatches": [],
+  "required": {
+    "rootSinglePr": true,
+    "schedulerUnknownGate": true,
+    "schedulerNewTaskRecovery": true,
+    "schedulerNoQuotaRenewal": true
+  }
+}
+
+The forbidden-pattern scan included legacy language that could authorize a second
+PR, post-terminal repair on the original task, quota renewal, or continued design
+work after the delivery PR reached a terminal state.
+
+Current diff provenance
+-----------------------
+Tracked diff SHA-256:
+  3e0a0852e00b00d7788be888a62ae19eef4425592df9c5cb461c5dfc1a28b718
+
+Selected file SHA-256:
+  scheduler/src/sqlite-store.ts
+    5d5449e1d728009d20b3f8418b6e20784acb42272a23ec4dce5074ceb82ab5f0
+  scheduler/src/pr-tracker.ts
+    bcaf541c583c8f5bcd6a51ea8de4dffbd754a53894dd8464cb74458c6a21055f
+  scheduler/src/worker-runner.ts
+    f6b4d2e804d3926cb646505eeaf7fb90883f15e20fa0008aa1a359985e90a739
+  scheduler/tests/linear-pr-binding.test.ts
+    0e69340da5aa3d4a94c5f8b67c0037de2cea81135e5c8d74f18ef4134f1d19c8
+  scheduler/tests/linear-pr-tracker.test.ts
+    d504fb490c99503f616ccfe6a8ae42a34015241a34a540b96c1c9bf79356921a
+  scheduler/tests/linear-worker-runner.test.ts
+    01866971e5eb34c18499236ea868853a33dab4cfe303d592f375713116d759b5
+  tests/regression/single-pr-lifecycle.test.ts
+    692bd2a17e65c12114de52822448572992c62a102628f41cb9d8a5af8fe90f41
+
+Interpretation
+--------------
+The current root, workflow, delivery, documentation, wiki, report, and Scheduler
+surfaces consistently state that a task owns one immutable PR identity. They do not
+retain older repair or second-PR authorization. Ambiguous legacy state fails closed
+as unknown, and terminal recovery is explicitly a new user-created task rather than
+renewed repository work on the original task.

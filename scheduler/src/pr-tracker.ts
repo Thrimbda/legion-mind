@@ -2,6 +2,9 @@ import type { DeliveryGateStatus, EvidenceStatus, RiskLevel, RunRow, SchedulerSt
 import { stableHash, stableStringify } from './sqlite-store.ts';
 import type { RunState } from './state-machine.ts';
 import { isTerminalRunState } from './state-machine.ts';
+import { observeLocalGitLifecycle } from './git-lifecycle.ts';
+import type { LocalLifecycleObservation } from './git-lifecycle.ts';
+import { canonicalizePullRequestUrl } from './pr-identity.ts';
 import { defaultEvidencePaths, verifyLegionEvidence } from './worker-runner.ts';
 import type { EvidenceVerificationResult, WorkerResultBlock } from './worker-runner.ts';
 
@@ -18,6 +21,7 @@ export interface PullRequestSnapshot {
   mergedAt?: string | null;
   closedAt?: string | null;
   headSha?: string | null;
+  mergeCommitSha?: string | null;
   checks: {
     status: PullRequestChecksStatus;
     summary?: string | null;
@@ -43,6 +47,7 @@ export interface DeliveryTrackingOutcome {
   decision: 'in_review' | 'blocked' | 'done' | 'terminal_non_success' | 'ignored_terminal';
   reason: string;
   verification?: EvidenceVerificationResult;
+  lifecycle?: LocalLifecycleObservation;
   enqueuedOutboxIds: string[];
 }
 
@@ -52,6 +57,8 @@ interface TrackingOptions {
   repoPath: string;
   traceId?: string | null;
   risk?: RiskLevel;
+  remote?: string;
+  baseBranch?: string;
   now?: string;
 }
 
@@ -84,6 +91,7 @@ function snapshotSummary(snapshot: PullRequestSnapshot) {
     mergedAt: snapshot.mergedAt ?? null,
     closedAt: snapshot.closedAt ?? null,
     headSha: snapshot.headSha ?? null,
+    mergeCommitSha: snapshot.mergeCommitSha ?? null,
     checks: snapshot.checks,
     review: snapshot.review,
     closeReason: snapshot.closeReason ?? null,
@@ -295,14 +303,14 @@ function finalSummary(input: { run: RunRow; prUrl: string; result: string; check
   ].join('\n');
 }
 
-function lifecycleSummary(verification?: EvidenceVerificationResult): string {
-  if (!verification) {
+function lifecycleSummary(observation?: LocalLifecycleObservation): string {
+  if (!observation) {
     return 'not evaluated';
   }
-  if (verification.ok) {
-    return 'PR merged, checks/review complete, worktree cleanup complete, main refresh complete';
+  if (observation.ok) {
+    return `worktree cleanup complete; ${observation.baseBranch} refreshed to ${observation.localHead}`;
   }
-  return [...verification.missing, ...verification.failures].join('; ') || verification.status;
+  return observation.failures.join('; ') || observation.failureType;
 }
 
 export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrClient, options: TrackingOptions): Promise<DeliveryTrackingOutcome> {
@@ -310,14 +318,29 @@ export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrCli
   if (!run) {
     throw new Error(`Run not found: ${options.runId}`);
   }
-  const prUrl = options.prUrl ?? run.pr_url;
-  if (!prUrl) {
+  const candidatePrUrl = options.prUrl ?? run.pr_url;
+  if (!candidatePrUrl) {
     throw new Error(`Run ${run.id} does not have a PR URL.`);
   }
   const now = options.now ?? nowIso();
   const enqueuedOutboxIds: string[] = [];
+  const initialBinding = store.compareAndBindTaskPr(run.id, candidatePrUrl, { now, traceId: options.traceId });
+  if (!initialBinding.ok || !initialBinding.binding.pr_url) {
+    throw new Error(`${initialBinding.reason}: task ${run.repo_key}/${run.task_id} cannot bind ${candidatePrUrl}.`);
+  }
+  const prUrl = initialBinding.binding.pr_url;
   const snapshot = await client.fetchPullRequest(prUrl);
-  const effectivePrUrl = snapshot.url || prUrl;
+  const snapshotBinding = store.compareAndBindTaskPr(run.id, snapshot.url || prUrl, { now, traceId: options.traceId });
+  if (!snapshotBinding.ok || !snapshotBinding.binding.pr_url) {
+    throw new Error(`${snapshotBinding.reason}: GitHub snapshot URL conflicts with task ${run.repo_key}/${run.task_id}.`);
+  }
+  const effectivePrUrl = snapshotBinding.binding.pr_url;
+  const observedPrState = snapshot.merged || snapshot.mergedAt
+    ? 'merged'
+    : snapshot.state === 'closed'
+      ? 'closed'
+      : 'open';
+  store.observeTaskPrState(run.id, observedPrState, { now, traceId: options.traceId });
 
   if (isTerminalRunState(run.state)) {
     store.recordSchedulerEvent({
@@ -343,7 +366,6 @@ export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrCli
     };
   }
 
-  store.updateRunMetadata(run.id, { prUrl: effectivePrUrl, now });
   store.recordSchedulerEvent({
     runId: run.id,
     eventType: 'pr_snapshot_observed',
@@ -394,6 +416,48 @@ export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrCli
   }
 
   if (decision.kind === 'terminal_non_success') {
+    const lifecycle = observeLocalGitLifecycle({
+      repoPath: options.repoPath,
+      taskId: run.task_id,
+      remote: options.remote,
+      baseBranch: options.baseBranch,
+      requireMergeAncestry: false,
+      now,
+    });
+    store.recordSchedulerEvent({
+      runId: run.id,
+      eventType: 'local_lifecycle_observed',
+      actor: 'scheduler',
+      payload: lifecycle,
+      traceId: options.traceId ?? null,
+      linearIdentifier: run.linear_identifier,
+      taskId: run.task_id,
+      createdAt: now,
+    });
+    if (!lifecycle.ok) {
+      const reason = lifecycle.failures.join('; ') || 'Local cleanup/refresh lifecycle is incomplete.';
+      transitionToBlocked(store, run, { failureType: 'lifecycle_blocked', reason, traceId: options.traceId, now });
+      enqueuedOutboxIds.push(enqueueActivity(store, run, {
+        key: `blocked:lifecycle:${outboxSuffix(reason)}`,
+        kind: 'error',
+        message: `PR is closed, but local lifecycle is blocked: ${reason}`,
+        traceId: options.traceId,
+        now,
+      }));
+      const latest = store.getRun(run.id) ?? run;
+      return {
+        runId: run.id,
+        prUrl: effectivePrUrl,
+        runState: latest.state,
+        deliveryGateStatus: latest.delivery_gate_status,
+        evidenceStatus: latest.evidence_status,
+        terminalKind: null,
+        decision: 'blocked',
+        reason,
+        lifecycle,
+        enqueuedOutboxIds,
+      };
+    }
     const terminalState = decision.terminalState ?? 'failed';
     const summary = finalSummary({
       run,
@@ -401,7 +465,7 @@ export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrCli
       result: terminalState,
       checksSummary: snapshot.checks.summary ?? `checks ${snapshot.checks.status}`,
       reviewSummary: snapshot.review.summary ?? `review ${snapshot.review.decision}`,
-      lifecycleSummary: 'not required for terminal non-success',
+      lifecycleSummary: lifecycleSummary(lifecycle),
       downstreamTriggered: false,
       terminalKind: 'run_terminal_non_success',
       reason: decision.reason,
@@ -420,25 +484,113 @@ export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrCli
     });
     store.releaseLocksForRun(run.id, { actor: 'scheduler', reason: decision.failureType ?? 'run_terminal_non_success', traceId: options.traceId ?? undefined, now });
     const latest = store.getRun(run.id) ?? run;
-    return { runId: run.id, prUrl: effectivePrUrl, runState: latest.state, deliveryGateStatus: latest.delivery_gate_status, evidenceStatus: latest.evidence_status, terminalKind: 'run_terminal_non_success', decision: 'terminal_non_success', reason: decision.reason, enqueuedOutboxIds };
+    return { runId: run.id, prUrl: effectivePrUrl, runState: latest.state, deliveryGateStatus: latest.delivery_gate_status, evidenceStatus: latest.evidence_status, terminalKind: 'run_terminal_non_success', decision: 'terminal_non_success', reason: decision.reason, lifecycle, enqueuedOutboxIds };
+  }
+
+  const lifecycle = observeLocalGitLifecycle({
+    repoPath: options.repoPath,
+    taskId: run.task_id,
+    remote: options.remote,
+    baseBranch: options.baseBranch,
+    mergeCommitSha: snapshot.mergeCommitSha,
+    requireMergeAncestry: true,
+    now,
+  });
+  store.recordSchedulerEvent({
+    runId: run.id,
+    eventType: 'local_lifecycle_observed',
+    actor: 'scheduler',
+    payload: lifecycle,
+    traceId: options.traceId ?? null,
+    linearIdentifier: run.linear_identifier,
+    taskId: run.task_id,
+    createdAt: now,
+  });
+  if (!lifecycle.ok) {
+    const reason = lifecycle.failures.join('; ') || 'Local cleanup/refresh lifecycle is incomplete.';
+    transitionToBlocked(store, run, { failureType: 'lifecycle_blocked', reason, traceId: options.traceId, now });
+    enqueuedOutboxIds.push(enqueueActivity(store, run, {
+      key: `blocked:lifecycle:${outboxSuffix(reason)}`,
+      kind: 'error',
+      message: `PR merged but local lifecycle is blocked: ${reason}`,
+      traceId: options.traceId,
+      now,
+    }));
+    const latest = store.getRun(run.id) ?? run;
+    return {
+      runId: run.id,
+      prUrl: effectivePrUrl,
+      runState: latest.state,
+      deliveryGateStatus: latest.delivery_gate_status,
+      evidenceStatus: latest.evidence_status,
+      terminalKind: null,
+      decision: 'blocked',
+      reason,
+      lifecycle,
+      enqueuedOutboxIds,
+    };
   }
 
   const risk = riskForRun(store, run, options.risk);
   const verification = verifyLegionEvidence(evidenceResultBlock(run, effectivePrUrl), { repoPath: options.repoPath, runKind: run.run_kind, risk, prBacked: true });
   if (!verification.ok) {
-    const reason = [...verification.missing, ...verification.failures].join('; ') || 'Legion evidence verification failed.';
-    transitionToBlocked(store, run, { failureType: verification.failureType ?? 'legion_evidence_missing', reason, evidenceStatus: verification.status, traceId: options.traceId, now });
+    const failureType = verification.failureType ?? 'legion_evidence_missing';
+    const evidenceReason = [...verification.missing, ...verification.failures].join('; ') || 'Legion evidence verification failed.';
+    const reason = `${evidenceReason} The bound PR is already merged, so repository repair is forbidden; recovery requires a user-created new task.`;
+    const summary = finalSummary({
+      run,
+      prUrl: effectivePrUrl,
+      result: 'failed',
+      checksSummary: snapshot.checks.summary ?? 'checks passed',
+      reviewSummary: snapshot.review.summary ?? `review ${snapshot.review.decision}`,
+      lifecycleSummary: lifecycleSummary(lifecycle),
+      downstreamTriggered: false,
+      terminalKind: 'run_terminal_non_success',
+      reason,
+    });
     enqueuedOutboxIds.push(enqueueActivity(store, run, {
-      key: `blocked:${verification.failureType ?? 'evidence'}:${outboxSuffix(reason)}`,
+      key: `terminal:${failureType}:${outboxSuffix(reason)}`,
       kind: 'error',
-      message: `PR merged but delivery cannot be marked done: ${reason}`,
+      message: `PR merged without complete repository evidence; the original task is terminal non-success: ${reason}`,
       traceId: options.traceId,
       now,
     }));
-    enqueuedOutboxIds.push(enqueueIssueState(store, run, { key: `blocked:${verification.failureType ?? 'evidence'}`, schedulerState: 'blocked', suggestedState: 'In Progress', traceId: options.traceId, now }));
-    enqueuedOutboxIds.push(enqueueIssueLabels(store, run, { key: `blocked:${verification.failureType ?? 'evidence'}`, addLabels: ['agent:blocked', 'agent:needs-human'], removeLabels: ['agent:running'], traceId: options.traceId, now }));
+    enqueuedOutboxIds.push(enqueueIssueState(store, run, { key: `non-success:${failureType}`, schedulerState: 'failed', suggestedState: 'In Progress', traceId: options.traceId, now }));
+    enqueuedOutboxIds.push(enqueueIssueLabels(store, run, { key: `non-success:${failureType}`, addLabels: ['agent:blocked', 'agent:needs-human'], removeLabels: ['agent:running', 'agent:done'], traceId: options.traceId, now }));
+    enqueuedOutboxIds.push(enqueueComment(store, run, { key: `non-success:${failureType}`, body: summary, traceId: options.traceId, now }));
+    enqueuedOutboxIds.push(enqueueFinalResponse(store, run, {
+      key: `non-success:${failureType}`,
+      terminalKind: 'run_terminal_non_success',
+      result: 'failed',
+      reason,
+      summary,
+      traceId: options.traceId,
+      now,
+    }));
+    store.transitionRun(run.id, 'failed', {
+      actor: 'scheduler',
+      traceId: options.traceId ?? undefined,
+      deliveryGateStatus: 'failed',
+      evidenceStatus: verification.status,
+      failureType,
+      failureReason: reason,
+      now,
+    });
+    store.releaseLocksForRun(run.id, { actor: 'scheduler', reason: failureType, traceId: options.traceId ?? undefined, now });
     const latest = store.getRun(run.id) ?? run;
-    return { runId: run.id, prUrl: effectivePrUrl, runState: latest.state, deliveryGateStatus: latest.delivery_gate_status, evidenceStatus: latest.evidence_status, terminalKind: null, decision: 'blocked', reason, verification, enqueuedOutboxIds };
+    return {
+      runId: run.id,
+      prUrl: effectivePrUrl,
+      runState: latest.state,
+      deliveryGateStatus: latest.delivery_gate_status,
+      evidenceStatus: latest.evidence_status,
+      terminalKind: 'run_terminal_non_success',
+      decision: 'terminal_non_success',
+      reason,
+      verification,
+      lifecycle,
+      enqueuedOutboxIds,
+    };
   }
 
   const summary = finalSummary({
@@ -447,7 +599,7 @@ export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrCli
     result: 'merged',
     checksSummary: snapshot.checks.summary ?? 'checks passed',
     reviewSummary: snapshot.review.summary ?? `review ${snapshot.review.decision}`,
-    lifecycleSummary: lifecycleSummary(verification),
+    lifecycleSummary: lifecycleSummary(lifecycle),
     downstreamTriggered: true,
     terminalKind: 'run_terminal_success',
     reason: decision.reason,
@@ -478,7 +630,7 @@ export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrCli
     createdAt: now,
   });
   const latest = store.getRun(run.id) ?? run;
-  return { runId: run.id, prUrl: effectivePrUrl, runState: latest.state, deliveryGateStatus: latest.delivery_gate_status, evidenceStatus: latest.evidence_status, terminalKind: 'run_terminal_success', decision: 'done', reason: decision.reason, verification, enqueuedOutboxIds };
+  return { runId: run.id, prUrl: effectivePrUrl, runState: latest.state, deliveryGateStatus: latest.delivery_gate_status, evidenceStatus: latest.evidence_status, terminalKind: 'run_terminal_success', decision: 'done', reason: decision.reason, verification, lifecycle, enqueuedOutboxIds };
 }
 
 export class StaticPullRequestClient implements GitHubPrClient {
@@ -494,13 +646,8 @@ export class StaticPullRequestClient implements GitHubPrClient {
 }
 
 export function parseGitHubPullRequestUrl(prUrl: string): { owner: string; repo: string; number: number } {
-  const parsed = new URL(prUrl);
-  const [, owner, repo, kind, numberText] = parsed.pathname.split('/');
-  const number = Number(numberText);
-  if (!owner || !repo || kind !== 'pull' || !Number.isInteger(number) || number <= 0) {
-    throw new Error(`Unsupported GitHub PR URL: ${prUrl}`);
-  }
-  return { owner, repo, number };
+  const parsed = canonicalizePullRequestUrl(prUrl);
+  return { owner: parsed.owner, repo: parsed.repo, number: parsed.number };
 }
 
 interface GitHubRestClientOptions {
@@ -585,6 +732,7 @@ export function createGitHubRestPullRequestClient(options: GitHubRestClientOptio
         mergedAt,
         closedAt: pull.closed_at ? String(pull.closed_at) : null,
         headSha,
+        mergeCommitSha: pull.merge_commit_sha ? String(pull.merge_commit_sha) : null,
         checks,
         review,
         closeReason: state === 'closed' && !mergedAt ? 'closed_unmerged' : null,

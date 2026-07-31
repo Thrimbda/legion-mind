@@ -23,12 +23,13 @@ SQLite is intentionally used as the WI-02 local durable DB. The code keeps SQL a
 
 ## 2. Core tables
 
-Migration creates the seven WI-02 core tables required by the work item:
+Migration maintains the WI-02 core tables plus later durable scheduler authorities:
 
 | Table | Machine-truth responsibility |
 |---|---|
 | `work_item_snapshots` | Persist normalized Linear issue observations, labels, blockers, repo hints, contract state and source `updatedAt` for claim-time revalidation |
 | `runs` | Own run lifecycle, active-run uniqueness, task mapping, native agent identifiers, evaluated snapshot hash and delivery / evidence gate statuses |
+| `task_pr_bindings` | Own the write-once `repo_key + task_id` PR identity, terminal PR state and legacy/conflict freeze state; this table, not a run-local URL, is the task PR budget authority |
 | `run_attempts` | Track OpenCode worker attempt number, prompt hash, exit result and log URI |
 | `resource_locks` | Hold / release repo, area and mutex locks; partial unique index prevents two held locks for the same key |
 | `scheduler_events` | Append-only audit timeline for skipped, claimed, transitions, lock releases and admin overrides |
@@ -38,6 +39,8 @@ Migration creates the seven WI-02 core tables required by the work item:
 Important SQLite constraints:
 
 - `runs_one_active_issue_idx` and `runs_one_active_task_idx` allow only one active `queued | running | in_review | blocked` run per Linear issue / Legion task.
+- `task_pr_bindings` has primary key `(repo_key, task_id)`; `compareAndBindTaskPr()` serializes first bind and legacy backfill in `BEGIN IMMEDIATE`, and no generic metadata API may update `runs.pr_url`.
+- `task_pr_bindings.pr_state` is `unknown | open | merged | closed`. A new candidate bound through the current ingress starts `open`. Legacy identities become `merged` when historical Scheduler state already records `done`; all other ambiguous legacy identities become `unknown` and block repository workers until the tracker observes that same PR as open or terminal.
 - `resource_locks_held_key_idx` allows only one held lock per `lock_key`.
 - `native_outbox.idempotency_key` is unique, so retries cannot duplicate AgentSession / activity / external URL / worker-dispatch jobs.
 - `webhook_events.delivery_id` and `signature_hash` are unique for dedupe.
@@ -56,7 +59,7 @@ Terminal terms remain aligned with the RFC:
 
 - `done` is the only terminal success state, and it satisfies downstream only when `delivery_gate_status = passed` and `evidence_status = passed`.
 - `failed`, `cancelled` and `abandoned` are terminal non-success states and do not satisfy downstream by default.
-- Admin override is represented only as a `scheduler_events` audit record; it does not convert a failed run into success.
+- Admin override is represented only as a `scheduler_events` audit record for dependency calculation; it does not convert a failed run into success, restore the original task/run or worker, or renew the task's consumed PR quota.
 
 ## 4. Claim transaction
 
@@ -92,7 +95,7 @@ It applies migrations on open and prints JSON. The command lives in the standalo
 
 - WI-03 should feed normalized Linear snapshots into `claimReadyWorkItem()` after graph / ready evaluation.
 - WI-04 should consume `worker_dispatch` outbox rows instead of launching OpenCode inside the claim transaction.
-- WI-05 should update `delivery_gate_status`, `evidence_status`, `pr_url` and terminal state only after PR / Legion evidence verification.
+- WI-05 must bind every worker/tracker PR URL through `compareAndBindTaskPr()` before fetch, writeback or state effects. `runs.pr_url` is only a compatibility projection written by that API.
 - WI-06 can reuse `resource_locks` and active-run uniqueness for parallel dispatch.
 - WI-07 can extend `webhook_events`, outbox retry state and stale recovery without changing the core table ownership.
 
