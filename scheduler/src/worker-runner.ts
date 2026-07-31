@@ -53,11 +53,6 @@ export interface OpenCodePromptContext {
   evidenceVerifierOutputPath: string;
   linear: LinearWorkerContext;
   nativeAgent: NativeAgentContext;
-  taskPrBinding?: {
-    state: 'unbound' | 'bound';
-    prUrl: string | null;
-    prState?: 'unknown' | 'open' | 'merged' | 'closed' | null;
-  };
 }
 
 export interface WorkerResultBlock {
@@ -276,15 +271,14 @@ ${JSON.stringify(context.nativeAgent, null, 2)}
 - taskId: ${context.taskId}
 - branchPrefix: ${context.branchPrefix}
 - evidenceVerifierOutputPath: ${context.evidenceVerifierOutputPath}
-- taskPrBinding: ${JSON.stringify(context.taskPrBinding ?? { state: 'unbound', prUrl: null, prState: null })}
 
 ## Hard gates
 
 1. Your first workflow action MUST be entering or restoring \`legion-workflow\`.
 2. If the task contract is not stable, STOP implementation and enter \`brainstorm\`.
 3. If you will modify repository files, enter \`git-worktree-pr\` before editing.
-4. Each WI must use an independent Legion task and at most one delivery PR. Before any PR create, query GitHub for an existing PR for this task/branch. Reuse the same open PR; if the bound or discovered PR is terminal, stop repository work. Never create a replacement, closeout, publish-result, deploy-result, or wiki-only PR.
-5. PR created is not completion. Finish all repository evidence and wiki writeback before the single PR becomes terminal; merged/closed, cleanup, refresh, publish/deploy, and final reporting are external-only Scheduler observations.
+4. Each WI must use an independent Legion task and delivery branch. Update an existing open PR when it is the current delivery surface. Do not autonomously create a closeout, publish-result, deploy-result, or wiki-only PR solely to record terminal lifecycle facts. If terminal follow-up needs repository changes, stop and wait for explicit user authorization; that authorization may allow a new PR.
+5. PR created is not completion. Finish repository evidence and wiki writeback before the current PR becomes terminal; merged/closed, cleanup, refresh, publish/deploy, and final reporting are external-only Scheduler observations.
 6. If stop/cancel is observed from \`${context.nativeAgent.stopSignalSource}\`, stop further tool/code/API side effects and emit a cancelled result.
 7. Do not put secrets in the result block. Use repo-local evidence files and PR URLs only.
 
@@ -331,6 +325,19 @@ export function parseWorkerResultBlock(output: string): WorkerResultBlock {
   }
   if (parsed.prUrl !== undefined && parsed.prUrl !== null && typeof parsed.prUrl !== 'string') {
     throw new Error('Worker result prUrl must be a string or null.');
+  }
+  if (typeof parsed.prUrl === 'string') {
+    let parsedPrUrl: URL;
+    try {
+      parsedPrUrl = new URL(parsed.prUrl.trim());
+    } catch {
+      throw new Error('Worker result prUrl must be a supported HTTPS pull request URL.');
+    }
+    const segments = parsedPrUrl.pathname.split('/').filter(Boolean);
+    const number = Number(segments[3]);
+    if (parsedPrUrl.protocol !== 'https:' || parsedPrUrl.username || parsedPrUrl.password || segments.length !== 4 || segments[2] !== 'pull' || !segments[0] || !segments[1] || !Number.isInteger(number) || number <= 0) {
+      throw new Error('Worker result prUrl must be a supported HTTPS pull request URL.');
+    }
   }
   if (parsed.legionEvidence !== undefined && (parsed.legionEvidence === null || typeof parsed.legionEvidence !== 'object' || Array.isArray(parsed.legionEvidence))) {
     throw new Error('Worker result legionEvidence must be an object when present.');
@@ -812,38 +819,6 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
     store.markOutboxSent(row.idempotency_key);
     return { result: 'cancelled' };
   }
-  let taskPrBinding = store.getTaskPrBindingForRun(run.id);
-  if (!taskPrBinding) {
-    const legacyPrUrls = store.historicalTaskPrUrlsForRun(run.id);
-    if (legacyPrUrls.length > 0) {
-      const migrationBinding = store.compareAndBindTaskPr(run.id, legacyPrUrls[0], { now, traceId: payload.traceId });
-      taskPrBinding = migrationBinding.binding;
-    }
-  }
-  if (taskPrBinding && (taskPrBinding.binding_state === 'conflicted' || taskPrBinding.pr_state !== 'open')) {
-    const reason = taskPrBinding.binding_state === 'conflicted'
-      ? 'Task PR binding is conflicted; repository worker dispatch is disabled.'
-      : taskPrBinding.pr_state === 'unknown'
-        ? `Task PR ${taskPrBinding.pr_identity} has not been observed open by the PR tracker; repository worker dispatch is disabled.`
-        : `Task PR ${taskPrBinding.pr_identity} is ${taskPrBinding.pr_state}; external-only latch forbids repository worker dispatch.`;
-    store.markOutboxFailed(row.idempotency_key, reason);
-    store.recordSchedulerEvent({
-      runId: run.id,
-      eventType: 'worker_dispatch_rejected_external_only',
-      actor: 'scheduler',
-      payload: {
-        reason,
-        bindingState: taskPrBinding.binding_state,
-        prIdentity: taskPrBinding.pr_identity,
-        prState: taskPrBinding.pr_state,
-      },
-      traceId: payload.traceId ?? null,
-      linearIdentifier: run.linear_identifier,
-      taskId: run.task_id,
-      createdAt: now,
-    });
-    return { result: 'launch_failed' };
-  }
   const incompleteNativeStartup = store.outboxForRun(run.id).filter((entry) => entry.outbox_kind === 'native_agent' && entry.side_effect !== 'final_response' && entry.state !== 'sent');
   if (incompleteNativeStartup.length > 0) {
     store.markOutboxFailed(row.idempotency_key, 'Native agent startup outbox must be sent before worker dispatch.', { retry: true });
@@ -865,9 +840,6 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
       delegateAppUserId: run.linear_delegate_app_user_id,
       stopSignalSource: options.stopSignalSource ?? `scheduler://runs/${run.id}/stop`,
     },
-    taskPrBinding: taskPrBinding?.binding_state === 'bound'
-      ? { state: 'bound', prUrl: taskPrBinding.pr_url, prState: taskPrBinding.pr_state }
-      : { state: 'unbound', prUrl: null, prState: null },
   };
   const prompt = renderOpenCodePrompt(context);
   const promptDir = options.promptArtifactDir ?? join(options.repoPath, '.cache', 'linear-scheduler', 'prompts');
@@ -926,35 +898,8 @@ export async function processOpenCodeWorkerDispatch(store: SchedulerStore, row: 
     return { result: 'malformed_result', promptPath: artifact.path, logPath: launchLogPath };
   }
 
-  const candidatePrUrls = [
-    ...(parsed.prUrl ? [parsed.prUrl] : []),
-    ...(parsed.externalUrls ?? [])
-      .filter((entry) => /(^|\b)(github\s*)?pr(\b|$)/i.test(entry.label) || /\/pull\/\d+(?:[/?#]|$)/.test(entry.url))
-      .map((entry) => entry.url),
-  ];
-  let boundPrUrl: string | null = null;
-  for (const candidatePrUrl of candidatePrUrls) {
-    const binding = store.compareAndBindTaskPr(run.id, candidatePrUrl, { now, traceId: payload.traceId });
-    if (!binding.ok) {
-      const reason = `${binding.reason}: task ${run.repo_key}/${run.task_id} is already bound or frozen.`;
-      store.markAttemptFinished(attempt.id, { exitCode: launch.exitCode, resultKind: 'blocked', logUri: launchLogPath, now });
-      store.transitionRun(run.id, 'blocked', {
-        actor: 'worker',
-        traceId: payload.traceId ?? undefined,
-        deliveryGateStatus: 'blocked',
-        failureType: binding.reason,
-        failureReason: reason,
-        now,
-      });
-      store.markOutboxSent(row.idempotency_key);
-      return { result: 'blocked', promptPath: artifact.path, logPath: launchLogPath };
-    }
-    boundPrUrl = binding.binding.pr_url;
-  }
-  if (boundPrUrl) {
-    parsed.prUrl = boundPrUrl;
-  }
   store.markAttemptFinished(attempt.id, { exitCode: launch.exitCode, resultKind: attemptResultKind(launch, parsed), logUri: launchLogPath });
+  store.updateRunMetadata(run.id, { prUrl: parsed.prUrl ?? null });
 
   if (parsed.runResult === 'cancelled') {
     terminalFailure(store, run.id, 'cancelled', { failureType: 'worker_cancelled', failureReason: safeBlockerReason(parsed) ?? 'Worker returned cancelled.', traceId: payload.traceId, now });

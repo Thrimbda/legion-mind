@@ -19,7 +19,7 @@ description: 当需要创建、更新、校验 `.legion` 任务文档，或判�
 
 `plan.md` 是面向 tech lead 的唯一任务契约，不写 mini-RFC、测试输出或调试日志；`tasks.md` 只保留状态；raw task docs 不兼任 wiki。
 
-PR-backed task 的 raw docs 在唯一 PR 内停在 `delivery-ready`。PR terminal、cleanup、refresh 或 publish/deploy 结果属于外部 lifecycle，不得为了追写这些事实再修改 `plan.md`、`log.md`、`tasks.md` 或创建第二 PR。
+PR-backed task 的 raw docs 在当前 delivery PR 内停在 `delivery-ready`。PR terminal、cleanup、refresh 或 publish/deploy 结果属于外部 lifecycle，不得为了追写这些事实自动修改 `plan.md`、`log.md`、`tasks.md` 或创建 closeout/follow-up PR；用户明确授权的后续仓库交付不受此限制。
 
 ## 注意力与决定
 

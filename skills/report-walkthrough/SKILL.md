@@ -52,7 +52,7 @@ Agent 禁止手写或局部修补上述三个生成产物。要改变内容，�
 - 若提供 `domain` / `authority` verifier，仍必须完整校验 kind、provenance、独立性、未证明范围与残余不确定性；不得伪造。
 - evidence locator 必须是无 `..` 的 repo-relative 路径；预览 URL 只允许 `https:`。
 - PR body 必须明确：它只是 PR 输入，不证明 checks、review、merge、cleanup 或主工作区刷新已完成。
-- PR body 只能服务当前 task 已绑定的唯一 PR；不得生成 closeout、publish-result、deploy-result、wiki-only 或 follow-up PR 输入。报告最终状态使用 `delivery-ready` 表达 repo evidence，terminal 后不重渲染仓库 artifact。
+- PR body 服务当前 delivery PR；不得生成仅用于终态写回的 closeout、publish-result、deploy-result、wiki-only 或 follow-up PR 输入。报告最终状态使用 `delivery-ready` 表达 repo evidence，terminal 后不为状态收口重渲染仓库 artifact。
 
 ## 输出与停止条件
 
@@ -68,7 +68,7 @@ Agent 禁止手写或局部修补上述三个生成产物。要改变内容，�
 - 不把 FAIL、blocked、stale 或未验证 claim 包装成可交付结论。
 - 不让 reviewer 为理解当前动作、关键不确定性或 verifier 边界而必须遍历原始文件。
 - 不把生成 artifact、PR body 或 preview URL 当作 PR lifecycle 完成。
-- 不把 post-merge 新事实写回 report-data 或三份派生产物，不为同一 task 创建第二 PR。
+- 不把 post-merge 新事实自动写回 report-data 或三份派生产物，也不因这些事实自动创建 PR；用户明确授权的后续仓库交付另行处理。
 
 ## 按需资源
 

@@ -608,9 +608,9 @@ Required evidence by run kind:
 
 | Run kind | Required evidence |
 |---|---|
-| implementation / low risk | `plan.md`, `tasks.md`, `log.md`, `docs/test-report.md`, `docs/review-change.md` with PASS, `docs/report-walkthrough.md`, wiki task summary or writeback pointer, atomically bound task PR URL |
+| implementation / low risk | `plan.md`, `tasks.md`, `log.md`, `docs/test-report.md`, `docs/review-change.md` with PASS, `docs/report-walkthrough.md`, wiki task summary or writeback pointer, current run PR URL |
 | implementation / medium-high risk | all low-risk evidence plus `docs/rfc.md` and `docs/review-rfc.md` with PASS |
-| design-only | `plan.md`, `docs/research.md` when heavy, `docs/rfc.md`, `docs/review-rfc.md` with PASS, `docs/report-walkthrough.md`, wiki writeback pointer, atomically bound task PR URL when delivered by PR |
+| design-only | `plan.md`, `docs/research.md` when heavy, `docs/rfc.md`, `docs/review-rfc.md` with PASS, `docs/report-walkthrough.md`, wiki writeback pointer, current run PR URL when delivered by PR |
 
 Verifier behavior:
 
@@ -619,9 +619,9 @@ Verifier behavior:
 3. Confirm review documents carry PASS where required.
 4. Confirm PR terminal state via GitHub, not worker output.
 5. Directly observe lifecycle for PR-backed work: task worktree absent from registry and disk, fetch configured base, main workspace clean/on the default branch/equal to remote base, and merged PR `merge_commit_sha` is an ancestor of HEAD.
-6. Before the bound PR is terminal, missing or stale evidence sets failure type `legion_evidence_missing`, keeps downstream locked, and writes Linear native blocked activity/comment; remediation may update only that same open PR.
+6. Before the current PR is terminal, missing or stale evidence sets failure type `legion_evidence_missing`, keeps downstream locked, and writes Linear native blocked activity/comment; normal remediation updates the open delivery branch/PR.
 7. If PR merged but cleanup / main refresh / lifecycle follow-up is incomplete, set failure type `lifecycle_blocked`, keep downstream locked, and do not mark `done`.
-8. Once the bound PR is merged, missing or stale evidence is a final `run_terminal_non_success`: preserve `legion_evidence_missing`, mark the run failed, release its locks, enqueue final response/comment, and keep downstream locked. Repository repair is forbidden after that terminal observation; recovery requires a user-created new task with its own PR budget.
+8. Once the current PR is merged, missing or stale evidence is a final `run_terminal_non_success`: preserve `legion_evidence_missing`, mark the run failed, release its locks, enqueue final response/comment, and keep downstream locked. This automatic run must not create a repository-status follow-up PR; any later repository repair waits for explicit user authorization.
 
 Scheduler is not expected to fully re-run Legion phases, but it must reject “PR URL only” results.
 
@@ -633,7 +633,7 @@ Scheduler preserves the `git-worktree-pr` envelope but independently observes it
 
 ### 10.1 PR states
 
-Durable `task_pr_bindings.pr_state` is one of `unknown | open | merged | closed`. A brand-new candidate bound through the current ingress is `open`. A legacy identity is backfilled as `merged` when historical Scheduler state already records `done`; otherwise it is `unknown`. `unknown` blocks repository worker dispatch until the tracker observes that same bound PR as `open`, `merged`, or `closed`. Only the tracker may advance `unknown -> open|merged|closed` or `open -> merged|closed`; terminal binding state is immutable.
+`runs.pr_url` records the PR tracked by the current run. Worker output or an explicit tracker URL may update it, and the GitHub snapshot URL is written back as the effective URL. It is not a task-level permanent identity and does not block a later explicitly authorized run or PR.
 
 | PR state | Scheduler interpretation |
 |---|---|
@@ -655,7 +655,7 @@ Durable `task_pr_bindings.pr_state` is one of `unknown | open | merged | closed`
 - `git-worktree-pr` lifecycle is complete: worktree cleanup done and main workspace refresh completed;
 - final Linear AgentSession `response` / summary writeback completed or queued idempotently.
 
-If PR is merged or closed-unmerged but direct cleanup/refresh observation fails, the run is `blocked` with failure type `lifecycle_blocked`; it is not terminal and must not unlock downstream. The task PR binding is nevertheless terminal and prevents any repository worker or replacement PR; only external lifecycle observation may retry.
+If PR is merged or closed-unmerged but direct cleanup/refresh observation fails, the run is `blocked` with failure type `lifecycle_blocked`; it is not terminal and must not unlock downstream. Only external lifecycle observation retries automatically; Scheduler does not create repository changes or a status-only PR to repair the observation.
 
 `run_terminal_non_success` includes:
 
@@ -673,11 +673,11 @@ If PR is merged or closed-unmerged but direct cleanup/refresh observation fails,
 
 - implementation blocker: only `run_terminal_success` satisfies;
 - design-only blocker: explicit policy may allow design accepted / design PR merged;
-- terminal non-success never satisfies by itself; an admin ignore / supersede may affect dependency calculation only when its reason is recorded in `scheduler_events` and Linear native writeback. It never restores the original task/run, launches another repository worker, or renews that task's PR quota.
+- terminal non-success never satisfies by itself; an admin ignore / supersede may affect dependency calculation only when its reason is recorded in `scheduler_events` and Linear native writeback. It does not restore the original terminal run or worker.
 
 Scheduler may mark a run `in_review` before merge, but must not unlock downstream WI until `run_terminal_success` unless project policy explicitly allows “review-ready unblocks downstream” for design-only tasks.
 
-If PR merged but required Legion evidence is missing, the run becomes final `run_terminal_non_success` / `failed` with failure type `legion_evidence_missing`. Scheduler releases the run's locks and writes a final response/comment, but downstream remains locked. Neither ordinary repair nor admin override may resume that task, launch its repository worker, or renew its consumed PR quota; recovery requires a user-created new task.
+If PR merged but required Legion evidence is missing, the run becomes final `run_terminal_non_success` / `failed` with failure type `legion_evidence_missing`. Scheduler releases the run's locks and writes a final response/comment, but downstream remains locked. It does not autonomously launch repository repair or create a follow-up PR; later repository changes require explicit user authorization and may use a new run/PR.
 
 ---
 
@@ -693,7 +693,7 @@ If PR merged but required Legion evidence is missing, the run becomes final `run
 | `pr_blocked` | review required, branch protection, merge conflict | maybe worker fix / human | In Review / Blocked with owner |
 | `infra_failed` | Linear/GitHub API transient, DB unavailable | yes with backoff | delayed writeback |
 | `security_blocked` | token scope, webhook signature, secret handling issue | no until human | `agent:needs-human` |
-| `legion_evidence_missing` | Required Legion evidence is absent or not PASS | while the same bound PR is open, update that PR only; after merge, no repository retry or repair and recovery requires a user-created new task | blocked activity/comment before terminal; final non-success response/comment after merge |
+| `legion_evidence_missing` | Required Legion evidence is absent or not PASS | while the current PR is open, update its delivery branch; after merge, stop automatic repository repair and wait for explicit user authorization | blocked activity/comment before terminal; final non-success response/comment after merge |
 | `lifecycle_blocked` | PR merged/closed but direct worktree cleanup, fetch, clean/default-branch refresh, remote-base equality or merge ancestry observation failed | retry external lifecycle observation only; no repository worker or downstream unlock | blocked activity/comment with failed command/fact |
 | `native_stop_requested` | Linear stop signal or admin cancel | no automatic retry until human/admin action | AgentSession final response/error, run terminal non-success |
 | `stale_agent_session` | AgentSession created but no activity/external URL in expected window | retry native outbox, not worker duplicate | activity/error explaining recovery |

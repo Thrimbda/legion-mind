@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-07-31] supersede | remove-pr-quota-enforcement-v1
+
+- 撤销 `enforce-single-pr-lifecycle-v1` 引入的 task 级 PR 数字配额、永久 identity binding、legacy migration 与跨 run worker gate。
+- 保留真正的流程修复：terminal lifecycle/status 事实只写外部观察与最终交接，不自动创建 closeout、publish-result、deploy-result 或 wiki-only PR。
+- 明确用户授权边界：后续仓库改动需要明确授权；授权后的交付可以使用新的 PR。
+- 首轮独立变更审查发现两处旧 binding 文档残留和 worker ingress 校验回退；最小返修后重新独立验证、审查均为 `PASS`。
+
 ## [2026-07-31] writeback | enforce-single-pr-lifecycle-v1
 
 - 把每个 `repoKey + taskId` 的 PR 配额固定为 `0..1`，首次 identity write-once；同一 task 不再允许 closeout、publish-result、deploy-result、wiki-only 或 replacement PR。

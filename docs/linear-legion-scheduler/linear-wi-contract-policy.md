@@ -191,7 +191,7 @@ Graph direction is `blocker -> blocked`. Downstream issues can start only after 
 | Design-only blocker PR merged or configured design acceptance recorded | yes if project policy allows | Must be explicit policy, not open PR |
 | Admin explicit ignore/supersede with reason | yes for dependency calculation only | Must write scheduler event and Linear activity/comment |
 
-`run_terminal_non_success` never unlocks downstream by default. Admin override must be visible, reasoned and auditable; it applies only to dependency calculation and is not the same as converting the upstream run to success. It never restores the original task/run or repository worker and never renews that task's consumed PR quota.
+`run_terminal_non_success` never unlocks downstream by default. Admin override must be visible, reasoned and auditable; it applies only to dependency calculation and is not the same as converting the upstream run to success. It never restores the original terminal run or repository worker.
 
 ## 7. Linear Native Agent control plane
 

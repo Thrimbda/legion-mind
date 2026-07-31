@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import { openSchedulerStore, stableHash } from '../src/sqlite-store.ts';
 import type { WorkItemSnapshotInput } from '../src/sqlite-store.ts';
 import { assertValidRunTransition, canTransitionRun, isTerminalNonSuccessRunState } from '../src/state-machine.ts';
@@ -48,7 +49,6 @@ test('SQLite migration creates WI-02 core tables and service health', () => {
       'run_attempts',
       'runs',
       'scheduler_events',
-      'task_pr_bindings',
       'webhook_events',
       'work_item_snapshots',
     ]);
@@ -56,6 +56,64 @@ test('SQLite migration creates WI-02 core tables and service health', () => {
     assert.equal(health.pendingOutbox, 0);
   } finally {
     store.close();
+  }
+});
+
+test('legacy task PR binding schema is preserved but ignored by current runtime', () => {
+  const { root, dbPath } = tmpDb('legacy-pr-binding-ignored');
+  try {
+    const legacy = new DatabaseSync(dbPath);
+    legacy.exec(`
+      CREATE TABLE schema_migrations (
+        version INTEGER PRIMARY KEY,
+        name TEXT NOT NULL,
+        applied_at TEXT NOT NULL
+      ) STRICT;
+      CREATE TABLE task_pr_bindings (
+        repo_key TEXT NOT NULL,
+        task_id TEXT NOT NULL,
+        pr_identity TEXT,
+        pr_url TEXT,
+        PRIMARY KEY (repo_key, task_id)
+      ) STRICT;
+      INSERT INTO schema_migrations(version, name, applied_at)
+      VALUES (5, 'task_level_single_pr_binding', '2026-07-30T00:00:00.000Z');
+      INSERT INTO task_pr_bindings(repo_key, task_id, pr_identity, pr_url)
+      VALUES ('legion-mind', 'legacy-task', 'github.com/example/repo#1', 'https://github.com/example/repo/pull/1');
+    `);
+    legacy.close();
+
+    const store = openSchedulerStore(dbPath);
+    const health = store.health();
+    assert.equal(health.ok, true);
+    assert.equal((health.tables as readonly string[]).includes('task_pr_bindings'), false);
+    store.close();
+
+    const inspected = new DatabaseSync(dbPath);
+    const legacyRow = inspected.prepare('SELECT pr_url FROM task_pr_bindings WHERE task_id = ?').get('legacy-task') as { pr_url: string };
+    const migrations = inspected.prepare('SELECT version FROM schema_migrations ORDER BY version').all() as Array<{ version: number }>;
+    assert.equal(legacyRow.pr_url, 'https://github.com/example/repo/pull/1');
+    assert.deepEqual(migrations.map((row) => row.version), [1, 2, 3, 4, 5]);
+    inspected.close();
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('fresh database omits task PR binding schema and retired migrations', () => {
+  const { root, dbPath } = tmpDb('fresh-without-pr-binding');
+  try {
+    const store = openSchedulerStore(dbPath);
+    store.close();
+
+    const inspected = new DatabaseSync(dbPath);
+    const bindingTable = inspected.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'task_pr_bindings'").get();
+    const migrations = inspected.prepare('SELECT version FROM schema_migrations ORDER BY version').all() as Array<{ version: number }>;
+    assert.equal(bindingTable, undefined);
+    assert.deepEqual(migrations.map((row) => row.version), [1, 2, 3, 4]);
+    inspected.close();
+  } finally {
+    rmSync(root, { recursive: true, force: true });
   }
 });
 

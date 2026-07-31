@@ -3,16 +3,16 @@
 ## Metadata
 
 - `task-id`: `enforce-single-pr-lifecycle-v1`
-- `status`: `delivery-ready`
+- `status`: `historical`
 - `risk`: `high`
 - `schema-version`: `single-pr-lifecycle-v1`
-- `historical`: `false`
+- `historical`: `true`
 - `supersedes`: same-task implementation PR plus post-terminal closeout/publish-result PR
-- `superseded-by`: `(none)`
+- `superseded-by`: `remove-pr-quota-enforcement-v1`
 
 ## Outcome Summary
 
-Legion task 的 PR 配额固定为 `0..1`。仓库内 contract、实现、验证、review、walkthrough 与 wiki 在唯一 PR terminal 前收敛为 `delivery-ready`；merged/closed 后只允许外部 lifecycle、worktree cleanup、主工作区 refresh 与最终报告，不再回写仓库。
+本页保留 2026-07-31 上一轮 hard quota/binding 方案的历史快照；它不再是当前规则。`remove-pr-quota-enforcement-v1` 已撤销 task 级 PR 数量与永久 identity 限制，只保留 terminal 状态事实外部化、不得自动创建 status-writeback PR 的边界。
 
 Scheduler 使用 `repoKey + taskId` 的 task-level write-once binding，原子拒绝不同 PR identity、并发首次绑定冲突、terminal 后新 run 与 legacy 多 identity。fresh binding 为 `open`；历史 `done` 回填为 `merged`，其他单一 legacy identity 为 `unknown`，必须等 tracker 观察同一 PR 后才可能恢复。Git lifecycle 由 Scheduler 直接观察 worktree、fetch、base、dirty state 与 merge ancestry，不再接受 worker 自报 JSON。
 
@@ -38,5 +38,5 @@ Scheduler 使用 `repoKey + taskId` 的 task-level write-once binding，原子�
 
 ## Notes
 
-- 本页只声明当前 tree 内可证明的 `delivery-ready`，不预写唯一 PR 的 merge、cleanup 或 refresh。
-- delivery terminal 由唯一 PR、Scheduler/lifecycle 观察与最终交接承载；本页不会在 terminal 后追写 `completed`。
+- 本页的 quota/binding 结论仅用于历史追溯，不应用于当前 workflow 或 Scheduler 行为。
+- 当前结论见 `.legion/wiki/tasks/remove-pr-quota-enforcement-v1.md` 与 `.legion/wiki/decisions.md`。

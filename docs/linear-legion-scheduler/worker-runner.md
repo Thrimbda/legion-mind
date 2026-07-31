@@ -82,9 +82,9 @@ The parser accepts only one result block and validates required field types. Bef
 - `docs/report-walkthrough.md`;
 - wiki writeback pointer;
 - for medium/high risk: `docs/rfc.md` and `docs/review-rfc.md` containing `PASS`;
-- for PR-backed runs: a PR URL that can be atomically bound to the task's single durable PR identity.
+- for PR-backed runs: a PR URL recorded as current run metadata.
 
-Evidence paths must be repo-relative and match the expected task-local or wiki location for the run's task id; absolute paths and out-of-task evidence are rejected. Review docs must contain an explicit `Verdict: PASS` / `## Verdict\nPASS` style verdict rather than arbitrary `PASS` text. Before PR terminal, absent Legion evidence blocks the run with `legion_evidence_missing` and remediation may update only the same bound open PR. After merge, the tracker turns the same failure into final non-success, releases run locks, and forbids repository repair; recovery requires a user-created new task. Worker `done` plus evidence PASS only moves the run to `in_review`; the PR tracker independently observes GitHub terminal state and local Git/worktree lifecycle before `done`, lock release or downstream satisfaction. Worker `prUrl` and PR-shaped `externalUrls` are compare-and-bound before result events/state/writeback; a different identity is `pr_identity_conflict`.
+Evidence paths must be repo-relative and match the expected task-local or wiki location for the run's task id; absolute paths and out-of-task evidence are rejected. Review docs must contain an explicit `Verdict: PASS` / `## Verdict\nPASS` style verdict rather than arbitrary `PASS` text. Before PR terminal, absent Legion evidence blocks the run with `legion_evidence_missing` and normal remediation updates the current open delivery branch/PR. After merge, the tracker turns the same failure into final non-success and releases run locks; it reports the gap instead of automatically creating a repository repair PR. Worker `done` plus evidence PASS only moves the run to `in_review`; the PR tracker independently observes GitHub terminal state and local Git/worktree lifecycle before `done`, lock release or downstream satisfaction. Worker `prUrl` is stored in `runs.pr_url`; there is no task-level compare-and-bind or cross-run PR gate.
 
 ## 7. Debug command
 
@@ -100,7 +100,7 @@ npm --prefix scheduler run debug -- worker dispatch \
 ```
 
 This command is a local debug/smoke entry point, not the production dispatcher. It will fail fast if the native startup outbox is still pending for the run.
-It also fails closed before launch when the task binding is conflicted, still `unknown`, or already merged/closed. Legacy identity backfill uses `unknown` unless a historical Scheduler run is already `done`（then `merged`）; only tracker observation of that same PR as open can re-enable repository dispatch.
+PR tracking remains run-level metadata and does not add a task-level binding or cross-run dispatch gate. A terminal Linear issue is not automatically claimed again for repository closeout work; if later repository changes are needed, dispatch waits for explicit user authorization.
 
 ## 8. Boundaries for later WIs
 
