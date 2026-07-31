@@ -4,7 +4,6 @@ import type { RunState } from './state-machine.ts';
 import { isTerminalRunState } from './state-machine.ts';
 import { observeLocalGitLifecycle } from './git-lifecycle.ts';
 import type { LocalLifecycleObservation } from './git-lifecycle.ts';
-import { canonicalizePullRequestUrl } from './pr-identity.ts';
 import { defaultEvidencePaths, verifyLegionEvidence } from './worker-runner.ts';
 import type { EvidenceVerificationResult, WorkerResultBlock } from './worker-runner.ts';
 
@@ -318,29 +317,14 @@ export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrCli
   if (!run) {
     throw new Error(`Run not found: ${options.runId}`);
   }
-  const candidatePrUrl = options.prUrl ?? run.pr_url;
-  if (!candidatePrUrl) {
+  const prUrl = options.prUrl ?? run.pr_url;
+  if (!prUrl) {
     throw new Error(`Run ${run.id} does not have a PR URL.`);
   }
   const now = options.now ?? nowIso();
   const enqueuedOutboxIds: string[] = [];
-  const initialBinding = store.compareAndBindTaskPr(run.id, candidatePrUrl, { now, traceId: options.traceId });
-  if (!initialBinding.ok || !initialBinding.binding.pr_url) {
-    throw new Error(`${initialBinding.reason}: task ${run.repo_key}/${run.task_id} cannot bind ${candidatePrUrl}.`);
-  }
-  const prUrl = initialBinding.binding.pr_url;
   const snapshot = await client.fetchPullRequest(prUrl);
-  const snapshotBinding = store.compareAndBindTaskPr(run.id, snapshot.url || prUrl, { now, traceId: options.traceId });
-  if (!snapshotBinding.ok || !snapshotBinding.binding.pr_url) {
-    throw new Error(`${snapshotBinding.reason}: GitHub snapshot URL conflicts with task ${run.repo_key}/${run.task_id}.`);
-  }
-  const effectivePrUrl = snapshotBinding.binding.pr_url;
-  const observedPrState = snapshot.merged || snapshot.mergedAt
-    ? 'merged'
-    : snapshot.state === 'closed'
-      ? 'closed'
-      : 'open';
-  store.observeTaskPrState(run.id, observedPrState, { now, traceId: options.traceId });
+  const effectivePrUrl = snapshot.url || prUrl;
 
   if (isTerminalRunState(run.state)) {
     store.recordSchedulerEvent({
@@ -366,6 +350,7 @@ export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrCli
     };
   }
 
+  store.updateRunMetadata(run.id, { prUrl: effectivePrUrl, now });
   store.recordSchedulerEvent({
     runId: run.id,
     eventType: 'pr_snapshot_observed',
@@ -536,7 +521,7 @@ export async function trackPrDelivery(store: SchedulerStore, client: GitHubPrCli
   if (!verification.ok) {
     const failureType = verification.failureType ?? 'legion_evidence_missing';
     const evidenceReason = [...verification.missing, ...verification.failures].join('; ') || 'Legion evidence verification failed.';
-    const reason = `${evidenceReason} The bound PR is already merged, so repository repair is forbidden; recovery requires a user-created new task.`;
+    const reason = `${evidenceReason} The tracked PR is already merged, so this automatic delivery run cannot repair repository evidence. Report the gap and wait for explicit user authorization before any follow-up repository change.`;
     const summary = finalSummary({
       run,
       prUrl: effectivePrUrl,
@@ -646,8 +631,18 @@ export class StaticPullRequestClient implements GitHubPrClient {
 }
 
 export function parseGitHubPullRequestUrl(prUrl: string): { owner: string; repo: string; number: number } {
-  const parsed = canonicalizePullRequestUrl(prUrl);
-  return { owner: parsed.owner, repo: parsed.repo, number: parsed.number };
+  let parsed: URL;
+  try {
+    parsed = new URL(prUrl.trim());
+  } catch {
+    throw new Error(`Unsupported PR URL: ${prUrl}`);
+  }
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  const number = Number(segments[3]);
+  if (parsed.protocol !== 'https:' || parsed.username || parsed.password || segments.length !== 4 || segments[2] !== 'pull' || !segments[0] || !segments[1] || !Number.isInteger(number) || number <= 0) {
+    throw new Error(`Unsupported PR URL: ${prUrl}`);
+  }
+  return { owner: segments[0], repo: segments[1], number };
 }
 
 interface GitHubRestClientOptions {

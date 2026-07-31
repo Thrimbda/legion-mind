@@ -6,4 +6,4 @@
 
 仅为并行或 Standard/Strict 独立审查/验证派生子代理。运行 `skills/legion-workflow/scripts/subagent-name.mjs`；职责用 `agentType`，回显用 `displayName`，API 支持才传 `transportId`。
 
-修改型 Legion 任务须加载 `git-worktree-pr`，仅在 `.worktrees/<task-id>/` 开发，完成 rebase、squash PR、checks/review、终态、cleanup 与主工作区刷新；不得提交主分支。每个 `taskId` 的 PR 配额为 `0..1`；仓库变更须在唯一 PR terminal 前进入其分支，terminal 后只允许外部验证/报告、cleanup、refresh，禁止第二 PR。
+修改型 Legion 任务须加载 `git-worktree-pr`，只在 `.worktrees/<task-id>/` 开发并完成 rebase、squash PR、checks/review、cleanup、主工作区刷新；不得提交主分支。PR terminal 后的事实只写外部 lifecycle/最终交接，不得自动开 closeout/status-writeback PR。后续仓库改动等待用户明确授权，授权可包含新 PR。

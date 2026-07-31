@@ -2,7 +2,6 @@ import { createHash, randomUUID } from 'node:crypto';
 import { existsSync, mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { canonicalizePullRequestUrl } from './pr-identity.ts';
 import { findResourceLockConflicts, resourceLockKeysForIssue, uniqueSortedLockKeys } from './resource-locks.ts';
 import {
   ACTIVE_RUN_STATES,
@@ -23,8 +22,6 @@ export type OutboxState = 'pending' | 'sent' | 'retrying' | 'failed';
 export type SchedulerActor = 'scheduler' | 'worker' | 'webhook' | 'admin' | 'test';
 export type AttemptResultKind = 'success' | 'blocked' | 'failed' | 'timeout' | 'cancelled';
 export type ProjectControlState = 'active' | 'paused' | 'security_blocked';
-export type TaskPrBindingState = 'bound' | 'conflicted';
-export type TaskPrState = 'unknown' | 'open' | 'merged' | 'closed';
 
 export interface WorkItemSnapshotInput {
   id?: string;
@@ -136,31 +133,6 @@ export interface RunRow {
   created_at: string;
   updated_at: string;
 }
-
-export interface TaskPrBindingRow {
-  repo_key: string;
-  task_id: string;
-  binding_state: TaskPrBindingState;
-  pr_identity: string | null;
-  pr_url: string | null;
-  pr_state: TaskPrState;
-  bound_run_id: string | null;
-  conflict_json: string | null;
-  bound_at: string;
-  updated_at: string;
-}
-
-export type CompareAndBindTaskPrResult =
-  | {
-      ok: true;
-      status: 'bound' | 'already_bound' | 'legacy_backfilled';
-      binding: TaskPrBindingRow;
-    }
-  | {
-      ok: false;
-      reason: 'pr_identity_conflict' | 'pr_binding_conflicted';
-      binding: TaskPrBindingRow;
-    };
 
 export interface SchedulerEventRow {
   id: string;
@@ -279,7 +251,6 @@ const CORE_TABLES = [
   'webhook_events',
   'native_outbox',
   'project_controls',
-  'task_pr_bindings',
 ] as const;
 
 const ACTIVE_RUN_STATE_SQL = ACTIVE_RUN_STATES.map((state) => `'${state}'`).join(', ');
@@ -464,25 +435,6 @@ export class SchedulerStore {
         updated_at TEXT NOT NULL
       ) STRICT;
 
-      CREATE TABLE IF NOT EXISTS task_pr_bindings (
-        repo_key TEXT NOT NULL,
-        task_id TEXT NOT NULL,
-        binding_state TEXT NOT NULL CHECK (binding_state IN ('bound', 'conflicted')),
-        pr_identity TEXT,
-        pr_url TEXT,
-        pr_state TEXT NOT NULL DEFAULT 'unknown' CHECK (pr_state IN ('unknown', 'open', 'merged', 'closed')),
-        bound_run_id TEXT REFERENCES runs(id),
-        conflict_json TEXT,
-        bound_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        PRIMARY KEY (repo_key, task_id),
-        CHECK (
-          (binding_state = 'bound' AND pr_identity IS NOT NULL AND pr_url IS NOT NULL AND conflict_json IS NULL)
-          OR
-          (binding_state = 'conflicted' AND pr_identity IS NULL AND pr_url IS NULL AND conflict_json IS NOT NULL)
-        )
-      ) STRICT;
-
       CREATE TABLE IF NOT EXISTS run_attempts (
         id TEXT PRIMARY KEY,
         run_id TEXT NOT NULL REFERENCES runs(id) ON DELETE CASCADE,
@@ -578,7 +530,6 @@ export class SchedulerStore {
       CREATE UNIQUE INDEX IF NOT EXISTS runs_one_active_issue_idx ON runs(linear_issue_id) WHERE state IN (${ACTIVE_RUN_STATE_SQL});
       CREATE UNIQUE INDEX IF NOT EXISTS runs_one_active_task_idx ON runs(task_id) WHERE state IN (${ACTIVE_RUN_STATE_SQL});
       CREATE INDEX IF NOT EXISTS runs_project_state_idx ON runs(linear_project_id, state, updated_at DESC);
-      CREATE INDEX IF NOT EXISTS task_pr_bindings_state_idx ON task_pr_bindings(binding_state, pr_state, updated_at DESC);
       CREATE UNIQUE INDEX IF NOT EXISTS resource_locks_held_key_idx ON resource_locks(lock_key) WHERE state = 'held';
       CREATE INDEX IF NOT EXISTS scheduler_events_run_timeline_idx ON scheduler_events(run_id, created_at, id);
       CREATE INDEX IF NOT EXISTS project_controls_state_idx ON project_controls(state, updated_at DESC);
@@ -588,14 +539,11 @@ export class SchedulerStore {
     `);
 
     this.ensureNativeOutboxSideEffectCheck();
-    this.ensureTaskPrBindingStateCheck();
 
     this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(1, 'wi02_sqlite_scheduler_core', nowIso());
     this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(2, 'wi05_delivery_writeback_side_effects', nowIso());
     this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(3, 'wi07_webhook_retry_recovery_outbox', nowIso());
     this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(4, 'wi08_project_controls_admin_observability', nowIso());
-    this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(5, 'task_level_single_pr_binding', nowIso());
-    this.db.prepare('INSERT OR IGNORE INTO schema_migrations(version, name, applied_at) VALUES (?, ?, ?)').run(6, 'task_pr_binding_unknown_state', nowIso());
   }
 
   private ensureNativeOutboxSideEffectCheck() {
@@ -637,68 +585,6 @@ export class SchedulerStore {
       SELECT id, outbox_kind, run_id, attempt_id, idempotency_key, side_effect, payload_json, state, last_error, created_at, updated_at FROM native_outbox_old;
       DROP TABLE native_outbox_old;
       CREATE INDEX IF NOT EXISTS native_outbox_pending_idx ON native_outbox(state, created_at, id);
-    `);
-  }
-
-  private ensureTaskPrBindingStateCheck() {
-    const table = this.db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'task_pr_bindings'").get() as { sql: string } | undefined;
-    if (!table || table.sql.includes("'unknown'")) {
-      return;
-    }
-    this.db.exec(`
-      ALTER TABLE task_pr_bindings RENAME TO task_pr_bindings_old;
-      CREATE TABLE task_pr_bindings (
-        repo_key TEXT NOT NULL,
-        task_id TEXT NOT NULL,
-        binding_state TEXT NOT NULL CHECK (binding_state IN ('bound', 'conflicted')),
-        pr_identity TEXT,
-        pr_url TEXT,
-        pr_state TEXT NOT NULL DEFAULT 'unknown' CHECK (pr_state IN ('unknown', 'open', 'merged', 'closed')),
-        bound_run_id TEXT REFERENCES runs(id),
-        conflict_json TEXT,
-        bound_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        PRIMARY KEY (repo_key, task_id),
-        CHECK (
-          (binding_state = 'bound' AND pr_identity IS NOT NULL AND pr_url IS NOT NULL AND conflict_json IS NULL)
-          OR
-          (binding_state = 'conflicted' AND pr_identity IS NULL AND pr_url IS NULL AND conflict_json IS NOT NULL)
-        )
-      ) STRICT;
-      INSERT INTO task_pr_bindings(
-        repo_key, task_id, binding_state, pr_identity, pr_url, pr_state,
-        bound_run_id,
-        conflict_json,
-        bound_at,
-        updated_at
-      )
-      SELECT
-        legacy.repo_key,
-        legacy.task_id,
-        legacy.binding_state,
-        legacy.pr_identity,
-        legacy.pr_url,
-        CASE
-          WHEN legacy.binding_state = 'conflicted' THEN 'unknown'
-          WHEN legacy.pr_state IN ('merged', 'closed') THEN legacy.pr_state
-          WHEN EXISTS (
-            SELECT 1 FROM runs bound_run
-            WHERE bound_run.id = legacy.bound_run_id AND bound_run.state = 'done'
-          ) THEN 'merged'
-          WHEN EXISTS (
-            SELECT 1
-            FROM scheduler_events observed
-            JOIN runs observed_run ON observed_run.id = observed.run_id
-            WHERE observed.event_type = 'pr_state_observed'
-              AND observed_run.repo_key = legacy.repo_key
-              AND observed_run.task_id = legacy.task_id
-          ) THEN 'open'
-          ELSE 'unknown'
-        END,
-        bound_run_id, conflict_json, bound_at, updated_at
-      FROM task_pr_bindings_old legacy;
-      DROP TABLE task_pr_bindings_old;
-      CREATE INDEX IF NOT EXISTS task_pr_bindings_state_idx ON task_pr_bindings(binding_state, pr_state, updated_at DESC);
     `);
   }
 
@@ -1200,6 +1086,7 @@ export class SchedulerStore {
   }
 
   updateRunMetadata(runId: string, input: {
+    prUrl?: string | null;
     deliveryGateStatus?: DeliveryGateStatus;
     evidenceStatus?: EvidenceStatus;
     failureType?: string | null;
@@ -1210,6 +1097,7 @@ export class SchedulerStore {
     const now = input.now ?? nowIso();
     this.db.prepare(`
       UPDATE runs SET
+        pr_url = COALESCE(?, pr_url),
         delivery_gate_status = COALESCE(?, delivery_gate_status),
         evidence_status = COALESCE(?, evidence_status),
         failure_type = COALESCE(?, failure_type),
@@ -1219,6 +1107,7 @@ export class SchedulerStore {
         updated_at = ?
       WHERE id = ?
     `).run(
+      input.prUrl ?? null,
       input.deliveryGateStatus ?? null,
       input.evidenceStatus ?? null,
       input.failureType ?? null,
@@ -1228,222 +1117,6 @@ export class SchedulerStore {
       now,
       runId,
     );
-  }
-
-  compareAndBindTaskPr(runId: string, candidateUrl: string, options: { now?: string; traceId?: string | null } = {}): CompareAndBindTaskPrResult {
-    const candidate = canonicalizePullRequestUrl(candidateUrl);
-    const now = options.now ?? nowIso();
-    return this.transaction(() => {
-      const run = this.getRun(runId);
-      if (!run) {
-        throw new Error(`Run not found: ${runId}`);
-      }
-
-      let binding = this.getTaskPrBinding(run.repo_key, run.task_id);
-      if (!binding) {
-        const historicalRows = this.db.prepare(`
-          SELECT id, pr_url, state FROM runs
-          WHERE repo_key = ? AND task_id = ? AND pr_url IS NOT NULL
-          ORDER BY created_at, id
-        `).all(run.repo_key, run.task_id) as Array<{ id: string; pr_url: string; state: RunState }>;
-        const historical = historicalRows.map((row) => {
-          try {
-            return { runId: row.id, runState: row.state, rawUrl: row.pr_url, parsed: canonicalizePullRequestUrl(row.pr_url), error: null };
-          } catch (error) {
-            return { runId: row.id, runState: row.state, rawUrl: row.pr_url, parsed: null, error: error instanceof Error ? error.message : String(error) };
-          }
-        });
-        const identities = new Map<string, NonNullable<(typeof historical)[number]['parsed']>>();
-        for (const item of historical) {
-          if (item.parsed) identities.set(item.parsed.identity, item.parsed);
-        }
-
-        if (historical.some((item) => item.error) || identities.size > 1) {
-          const conflictJson = stableStringify({
-            reason: 'legacy_pr_identity_conflict',
-            candidate: { identity: candidate.identity, url: candidate.url },
-            historical: historical.map((item) => ({
-              runId: item.runId,
-              runState: item.runState,
-              rawUrl: item.rawUrl,
-              identity: item.parsed?.identity ?? null,
-              error: item.error,
-            })),
-          });
-          this.db.prepare(`
-            INSERT INTO task_pr_bindings(
-              repo_key, task_id, binding_state, pr_identity, pr_url, pr_state,
-              bound_run_id, conflict_json, bound_at, updated_at
-            ) VALUES (?, ?, 'conflicted', NULL, NULL, 'unknown', NULL, ?, ?, ?)
-          `).run(run.repo_key, run.task_id, conflictJson, now, now);
-          binding = this.getTaskPrBinding(run.repo_key, run.task_id) as TaskPrBindingRow;
-          this.insertEvent({
-            runId,
-            eventType: 'pr_identity_conflict',
-            actor: 'scheduler',
-            payload: { repoKey: run.repo_key, taskId: run.task_id, reason: 'legacy_pr_identity_conflict', conflict: JSON.parse(conflictJson) },
-            traceId: options.traceId ?? null,
-            linearIdentifier: run.linear_identifier,
-            taskId: run.task_id,
-            createdAt: now,
-          });
-          return { ok: false, reason: 'pr_binding_conflicted', binding };
-        }
-
-        const legacy = identities.values().next().value as ReturnType<typeof canonicalizePullRequestUrl> | undefined;
-        const legacyRow = legacy
-          ? historical.find((item) => item.parsed?.identity === legacy.identity)
-          : undefined;
-        const initial = legacy ?? candidate;
-        const initialPrState: TaskPrState = legacy
-          ? historical.some((item) => item.parsed?.identity === legacy.identity && item.runState === 'done')
-            ? 'merged'
-            : 'unknown'
-          : 'open';
-        this.db.prepare(`
-          INSERT INTO task_pr_bindings(
-            repo_key, task_id, binding_state, pr_identity, pr_url, pr_state,
-            bound_run_id, conflict_json, bound_at, updated_at
-          ) VALUES (?, ?, 'bound', ?, ?, ?, ?, NULL, ?, ?)
-        `).run(run.repo_key, run.task_id, initial.identity, initial.url, initialPrState, legacyRow?.runId ?? runId, now, now);
-        binding = this.getTaskPrBinding(run.repo_key, run.task_id) as TaskPrBindingRow;
-
-        if (initial.identity !== candidate.identity) {
-          this.insertEvent({
-            runId,
-            eventType: 'pr_identity_conflict',
-            actor: 'scheduler',
-            payload: {
-              repoKey: run.repo_key,
-              taskId: run.task_id,
-              boundIdentity: initial.identity,
-              candidateIdentity: candidate.identity,
-              candidateUrl: candidate.url,
-            },
-            traceId: options.traceId ?? null,
-            linearIdentifier: run.linear_identifier,
-            taskId: run.task_id,
-            createdAt: now,
-          });
-          return { ok: false, reason: 'pr_identity_conflict', binding };
-        }
-
-        this.db.prepare('UPDATE runs SET pr_url = ?, heartbeat_at = ?, updated_at = ? WHERE id = ?').run(binding.pr_url, now, now, runId);
-        this.insertEvent({
-          runId,
-          eventType: 'pr_identity_bound',
-          actor: 'scheduler',
-          payload: {
-            repoKey: run.repo_key,
-            taskId: run.task_id,
-            prIdentity: binding.pr_identity,
-            prUrl: binding.pr_url,
-            prState: binding.pr_state,
-            source: legacy ? 'legacy_backfill' : 'candidate',
-          },
-          traceId: options.traceId ?? null,
-          linearIdentifier: run.linear_identifier,
-          taskId: run.task_id,
-          createdAt: now,
-        });
-        return { ok: true, status: legacy ? 'legacy_backfilled' : 'bound', binding };
-      }
-
-      if (binding.binding_state === 'conflicted') {
-        this.insertEvent({
-          runId,
-          eventType: 'pr_identity_conflict',
-          actor: 'scheduler',
-          payload: { repoKey: run.repo_key, taskId: run.task_id, reason: 'binding_already_conflicted', candidateIdentity: candidate.identity },
-          traceId: options.traceId ?? null,
-          linearIdentifier: run.linear_identifier,
-          taskId: run.task_id,
-          createdAt: now,
-        });
-        return { ok: false, reason: 'pr_binding_conflicted', binding };
-      }
-
-      if (binding.pr_identity !== candidate.identity) {
-        this.insertEvent({
-          runId,
-          eventType: 'pr_identity_conflict',
-          actor: 'scheduler',
-          payload: {
-            repoKey: run.repo_key,
-            taskId: run.task_id,
-            boundIdentity: binding.pr_identity,
-            candidateIdentity: candidate.identity,
-            candidateUrl: candidate.url,
-          },
-          traceId: options.traceId ?? null,
-          linearIdentifier: run.linear_identifier,
-          taskId: run.task_id,
-          createdAt: now,
-        });
-        return { ok: false, reason: 'pr_identity_conflict', binding };
-      }
-
-      this.db.prepare('UPDATE runs SET pr_url = ?, heartbeat_at = ?, updated_at = ? WHERE id = ?').run(binding.pr_url, now, now, runId);
-      return { ok: true, status: 'already_bound', binding };
-    });
-  }
-
-  getTaskPrBinding(repoKey: string, taskId: string): TaskPrBindingRow | null {
-    return (this.db.prepare('SELECT * FROM task_pr_bindings WHERE repo_key = ? AND task_id = ?').get(repoKey, taskId) as TaskPrBindingRow | undefined) ?? null;
-  }
-
-  getTaskPrBindingForRun(runId: string): TaskPrBindingRow | null {
-    const run = this.getRun(runId);
-    return run ? this.getTaskPrBinding(run.repo_key, run.task_id) : null;
-  }
-
-  historicalTaskPrUrlsForRun(runId: string): string[] {
-    const run = this.getRun(runId);
-    if (!run) {
-      throw new Error(`Run not found: ${runId}`);
-    }
-    return (this.db.prepare(`
-      SELECT pr_url FROM runs
-      WHERE repo_key = ? AND task_id = ? AND pr_url IS NOT NULL
-      ORDER BY created_at, id
-    `).all(run.repo_key, run.task_id) as Array<{ pr_url: string }>).map((row) => row.pr_url);
-  }
-
-  observeTaskPrState(runId: string, nextState: TaskPrState, options: { now?: string; traceId?: string | null } = {}): TaskPrBindingRow {
-    const now = options.now ?? nowIso();
-    return this.transaction(() => {
-      const run = this.getRun(runId);
-      if (!run) {
-        throw new Error(`Run not found: ${runId}`);
-      }
-      const binding = this.getTaskPrBinding(run.repo_key, run.task_id);
-      if (!binding || binding.binding_state !== 'bound') {
-        throw new Error(`Task PR binding is not bound for ${run.repo_key}/${run.task_id}.`);
-      }
-      if ((binding.pr_state === 'merged' || binding.pr_state === 'closed') && binding.pr_state !== nextState) {
-        throw new Error(`Task PR terminal state conflict: ${binding.pr_state} cannot transition to ${nextState}.`);
-      }
-      if (binding.pr_state === 'unknown' || binding.pr_state === 'open' || binding.pr_state === nextState) {
-        this.db.prepare(`
-          UPDATE task_pr_bindings
-          SET pr_state = ?, updated_at = ?
-          WHERE repo_key = ? AND task_id = ?
-        `).run(nextState, now, run.repo_key, run.task_id);
-      }
-      if (binding.pr_state !== nextState) {
-        this.insertEvent({
-          runId,
-          eventType: nextState === 'open' ? 'pr_state_observed' : 'pr_terminal_observed',
-          actor: 'scheduler',
-          payload: { repoKey: run.repo_key, taskId: run.task_id, prIdentity: binding.pr_identity, from: binding.pr_state, to: nextState },
-          traceId: options.traceId ?? null,
-          linearIdentifier: run.linear_identifier,
-          taskId: run.task_id,
-          createdAt: now,
-        });
-      }
-      return this.getTaskPrBinding(run.repo_key, run.task_id) as TaskPrBindingRow;
-    });
   }
 
   updateNativeRunContext(runId: string, input: {

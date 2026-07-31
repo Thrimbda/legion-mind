@@ -125,57 +125,33 @@ test('PR open maps run to in_review and enqueues idempotent Linear native writeb
   }
 });
 
-test('tracker binds explicit and snapshot PR URLs before fetch follow-up or writeback side effects', async () => {
-  const root = tmpRoot('pr-tracker-binding-order');
+test('tracker treats PR identity as run-level metadata and accepts an authorized follow-up URL', async () => {
+  const root = tmpRoot('pr-tracker-run-metadata');
   const store = openSchedulerStore(':memory:');
   try {
-    const explicitConflict = claimRun(store, {
-      linearIssueId: 'issue-explicit-conflict',
-      linearIdentifier: '0XC-60-EXPLICIT-CONFLICT',
-      resourceHints: ['area:explicit-conflict'],
-    }, 'linear-0xc-60-explicit-conflict');
-    store.compareAndBindTaskPr(explicitConflict.runId, 'https://github.com/Thrimbda/legion-mind/pull/301');
-    let fetchCount = 0;
+    const claim = claimRun(store, {
+      linearIssueId: 'issue-authorized-follow-up',
+      linearIdentifier: '0XC-60-AUTHORIZED-FOLLOW-UP',
+      resourceHints: ['area:authorized-follow-up'],
+    }, 'linear-0xc-60-authorized-follow-up');
+    store.updateRunMetadata(claim.runId, { prUrl: 'https://github.com/Thrimbda/legion-mind/pull/301' });
+    const fetched: string[] = [];
     const client = {
-      async fetchPullRequest() {
-        fetchCount += 1;
-        return prSnapshot({ url: 'https://github.com/Thrimbda/legion-mind/pull/302' });
+      async fetchPullRequest(prUrl: string) {
+        fetched.push(prUrl);
+        return prSnapshot({ url: 'https://github.com/Thrimbda/legion-mind/pull/303' });
       },
     };
-    await assert.rejects(
-      trackPrDelivery(store, client, {
-        runId: explicitConflict.runId,
-        prUrl: 'https://github.com/Thrimbda/legion-mind/pull/302',
-        repoPath: root,
-      }),
-      /pr_identity_conflict/,
-    );
-    assert.equal(fetchCount, 0);
-    assert.equal(store.timelineForRun(explicitConflict.runId).some((event) => event.event_type === 'pr_snapshot_observed'), false);
-
-    store.requestNativeStop(explicitConflict.runId, 'finish explicit conflict fixture', { actor: 'test' });
-    const snapshotConflict = claimRun(store, {
-      linearIssueId: 'issue-snapshot-conflict',
-      linearIdentifier: '0XC-60-SNAPSHOT-CONFLICT',
-      resourceHints: ['area:snapshot-conflict'],
-    }, 'linear-0xc-60-snapshot-conflict');
-    const snapshotClient = {
-      async fetchPullRequest() {
-        fetchCount += 1;
-        return prSnapshot({ url: 'https://github.com/Thrimbda/legion-mind/pull/312' });
-      },
-    };
-    await assert.rejects(
-      trackPrDelivery(store, snapshotClient, {
-        runId: snapshotConflict.runId,
-        prUrl: 'https://github.com/Thrimbda/legion-mind/pull/311',
-        repoPath: root,
-      }),
-      /pr_identity_conflict/,
-    );
-    assert.equal(fetchCount, 1);
-    assert.equal(store.timelineForRun(snapshotConflict.runId).some((event) => event.event_type === 'pr_snapshot_observed'), false);
-    assert.equal(store.outboxForRun(snapshotConflict.runId).some((row) => row.idempotency_key.includes(':delivery:pr-url:')), false);
+    const outcome = await trackPrDelivery(store, client, {
+      runId: claim.runId,
+      prUrl: 'https://github.com/Thrimbda/legion-mind/pull/302',
+      repoPath: root,
+    });
+    assert.equal(outcome.decision, 'in_review');
+    assert.deepEqual(fetched, ['https://github.com/Thrimbda/legion-mind/pull/302']);
+    assert.equal(store.getRun(claim.runId)?.pr_url, 'https://github.com/Thrimbda/legion-mind/pull/303');
+    assert.equal(store.timelineForRun(claim.runId).some((event) => event.event_type === 'pr_snapshot_observed'), true);
+    assert.equal(store.outboxForRun(claim.runId).some((row) => row.idempotency_key.includes(':delivery:pr-url:')), true);
   } finally {
     store.close();
     rmSync(root, { recursive: true, force: true });
@@ -263,7 +239,7 @@ test('merged PR with missing repo evidence is terminal non-success while lifecyc
     assert.equal(missingOutcome.verification?.failureType, 'legion_evidence_missing');
     assert.equal(store.getRun(missing.runId)?.state, 'failed');
     assert.equal(store.getRun(missing.runId)?.failure_type, 'legion_evidence_missing');
-    assert.match(store.getRun(missing.runId)?.failure_reason ?? '', /user-created new task/);
+    assert.match(store.getRun(missing.runId)?.failure_reason ?? '', /explicit user authorization/);
     assert.equal(store.isBlockerSatisfiedByRun(missing.runId).satisfied, false);
     assert.equal(store.heldLockConflicts(['area:missing-evidence']).length, 0);
     assert.match(store.outboxForRun(missing.runId).find((row) => row.side_effect === 'final_response')?.payload_json ?? '', /run_terminal_non_success/);
@@ -345,7 +321,7 @@ test('closed-unmerged PR remains lifecycle_blocked until cleanup and refresh are
     assert.equal(blocked.decision, 'blocked');
     assert.equal(blocked.lifecycle?.ok, false);
     assert.equal(store.getRun(claim.runId)?.failure_type, 'lifecycle_blocked');
-    assert.equal(store.getTaskPrBindingForRun(claim.runId)?.pr_state, 'closed');
+    assert.equal(store.getRun(claim.runId)?.pr_url, closed.url);
     assert.equal(store.outboxForRun(claim.runId).some((row) => row.side_effect === 'final_response'), false);
 
     rmSync(taskWorktree, { recursive: true, force: true });

@@ -25,7 +25,7 @@
 - `plan.md` 是人类可读 Scope 的真源。
 - `rfc.md` 若存在，是设计真源。
 - `git.lifecycle: git-worktree-pr` 表示阶段链在 Git/PR envelope 内运行；它不改变 Legion 执行模式。
-- `git.prUrl` 一旦非空就绑定该 task 唯一 PR identity；后续 handoff 只能更新同一 identity 的状态，不能换 URL。
+- `git.prUrl` 记录当前 delivery PR，属于 run/handoff 状态而非 task 级永久 identity；用户明确授权新的仓库交付后可以更新为新的 PR URL。
 
 ## Git lifecycle 字段
 
@@ -57,7 +57,7 @@ git:
 
 Completion 只在 `cleanupState: completed` 且 `mainWorkspaceRefresh: completed` 时成立。`blocked`、`kept_with_reason`、`skipped_with_reason` 只能表示 blocked handoff 或未完成状态，不能写成开发任务完成。
 
-每个 `taskId` 的 PR 配额为 `0..1`。`prState` 进入 `merged|closed` 后，envelope 设置 external-only latch：禁止新建或修改 branch、在 worktree 内写文件、commit/push/PR create/update 或仓库内 task/wiki 收口；只允许外部动作、worktree 删除、refresh 与最终报告。需要仓库变更时必须结束当前 task，由用户明确创建新 task。
+`prState` 进入 `merged|closed` 后，当前自动 lifecycle 只记录外部事实：不得自动新建或修改 branch、写 task/wiki、commit/push 或创建 PR 来追写 terminal 状态；只执行外部动作、worktree 删除、refresh 与最终报告。需要仓库变更时先停止并取得用户明确授权；授权后的 handoff 可记录新的 branch/PR，不受 task 级数字配额或永久 identity 约束。
 
 ## 文档语言约定
 

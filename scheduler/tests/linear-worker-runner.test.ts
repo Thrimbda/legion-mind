@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { StaticPullRequestClient, trackPrDelivery } from '../src/pr-tracker.ts';
 import { openSchedulerStore } from '../src/sqlite-store.ts';
 import type { OutboxRow, WorkItemSnapshotInput } from '../src/sqlite-store.ts';
 import { taskIdFromLinearIdentifier } from '../src/task-id.ts';
@@ -122,8 +121,8 @@ test('OpenCode prompt renderer includes Linear context, native context and Legio
   assert.match(prompt, /legion-workflow/);
   assert.match(prompt, /brainstorm/);
   assert.match(prompt, /git-worktree-pr/);
-  assert.match(prompt, /Before any PR create, query GitHub/);
-  assert.match(prompt, /if the bound or discovered PR is terminal, stop repository work/);
+  assert.match(prompt, /Do not autonomously create a closeout/);
+  assert.match(prompt, /explicit user authorization; that authorization may allow a new PR/);
   assert.match(prompt, /PR created is not completion/);
   assert.match(prompt, /LEGION_WORKER_RESULT_START/);
   assert.match(prompt, /evidenceVerifierOutputPath/);
@@ -138,11 +137,31 @@ test('worker result parser extracts result block and rejects malformed output', 
     linearIssue: '0XC-58',
     taskId: 'linear-0xc-58',
     prUrl: 'https://github.com/Thrimbda/legion-mind/pull/58',
+    externalUrls: [{ label: 'Walkthrough', url: 'https://example.com/reports/58' }],
   }));
   assert.equal(parsed.prUrl, 'https://github.com/Thrimbda/legion-mind/pull/58');
+  assert.deepEqual(parsed.externalUrls, [{ label: 'Walkthrough', url: 'https://example.com/reports/58' }]);
   assert.throws(() => parseWorkerResultBlock('no result here'), /complete Legion result block/);
   assert.throws(() => parseWorkerResultBlock(`${workerResultBlock({ runResult: 'blocked', runId: 'run-1', attemptId: 'attempt-1', linearIssue: '0XC-58', taskId: 'linear-0xc-58' })}\n${workerResultBlock({ runResult: 'blocked', runId: 'run-1', attemptId: 'attempt-1', linearIssue: '0XC-58', taskId: 'linear-0xc-58' })}`), /multiple Legion result block/);
   assert.throws(() => parseWorkerResultBlock(workerResultBlock({ runResult: 'done', linearIssue: '', taskId: '' })), /linearIssue and taskId/);
+  assert.throws(() => parseWorkerResultBlock(workerResultBlock({
+    runResult: 'in_review',
+    linearIssue: '0XC-58',
+    taskId: 'linear-0xc-58',
+    prUrl: 'not-a-pr-url',
+  })), /supported HTTPS pull request URL/);
+  assert.throws(() => parseWorkerResultBlock(workerResultBlock({
+    runResult: 'in_review',
+    linearIssue: '0XC-58',
+    taskId: 'linear-0xc-58',
+    externalUrls: [null as never],
+  })), /externalUrls entries/);
+  assert.throws(() => parseWorkerResultBlock(workerResultBlock({
+    runResult: 'in_review',
+    linearIssue: '0XC-58',
+    taskId: 'linear-0xc-58',
+    externalUrls: [{ label: 42, url: false } as never],
+  })), /externalUrls entries/);
 });
 
 test('OpenCode environment sanitizer does not pass scheduler or Linear/GitHub secrets by default', () => {
@@ -414,8 +433,8 @@ test('native startup outbox is processed before worker dispatch and worker done 
   }
 });
 
-test('worker PR URL ingress binds before result side effects and rejects conflicting external URL identity', async () => {
-  const root = tmpRoot('worker-pr-conflict');
+test('worker PR URL ingress records run-level tracking metadata without a task binding', async () => {
+  const root = tmpRoot('worker-pr-run-metadata');
   const store = openSchedulerStore(':memory:');
   try {
     const current = snapshot({ linearIssueId: 'issue-worker-pr-conflict', linearIdentifier: 'WI-WORKER-PR-CONFLICT' });
@@ -449,19 +468,18 @@ test('worker PR URL ingress binds before result side effects and rejects conflic
         },
       },
     });
-    assert.equal(outcome.result, 'blocked');
-    assert.equal(store.getRun(claim.runId)?.failure_type, 'pr_identity_conflict');
+    assert.equal(outcome.result, 'in_review');
+    assert.equal(store.getRun(claim.runId)?.failure_type, null);
+    assert.equal(store.getRun(claim.runId)?.state, 'in_review');
     assert.equal(store.getRun(claim.runId)?.pr_url, 'https://github.com/Thrimbda/legion-mind/pull/201');
-    assert.equal(store.getTaskPrBindingForRun(claim.runId)?.pr_identity, 'github.com/thrimbda/legion-mind#201');
-    assert.equal(store.timelineForRun(claim.runId).some((event) => event.event_type === 'pr_tracking_required'), false);
   } finally {
     store.close();
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('terminal task PR binding rejects repository worker dispatch before launch', async () => {
-  const root = tmpRoot('worker-external-only');
+test('existing run-level PR metadata does not block an explicitly authorized follow-up PR', async () => {
+  const root = tmpRoot('worker-authorized-follow-up');
   const store = openSchedulerStore(':memory:');
   try {
     const current = snapshot({ linearIssueId: 'issue-worker-terminal', linearIdentifier: 'WI-WORKER-TERMINAL' });
@@ -474,28 +492,39 @@ test('terminal task PR binding rejects repository worker dispatch before launch'
     assert.equal(claim.ok, true);
     if (!claim.ok) return;
     await processNativeAgentOutbox(store, fakeNativeAdapter());
-    assert.equal(store.compareAndBindTaskPr(claim.runId, 'https://github.com/Thrimbda/legion-mind/pull/210').ok, true);
-    store.observeTaskPrState(claim.runId, 'merged');
+    store.updateRunMetadata(claim.runId, { prUrl: 'https://github.com/Thrimbda/legion-mind/pull/210' });
     let launched = false;
     const outcome = await processOpenCodeWorkerDispatch(store, workerOutbox(store), {
       repoPath: root,
       launcher: {
         async launch() {
           launched = true;
-          return { kind: 'success', exitCode: 0, stdout: '', stderr: '' };
+          return {
+            kind: 'success',
+            exitCode: 0,
+            stderr: '',
+            stdout: workerResultBlock({
+              runResult: 'in_review',
+              runId: claim.runId,
+              attemptId: claim.attemptId,
+              linearIssue: 'WI-WORKER-TERMINAL',
+              taskId: 'linear-worker-terminal',
+              prUrl: 'https://github.com/Thrimbda/legion-mind/pull/211',
+            }),
+          };
         },
       },
     });
-    assert.equal(outcome.result, 'launch_failed');
-    assert.equal(launched, false);
-    assert.equal(store.timelineForRun(claim.runId).some((event) => event.event_type === 'worker_dispatch_rejected_external_only'), true);
+    assert.equal(outcome.result, 'in_review');
+    assert.equal(launched, true);
+    assert.equal(store.getRun(claim.runId)?.pr_url, 'https://github.com/Thrimbda/legion-mind/pull/211');
   } finally {
     store.close();
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('legacy done PR backfills as merged and a new run never launches a repository worker', async () => {
+test('a later run for the same task may track a different explicitly authorized PR', async () => {
   const root = tmpRoot('worker-legacy-done');
   const dbPath = join(root, 'scheduler.sqlite');
   const taskId = 'linear-worker-legacy-done';
@@ -539,21 +568,32 @@ test('legacy done PR backfills as merged and a new run never launches a reposito
       launcher: {
         async launch() {
           launched = true;
-          return { kind: 'success', exitCode: 0, stdout: '', stderr: '' };
+          return {
+            kind: 'success',
+            exitCode: 0,
+            stderr: '',
+            stdout: workerResultBlock({
+              runResult: 'in_review',
+              runId: nextClaim.runId,
+              attemptId: nextClaim.attemptId,
+              linearIssue: 'WI-LEGACY-DONE-NEW',
+              taskId,
+              prUrl: 'https://github.com/Thrimbda/legion-mind/pull/221',
+            }),
+          };
         },
       },
     });
-    assert.equal(outcome.result, 'launch_failed');
-    assert.equal(launched, false);
-    assert.equal(store.getTaskPrBindingForRun(nextClaim.runId)?.pr_state, 'merged');
-    assert.equal(store.compareAndBindTaskPr(nextClaim.runId, 'https://github.com/Thrimbda/legion-mind/pull/221').ok, false);
+    assert.equal(outcome.result, 'in_review');
+    assert.equal(launched, true);
+    assert.equal(store.getRun(nextClaim.runId)?.pr_url, 'https://github.com/Thrimbda/legion-mind/pull/221');
     store.close();
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
 });
 
-test('legacy non-done PR remains unknown until tracker observes open, then the same PR may resume', async () => {
+test('historical non-success PR metadata does not create a cross-run worker gate', async () => {
   const root = tmpRoot('worker-legacy-unknown');
   const dbPath = join(root, 'scheduler.sqlite');
   const taskId = 'linear-worker-legacy-unknown';
@@ -590,40 +630,7 @@ test('legacy non-done PR remains unknown until tracker observes open, then the s
     if (!nextClaim.ok) return;
     await processNativeAgentOutbox(store, fakeNativeAdapter());
     let launched = false;
-    const blocked = await processOpenCodeWorkerDispatch(store, workerOutbox(store, nextClaim.runId), {
-      repoPath: root,
-      launcher: {
-        async launch() {
-          launched = true;
-          return { kind: 'success', exitCode: 0, stdout: '', stderr: '' };
-        },
-      },
-    });
-    assert.equal(blocked.result, 'launch_failed');
-    assert.equal(launched, false);
-    assert.equal(store.getTaskPrBindingForRun(nextClaim.runId)?.pr_state, 'unknown');
-
-    const openSnapshot = {
-      url: prUrl,
-      state: 'open' as const,
-      draft: false,
-      merged: false,
-      checks: { status: 'pending' as const, summary: 'Checks pending.' },
-      review: { decision: 'review_required' as const, summary: 'Review pending.' },
-    };
-    const tracked = await trackPrDelivery(store, new StaticPullRequestClient(openSnapshot), {
-      runId: nextClaim.runId,
-      prUrl,
-      repoPath: root,
-    });
-    assert.equal(tracked.decision, 'in_review');
-    assert.equal(store.getTaskPrBindingForRun(nextClaim.runId)?.pr_state, 'open');
-    await processNativeAgentOutbox(store, fakeNativeAdapter());
-    const retry = store.createRetryAttempt(nextClaim.runId, {
-      failureType: 'legacy_pr_state_unknown',
-      failureReason: 'PR tracker has now confirmed the bound PR remains open.',
-    });
-    const resumed = await processOpenCodeWorkerDispatch(store, workerOutbox(store, nextClaim.runId), {
+    const outcome = await processOpenCodeWorkerDispatch(store, workerOutbox(store, nextClaim.runId), {
       repoPath: root,
       launcher: {
         async launch() {
@@ -635,18 +642,18 @@ test('legacy non-done PR remains unknown until tracker observes open, then the s
             stdout: workerResultBlock({
               runResult: 'in_review',
               runId: nextClaim.runId,
-              attemptId: retry.attemptId,
+              attemptId: nextClaim.attemptId,
               linearIssue: 'WI-LEGACY-UNKNOWN-NEW',
               taskId,
-              prUrl,
+              prUrl: 'https://github.com/Thrimbda/legion-mind/pull/231',
             }),
           };
         },
       },
     });
     assert.equal(launched, true);
-    assert.equal(resumed.result, 'in_review');
-    assert.equal(store.compareAndBindTaskPr(nextClaim.runId, 'https://github.com/Thrimbda/legion-mind/pull/231').ok, false);
+    assert.equal(outcome.result, 'in_review');
+    assert.equal(store.getRun(nextClaim.runId)?.pr_url, 'https://github.com/Thrimbda/legion-mind/pull/231');
     store.close();
   } finally {
     rmSync(root, { recursive: true, force: true });

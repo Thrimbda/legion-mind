@@ -1,12 +1,12 @@
 # Legion Decisions
 
-## 决策：同一 Legion task 的 PR 配额固定为 0..1
+## 决策：terminal 状态外部化，不设 task 级 PR 数量或 identity 限制
 
-- 来源任务：`enforce-single-pr-lifecycle-v1`
-- 当前规则：每个 `repoKey + taskId` 最多绑定一个 PR；首次绑定的 host/owner/repo/number identity 不可替换。所有仓库产物与修订必须在该唯一 PR terminal 前进入同一分支。
-- 终态边界：PR merged/closed 后进入 external-only；只允许外部发布/部署、只读验证、worktree cleanup、主工作区 refresh 与最终报告，不再改 task/wiki/report，也不创建 closeout、publish-result、deploy-result、wiki-only 或其他第二 PR。
-- 状态语义：PR-backed task 的 repo evidence 以 `delivery-ready` 结束；GitHub 与 Scheduler 保存 checks/review/merge/cleanup/refresh 的 delivery terminal，不要求合并后把仓库状态追写为 `completed`。
-- 失败语义：纯外部动作可重试；任何需要仓库改动的修复或回滚都结束原 task，只有用户明确创建的新 task 才拥有新的 `0..1` PR 配额。
+- 来源任务：`remove-pr-quota-enforcement-v1`；取代 `enforce-single-pr-lifecycle-v1` 的 hard quota/binding 结论。
+- 当前规则：`runs.pr_url` 只记录当前 run 的 tracking URL；不存在 `repoKey + taskId` 数字配额、永久 PR identity、replacement/follow-up fail-closed gate。
+- 自动行为边界：PR merged/closed 后，merge/checks/cleanup/refresh/publish/deploy 事实只进入 GitHub、Scheduler 与最终交接，不自动修改 task/wiki/report，也不自动创建 closeout、publish-result、deploy-result 或 wiki-only PR。
+- 授权边界：terminal 后确需仓库改动时，当前自动 lifecycle 停止并向用户报告；用户明确授权后可以开始新的 branch/PR 交付。
+- 状态语义：PR-backed task 的 repo evidence 以 `delivery-ready` 结束；delivery terminal 不要求合并后把仓库状态追写为 `completed`。
 
 ## 决策：Legion 任务使用只升不降的三档 profile
 
