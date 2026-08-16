@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>evaluate-pi-control-plane · 交付摘要（rfc-only）</title>
+<style>
+  :root {
+    --bg: oklch(0.982 0.004 250);
+    --surface: oklch(0.998 0.002 250);
+    --ink: oklch(0.30 0.030 255);
+    --ink-soft: oklch(0.47 0.030 255);
+    --line: oklch(0.905 0.012 250);
+    --accent: oklch(0.46 0.130 255);
+    --accent-soft: oklch(0.95 0.020 255);
+    --ok: oklch(0.52 0.140 155);
+    --ok-soft: oklch(0.945 0.040 155);
+    --warn: oklch(0.55 0.120 80);
+    --warn-soft: oklch(0.955 0.045 90);
+    --code-bg: oklch(0.952 0.008 250);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, "Segoe UI", system-ui, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+    font-size: 16px;
+    line-height: 1.75;
+  }
+  .container { max-width: 896px; margin-inline: auto; padding-inline: clamp(16px, 4vw, 32px); }
+  code {
+    font-family: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    font-size: 0.875em;
+    background: var(--code-bg);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+    word-break: break-all;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .site-header { padding-block: clamp(32px, 6vw, 56px) clamp(20px, 3vw, 28px); }
+  .kicker {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  h1 { margin: 0 0 12px; font-size: clamp(26px, 4.5vw, 36px); line-height: 1.25; letter-spacing: -0.01em; }
+  .lede { margin: 0 0 24px; max-width: 62ch; color: var(--ink-soft); font-size: clamp(15px, 2vw, 17px); }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px 24px;
+    margin: 0;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .meta-grid div { min-width: 0; }
+  .meta-grid dt { font-size: 12px; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-soft); margin-bottom: 2px; }
+  .meta-grid dd { margin: 0; font-size: 14.5px; }
+
+  .badge {
+    display: inline-block;
+    padding: 1px 10px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    border: 1px solid;
+    vertical-align: baseline;
+    white-space: nowrap;
+  }
+  .badge.ok { color: var(--ok); background: var(--ok-soft); border-color: var(--ok); }
+  .badge.warn { color: var(--warn); background: var(--warn-soft); border-color: var(--warn); }
+  .badge.neutral { color: var(--accent); background: var(--accent-soft); border-color: var(--accent); }
+
+  .toc { padding-block: 4px 20px; }
+  .toc ol { margin: 0; padding-left: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 14px; }
+
+  main section { border-top: 1px solid var(--line); padding-block: clamp(24px, 4vw, 36px); }
+  main section:first-child { border-top: none; }
+  h2 { margin: 0 0 14px; font-size: clamp(19px, 3vw, 23px); line-height: 1.35; }
+  h2 .sec-no { color: var(--accent); font-weight: 700; margin-right: 8px; }
+  h3 { margin: 22px 0 8px; font-size: 16.5px; }
+  p { margin: 0 0 12px; max-width: 72ch; }
+  ul, ol { margin: 0 0 12px; padding-left: 1.4em; }
+  li { margin-bottom: 6px; }
+  li::marker { color: var(--accent); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 14px;
+  }
+  .table-wrap { overflow-x: auto; margin-bottom: 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 560px; }
+  th, td { padding: 9px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+  th { font-size: 12.5px; letter-spacing: 0.04em; color: var(--ink-soft); font-weight: 600; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  .num { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+  .checklist input[type="checkbox"] { margin-top: 6px; accent-color: var(--accent); flex: none; }
+
+  .note { font-size: 14px; color: var(--ink-soft); }
+  .footer { padding-block: 28px 48px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-soft); }
+
+  @media print {
+    body { background: oklch(1 0 0); color: oklch(0.2 0 0); font-size: 12px; }
+    .toc { display: none; }
+    .site-header { padding-block: 0 12px; }
+    main section { break-inside: avoid-page; padding-block: 14px; }
+    .table-wrap { overflow-x: visible; border-color: oklch(0.8 0 0); }
+    table { min-width: 0; font-size: 11px; }
+    .card, .meta-grid { border-color: oklch(0.8 0 0); background: oklch(1 0 0); }
+    code { background: oklch(0.96 0 0); }
+    a { color: inherit; text-decoration: none; }
+    .badge { border-color: currentColor; background: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <p class="kicker">Legion 交付摘要 · rfc-only</p>
+    <h1>evaluate-pi-control-plane</h1>
+    <p class="lede">评估 Legion 从 OpenCode 迁移到 Pi、以控制平面为终态组成个人 harness。结论：<strong>GO，分六阶段 M1-M6</strong>，每阶段独立 Legion 任务、各自过设计门；OpenCode 线全程冻结作退路。</p>
+    <dl class="meta-grid">
+      <div><dt>Profile / Mode</dt><dd>rfc-only（design-only，无生产代码变更）</dd></div>
+      <div><dt>分支 / Worktree</dt><dd><code>legion/evaluate-pi-control-plane</code></dd></div>
+      <div><dt>评审结论</dt><dd>review-rfc <span class="badge ok">PASS</span> 3 major / 4 minor 已处置</dd></div>
+      <div><dt>冒烟证据</dt><dd>S1-S7 <span class="badge ok">7/7 PASS</span> 2026-08-16</dd></div>
+      <div><dt>决策</dt><dd><span class="badge ok">GO</span> M1-M6 分阶段</dd></div>
+      <div><dt>日期</dt><dd>2026-08-16</dd></div>
+    </dl>
+  </div>
+</header>
+
+<nav class="container toc" aria-label="目录">
+  <ol>
+    <li><a href="#profile">Profile</a></li>
+    <li><a href="#summary">Reviewer Summary</a></li>
+    <li><a href="#scope">Scope</a></li>
+    <li><a href="#evidence">Evidence Map</a></li>
+    <li><a href="#path">Delivery Path</a></li>
+    <li><a href="#render">Render Handoff</a></li>
+    <li><a href="#changed">Changed / Decided</a></li>
+    <li><a href="#verification">Verification / Review</a></li>
+    <li><a href="#risks">Risks</a></li>
+    <li><a href="#checklist">Reviewer Checklist</a></li>
+    <li><a href="#final">Final State / Next</a></li>
+  </ol>
+</nav>
+
+<main class="container">
+
+  <section id="profile" aria-labelledby="profile-h">
+    <h2 id="profile-h"><span class="sec-no">01</span>Profile</h2>
+    <p>本交付为 <strong>rfc-only mode</strong>：design-only，不含实现，前置证据为 <code>docs/rfc.md</code> 与 <code>docs/review-rfc.md</code>（implementation mode 的 test-report / review-change 不适用）。交付物是评估报告、GO 决策与 M1-M6 路线图，供 reviewer 判断"是否接受该决策与路线图作为后续独立 Legion 任务的契约种子"。</p>
+    <ul>
+      <li>任务契约：<code>.legion/tasks/evaluate-pi-control-plane/plan.md</code>（6 条 acceptance）</li>
+      <li>交付分支基于 <code>origin/master</code>（base <code>4bc7959</code>），三个 commit：<code>c3cd01f</code> 契约、<code>5d40279</code> research + RFC、<code>4cbbaaa</code> 评审处置</li>
+      <li>变更面：仅 <code>.legion/tasks/evaluate-pi-control-plane/</code> 下文档（+584 行）；<code>skills/</code>、<code>scripts/</code>、<code>scheduler/</code>、<code>.opencode/</code> 与 OpenCode 安装面零触碰</li>
+      <li>读者：用户本人（技术 leader）</li>
+    </ul>
+  </section>
+
+  <section id="summary" aria-labelledby="summary-h">
+    <h2 id="summary-h"><span class="sec-no">02</span>Reviewer Summary</h2>
+    <div class="card">
+      <p><strong>决策：GO，分六阶段 M1-M6。</strong>先建 Pi runtime parity（M1 交互、M2 worker），再建控制平面（M3 内核、M4 subagent、M5 操作面、M6 fleet）；rollout 顺序 M1 → (M2 ∥ M3) → M4/M5 → M6。</p>
+      <ul>
+        <li><strong>为什么可信</strong>：提案 claims 经四路一手核实（2026-08-16，pi.dev 官方文档 / 各扩展 GitHub 仓库 / npm registry），失真处显式修正；关键可行性经 repo-local 隔离冒烟 S1-S7 实证；独立评审 PASS 且 findings 全部处置。</li>
+        <li><strong>为什么是现在</strong>：Pi 薄内核哲学与 Legion 分工互补（无 OpenCode 式双编排语义竞争）；OpenCode 线已冻结，正是低风险切换窗口。</li>
+        <li><strong>退路</strong>：OpenCode 冻结线在每个阶段都是可用退路；M3 前无新持久状态；全程无不可逆步骤。</li>
+        <li><strong>诚实边界</strong>：冒烟覆盖 Linux headless + deepseek/zai provider；pi-web / pi-goal / browser / desktop / 审批闸保持 doc-level，已绑定到对应阶段 PoC 或设计门，未写成既成事实。</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="scope" aria-labelledby="scope-h">
+    <h2 id="scope-h"><span class="sec-no">03</span>Scope</h2>
+    <h3>In scope</h3>
+    <ul>
+      <li>提案关键 claims 一手核实与出入记录（research.md §4 对照表）</li>
+      <li>repo-local 隔离冒烟：安装、skill 加载、print/JSON、RPC、SDK、subagent 派生（research.md §5）</li>
+      <li>OpenCode 耦合清单与 gap 分析（契约要求四类，实际识别 C1-C5，超额一条）</li>
+      <li>三性结论（合理性 / 可行性分级 / 合适性）与目标架构职责边界</li>
+      <li>M1-M6 路线图（scope / 依赖 / 退出条件）与回滚方案</li>
+    </ul>
+    <h3>Out of scope（契约非目标）</h3>
+    <ul>
+      <li>不实施任何迁移阶段（M1-M6 均属后续独立 Legion 任务，各自过设计门）</li>
+      <li>不修改任何生产代码与生产资产；不做向前/向后兼容性设计（用户豁免）</li>
+      <li>不做多租户 / 产品化设计；不评估 oh-my-pi / my-pi 作基础底座</li>
+    </ul>
+  </section>
+
+  <section id="evidence" aria-labelledby="evidence-h">
+    <h2 id="evidence-h"><span class="sec-no">04</span>Evidence Map</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Artifact</th><th>证明什么</th><th>健康度</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>plan.md</code></td>
+            <td>契约：6 条 acceptance、假设 / 约束 / 风险、非目标</td>
+            <td>5 条满足，1 条（Legion 证据链闭环）进行中，本 walkthrough 即其组成</td>
+          </tr>
+          <tr>
+            <td><code>docs/research.md</code></td>
+            <td>§4 claims 逐条核实（含失真修正）；§5 七项冒烟命令与关键输出摘录；§2 耦合清单 C1-C5</td>
+            <td>核实日期 2026-08-16 标注齐全；冒烟日志在 <code>.cache/pi-smoke/logs/</code>（gitignored），关键输出已摘录可复核</td>
+          </tr>
+          <tr>
+            <td><code>docs/rfc.md</code></td>
+            <td>GO 决策、三性结论、目标架构、5 个 alternatives、M1-M6 路线图、回滚方案</td>
+            <td>可行性按 smoke-proven / doc-level / unknown 分级；未把未验证 claim 写成事实</td>
+          </tr>
+          <tr>
+            <td><code>docs/review-rfc.md</code></td>
+            <td>独立对抗评审：Verdict PASS，F1-F7（3 major / 4 minor）</td>
+            <td>全部处置并回写 rfc.md / research.md；处置 commit <code>4cbbaaa</code> 在链</td>
+          </tr>
+          <tr>
+            <td>git 历史</td>
+            <td>交付路径可追溯</td>
+            <td><code>c3cd01f</code> 契约 → <code>5d40279</code> research+RFC → <code>4cbbaaa</code> 评审处置；工作树干净</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">冒烟覆盖面边界：Linux headless、Node v24.18.0、deepseek/zai provider（kimi 凭证未就绪）。未覆盖面（pi-web 实机、pi-goal、pi-mcp-adapter、browser/computer-use、fleet、沙箱、审批闸实现）保持 doc-level，已在 RFC 分级并绑定到对应阶段 PoC / 设计门。</p>
+  </section>
+
+  <section id="path" aria-labelledby="path-h">
+    <h2 id="path-h"><span class="sec-no">05</span>Delivery Path</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Phase</th><th>内容</th><th>状态</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td>契约物化 + worktree 准备</td><td>完成（commit <code>c3cd01f</code>）</td></tr>
+          <tr><td class="num">2</td><td>四路桌面调研：提案 claims 一手核实</td><td>完成（research.md §4）</td></tr>
+          <tr><td class="num">3</td><td>隔离冒烟 S1-S7</td><td>完成，全部 PASS（research.md §5）</td></tr>
+          <tr><td class="num">4</td><td>耦合与 gap 分析、三性结论</td><td>完成（research.md §2、rfc.md §5）</td></tr>
+          <tr><td class="num">5</td><td>RFC + review-rfc 门禁</td><td>完成（PASS，处置 commit <code>4cbbaaa</code>）</td></tr>
+          <tr><td class="num">6</td><td>walkthrough、PR lifecycle、wiki writeback</td><td>进行中：本 walkthrough 交付中；PR 与 wiki 写回待办</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="render" aria-labelledby="render-h">
+    <h2 id="render-h"><span class="sec-no">06</span>Render Handoff</h2>
+    <ul>
+      <li>本 HTML 为 standalone artifact（无外部资源、无脚本），直接在浏览器打开即可读；打印友好（A4 边距内表格自适应，打印时隐藏目录）。</li>
+      <li>本地路径：<code>.legion/tasks/evaluate-pi-control-plane/docs/report-walkthrough.html</code>（worktree <code>.worktrees/evaluate-pi-control-plane</code>）。</li>
+      <li>如需在线预览 URL 或 artifact 托管，经 <code>pr-html-render</code> skill 获取 rendered preview；本 walkthrough 不执行渲染。</li>
+      <li>PR 创建输入：<code>docs/pr-body.md</code>；compact fallback：<code>docs/report-walkthrough.md</code>。</li>
+    </ul>
+  </section>
+
+  <section id="changed" aria-labelledby="changed-h">
+    <h2 id="changed-h"><span class="sec-no">07</span>Changed / Decided</h2>
+    <h3>Changed（仅文档，+584 行）</h3>
+    <p><code>plan.md</code>、<code>log.md</code>、<code>tasks.md</code>、<code>docs/research.md</code>、<code>docs/rfc.md</code>、<code>docs/review-rfc.md</code>（全部位于 <code>.legion/tasks/evaluate-pi-control-plane/</code>）；本阶段新增 <code>docs/report-walkthrough.html</code>、<code>docs/report-walkthrough.md</code>、<code>docs/pr-body.md</code>。</p>
+    <h3>Decided（关键决策，详见 rfc.md）</h3>
+    <ol>
+      <li>GO 分六阶段；rollout 顺序 M1 → (M2 ∥ M3) → M4/M5 → M6，每阶段独立 Legion 任务过设计门。</li>
+      <li>职责边界：Pi 拥有 session / 模型 / 工具循环 / compaction / runtime-local extension；Legion 拥有 goal / run 任务图 / 权限审批 / 证据账本 / 租约 / 长期记忆 / attention queue。</li>
+      <li>提案失真修正：LSP 选型 <code>pi-lens@4.0.0</code>（非 <code>@narumitw/pi-lsp</code>）；skills 目录需显式配置 <code>settings.json</code>；内置工具默认激活 4/7；pi-web 无认证且内部 route 不稳定（不作控制平面 backend）；<code>pi-goal-list-loop-audit</code> AGPL 不纳入；pi-subagents 配置两层混写已修正。</li>
+      <li>pi-goal 不进 managed profile（goal 判定属 Legion）；subagent 第一版 backend 为 pi-subagents，切换 SDK child sessions 的判据列入 M4 设计门。</li>
+      <li>OpenCode 冻结线为全程退路；M5 切换 GitHub Actions 入口时保留 <code>opencode.yml</code> 文件但停用触发并标注冻结，回滚 = 恢复触发条件。</li>
+      <li>pin 清单（2026-08-16 快照）：<code>@earendil-works/pi-coding-agent@0.84.2</code>、<code>pi-subagents@0.50.0</code>、<code>pi-mcp-adapter@2.26.0</code>、<code>pi-lens@4.0.0</code>、<code>@jmfederico/pi-web@1.202608.1</code>。</li>
+    </ol>
+    <h3>路线图速览</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>阶段</th><th>建议 taskId</th><th>依赖</th><th>退出条件（压缩）</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">M1</td><td><code>adopt-pi-interactive-runtime</code></td><td>无</td><td>pi 启动即触发 legion-workflow 入口门；真实小任务跑通全阶段链</td></tr>
+          <tr><td class="num">M2</td><td><code>add-pi-worker-runner</code></td><td>M1</td><td>fixture WI 端到端证据链被 scheduler verifier 接受；OpenCode 路径冻结原样</td></tr>
+          <tr><td class="num">M3</td><td><code>build-legion-control-core</code>（可拆 M3a/M3b）</td><td>M1（可与 M2 并行）</td><td>本地调用入口提交 goal 跑完全程：证据通过、审批可中断、重启 durable resume</td></tr>
+          <tr><td class="num">M4</td><td><code>build-subagent-backend</code></td><td>M3</td><td>scout→worker→fresh reviewer 闭环；24h 无人值守完成 ≥1 真实 goal（强制）</td></tr>
+          <tr><td class="num">M5</td><td><code>build-operator-plane</code></td><td>M3</td><td>断网续跑可视；审批经 API 完成；<code>/oc</code> 等价入口在 Pi 上工作</td></tr>
+          <tr><td class="num">M6</td><td><code>build-fleet-computer-use</code></td><td>M3, M4</td><td>三类 worker 各完成真实验收任务；桌面/browser 租约冲突正确串行化</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="verification" aria-labelledby="verification-h">
+    <h2 id="verification-h"><span class="sec-no">08</span>Verification / Review Status</h2>
+    <h3>冒烟验证（本任务的测试等价物，2026-08-16）</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>验证项</th><th>结果</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">S1</td><td>安装与版本（<code>@earendil-works/pi-coding-agent@0.84.2</code>）</td><td><span class="badge ok">PASS</span></td></tr>
+          <tr><td class="num">S2</td><td>print/JSON 事件流（含 usage/cost、<code>agent_settled</code>）</td><td><span class="badge ok">PASS</span></td></tr>
+          <tr><td class="num">S3</td><td>skill 三路径发现（user / project / <code>~/.agents/skills</code>）</td><td><span class="badge ok">PASS</span></td></tr>
+          <tr><td class="num">S4</td><td>skill 渐进披露闭环 + AGENTS.md 遵从</td><td><span class="badge ok">PASS</span></td></tr>
+          <tr><td class="num">S5</td><td>RPC 驱动（id 关联、<code>get_state</code> 11 字段）</td><td><span class="badge ok">PASS</span></td></tr>
+          <tr><td class="num">S6</td><td>SDK 驱动（<code>ModelRuntime</code> + <code>createAgentSession</code> + <code>subscribe</code>）</td><td><span class="badge ok">PASS</span></td></tr>
+          <tr><td class="num">S7</td><td>pi-subagents scout 派生（独立进程、artifact 落盘、结果回传）</td><td><span class="badge ok">PASS</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3>独立评审（review-rfc）</h3>
+    <p>Verdict <span class="badge ok">PASS</span>（无 blocker）。3 major / 4 minor 全部处置并回写（commit <code>4cbbaaa</code>）：F1 M3 验收改本地调用入口；F2 <code>ctx.ui</code> 表面补核实并回写 research §4.1；F3 subagent backend 切换判据显式化；F4 冒烟结论收窄到已覆盖面；F5 M3a/M3b 拆分指引；F6 M5 保留 <code>opencode.yml</code> 停用触发并标注冻结；F7 24h 指标归入 M4 强制退出。</p>
+    <h3>契约 acceptance 对照</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Acceptance</th><th>状态</th><th>说明</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>claims 逐一核实 + 对照表 + 出入记录</td><td><span class="badge ok">满足</span></td><td>research.md §4</td></tr>
+          <tr><td>隔离冒烟 + 留档</td><td><span class="badge ok">满足</span></td><td>S1-S7，命令与关键输出摘录齐备，HOME/XDG/npm prefix 重定向</td></tr>
+          <tr><td>耦合清单四耦合点映射</td><td><span class="badge ok">满足（超额）</span></td><td>C1-C5，多识别出 C5（repo 级 runtime 配置 / permission 语义 gap）</td></tr>
+          <tr><td>三性结论 + 可行性分级</td><td><span class="badge ok">满足</span></td><td>rfc.md §5，分级与 research 证据一致</td></tr>
+          <tr><td>路线图 + 与冻结线 / scheduler 关系</td><td><span class="badge ok">满足</span></td><td>rfc.md §8.2，经评审 F1/F3/F5/F6 修正</td></tr>
+          <tr><td>Legion 证据链闭环</td><td><span class="badge warn">进行中</span></td><td>review-rfc PASS 已达成；本 walkthrough 交付中；PR 闭环与 wiki 写回待办</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="risks" aria-labelledby="risks-h">
+    <h2 id="risks-h"><span class="sec-no">09</span>Risks / Open Questions</h2>
+    <ul>
+      <li><strong>上游漂移</strong>：Pi 三个月 0.74→0.84，pi-subagents 5 天 5 个 minor；对策为 pin 版本 + CHANGELOG 复核（rfc §4 硬约束）。</li>
+      <li><strong>扩展共存 fail-closed</strong>：重名工具启动期冲突；M4 启动矩阵测试覆盖。</li>
+      <li><strong>审批机制 doc-level</strong>：<code>tool_call</code> <code>{block:true}</code> + RPC UI 桥已核实存在，工程量待 M3 设计门回答。</li>
+      <li><strong>browser/desktop 安全面</strong>：复用真实登录态与输入注入，需专用 profile / OS 用户 + 容器边界（M6）。</li>
+      <li><strong>环境边界</strong>：macOS 与 Wayland 节点未验证（M6 PoC；Wayland 当前 semantic-only，X11 fallback）。</li>
+    </ul>
+    <p class="note">Open Questions（不阻塞 GO，阻塞对应阶段）：M3 <code>AgentSessionRuntime</code> session replacement 细节与审批闸工程量；M5 pi-web 实机与 Legion 操作流契合度；M6 macOS / Wayland 能力矩阵。</p>
+  </section>
+
+  <section id="checklist" aria-labelledby="checklist-h">
+    <h2 id="checklist-h"><span class="sec-no">10</span>Reviewer Checklist</h2>
+    <ul class="checklist">
+      <li><input type="checkbox" disabled id="c1"><label for="c1">GO 决策是否可接受（对照 rfc.md §5 三性结论与证据分级）</label></li>
+      <li><input type="checkbox" disabled id="c2"><label for="c2">提案失真修正（LSP 选型 / skills 配置 / 工具默认 4/7 / pi-web / AGPL / 配置分层）是否改变你对原提案的判断</label></li>
+      <li><input type="checkbox" disabled id="c3"><label for="c3">M1-M6 阶段拆分、依赖与退出条件可否直接作为后续独立 Legion 任务的契约种子</label></li>
+      <li><input type="checkbox" disabled id="c4"><label for="c4">M3 颗粒度与 M3a/M3b 拆分指引是否接受</label></li>
+      <li><input type="checkbox" disabled id="c5"><label for="c5">subagent backend 切换判据（pi-subagents → SDK child sessions）是否接受</label></li>
+      <li><input type="checkbox" disabled id="c6"><label for="c6">24h 无人值守指标归入 M4 强制退出条件是否接受</label></li>
+      <li><input type="checkbox" disabled id="c7"><label for="c7">回滚方案（OpenCode 冻结线全程退路、M3 前无新持久状态）是否足够</label></li>
+      <li><input type="checkbox" disabled id="c8"><label for="c8">冒烟覆盖面边界（Linux headless、deepseek/zai provider）是否接受，未覆盖面交由对应阶段 PoC</label></li>
+    </ul>
+  </section>
+
+  <section id="final" aria-labelledby="final-h">
+    <h2 id="final-h"><span class="sec-no">11</span>Final State / Next Stage</h2>
+    <ul>
+      <li>任务进度 11/13；本 walkthrough 三份产物（html / md / pr-body）交付后，剩 PR lifecycle 至终态与 legion-wiki 收口写回。</li>
+      <li>PR 创建输入就绪：<code>docs/pr-body.md</code>；PR 描述将引用本 HTML 作为主 reviewer artifact。</li>
+      <li>合并后下一步：按路线图立项 M1 <code>adopt-pi-interactive-runtime</code>（独立 Legion 任务，过设计门）；OpenCode 线保持冻结直至 M5 入口切换。</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer class="footer">
+  <div class="container">
+    <p>Generated by report-walkthrough-cheery-sparrow（report-walkthrough skill，mode: rfc-only）· 2026-08-16 · 数据源：<code>plan.md</code> / <code>docs/research.md</code> / <code>docs/rfc.md</code> / <code>docs/review-rfc.md</code>（同目录）。</p>
+  </div>
+</footer>
+
+</body>
+</html>
