@@ -15,6 +15,7 @@
 
 ## 当前重点
 
+- Legion 迁移至 Pi 控制平面架构的评估已结论 **GO（M1–M6 分阶段）**：先 Pi runtime parity（M1 交互、M2 worker），再控制平面（M3 内核、M4 subagent、M5 操作面、M6 fleet）；OpenCode 线冻结为全程退路；pi-web 仅作 operator console、不作 backend；`pi-goal-list-loop-audit`（AGPL）禁止纳入。见 `decisions.md`、`tasks/evaluate-pi-control-plane.md`；真源为 `.legion/tasks/evaluate-pi-control-plane/docs/{rfc,research}.md`（2026-08-16 快照，实施前必须复核上游）。
 - Legion workflow 当前使用 Lite/Standard/Strict 最低 profile：Lite 为实现+验证，Standard 增加独立 change review，Strict 强制设计门、独立验证/审查与 walkthrough；显式覆盖只能升级。walkthrough 与 Wiki 分别按 reviewer 价值和 durable knowledge 决定。见 `decisions.md`、`patterns.md` 与 `tasks/workflow-profiles-model-routing-v1.md`，精确真源仍在 `skills/**`。
 - 人类注意力交接与认知验证路由的当前结论见 `patterns.md` 与 `tasks/human-attention-verification-routing.md`：RFC 审查、变更验证和实现审查先把完整摘要落盘，再把判断变化与最多三个关键发现压缩为五字段投影，并用 `none | skim | review | decide` 管理人类介入；声明级验证按三轴分类并使用五状态，阶段级 `Verdict: PASS | FAIL` 保持独立。精确 schema 真源仍在相关 `skills/**`。
 - 仓库内所有 `skills/*/SKILL.md` 当前都显式约束：默认用中文回答；若产出人类阅读型文档产物，也默认使用中文；代码、命令、路径、机器可读字段、错误原文和平台术语保持原文。见 `patterns.md` 与 `tasks/localize-skill-outputs.md`；schema 真源仍是各 `SKILL.md`。
