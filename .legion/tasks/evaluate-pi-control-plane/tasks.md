@@ -2,9 +2,9 @@
 
 ## 快速恢复
 
-**当前阶段**: 阶段 5 - Phase 5 - spec-rfc 评估报告与路线图、review-rfc 门禁
-**当前检查项**: review-rfc 评审并处理意见直至 PASS
-**进度**: 10/13 任务完成
+**当前阶段**: 阶段 6 - Phase 6 - walkthrough、PR lifecycle、wiki writeback
+**当前检查项**: report-walkthrough 交付摘要与 PR 创建跟进至终态
+**进度**: 11/13 任务完成
 ---
 
 ## 阶段 1: Phase 1 - 契约物化与 worktree 准备 ✅ COMPLETE
@@ -32,15 +32,15 @@
 - [x] 形成合理性/可行性/合适性三性结论 | 验收: 可行性按 smoke-proven/doc-level/unknown 分级；合适性覆盖机器 fleet、scheduler 资产、OpenCode 冻结线
 ---
 
-## 阶段 5: Phase 5 - spec-rfc 评估报告与路线图、review-rfc 门禁 🟡 IN PROGRESS
+## 阶段 5: Phase 5 - spec-rfc 评估报告与路线图、review-rfc 门禁 ✅ COMPLETE
 
 - [x] 产出 docs/rfc.md：评估结论加分阶段路线图加后续 Legion 任务拆分 | 验收: 每阶段任务有 scope/依赖/退出条件；明确与冻结 OpenCode 线和 scheduler/ 的关系
-- [ ] review-rfc 评审并处理意见直至 PASS | 验收: docs/review-rfc.md 记录 Verdict PASS ← CURRENT
+- [x] review-rfc 评审并处理意见直至 PASS | 验收: docs/review-rfc.md 记录 Verdict PASS
 ---
 
 ## 阶段 6: Phase 6 - walkthrough、PR lifecycle、wiki writeback ⏳ NOT STARTED
 
-- [ ] report-walkthrough 交付摘要与 PR 创建跟进至终态 | 验收: PR merged 或 closed/confirmed abandoned 且记录；worktree 删除；主工作区刷新
+- [ ] report-walkthrough 交付摘要与 PR 创建跟进至终态 | 验收: PR merged 或 closed/confirmed abandoned 且记录；worktree 删除；主工作区刷新 ← CURRENT
 - [ ] legion-wiki 收口写回 | 验收: wiki 记录本任务决策与后续任务入口
 ---
 
@@ -49,4 +49,4 @@
 (暂无)
 ---
 
-*最后更新: 2026-08-16 11:31*
+*最后更新: 2026-08-16 11:39*

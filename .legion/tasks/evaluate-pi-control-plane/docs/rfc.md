@@ -57,7 +57,7 @@
 
 ### 5.2 可行性：成立（分级）
 
-- **smoke-proven**（2026-08-16，隔离环境，research §5）：Pi 安装与版本；skills 三条发现路径 + 渐进披露闭环（触发→read→遵从）+ AGENTS.md 生效；`-p --mode json` 事件流（含 usage/cost、`agent_settled`）；RPC（id 关联、`get_state` 11 字段）；SDK（`ModelRuntime`+`createAgentSession`+`subscribe`）；`pi-subagents` scout 派生（独立进程、artifact 落盘、结果回传）。**结论：Legion 交互回路迁移（M1）与 worker 进程契约迁移（M2）没有未知技术风险。**
+- **smoke-proven**（2026-08-16，隔离环境，research §5）：Pi 安装与版本；skills 三条发现路径 + 渐进披露闭环（触发→read→遵从）+ AGENTS.md 生效；`-p --mode json` 事件流（含 usage/cost、`agent_settled`）；RPC（id 关联、`get_state` 11 字段）；SDK（`ModelRuntime`+`createAgentSession`+`subscribe`）；`pi-subagents` scout 派生（独立进程、artifact 落盘、结果回传）。**结论：M1/M2 在已冒烟覆盖的范围内（Linux headless、deepseek/zai provider、单 provider 单 session）没有未知技术风险**；macOS/Wayland 节点、其他 provider、多扩展共存属 doc-level/unknown，已在对应阶段设置 PoC。
 - **doc-level**（一手文档确认，未实机）：pi-web 全部能力（subsession/ask_user/fleet/窄插件接口/无认证）；pi-goal；pi-mcp-adapter；browser/computer-use 扩展；Gondolin/Docker/OpenShell 沙箱；extension `tool_call` `{block:true}` + `extension_ui` 桥的审批机制。
 - **unknown / 风险项**：extension API 跨版本稳定性；多扩展共存启动矩阵；Wayland computer-use 成熟度（当前 semantic-only）；macOS 节点表现；`AgentSessionRuntime` session replacement 细节。均已在路线图对应阶段设置 PoC/设计门回答，不阻塞 GO。
 
@@ -97,9 +97,10 @@ pi-web = operator/debug console（非 backend，M5）
 - **SessionActor**：每活跃 session 一个串行 actor（prompt/steer/follow-up 队列 + abort + 事件订阅 + 租约 + persisted session id）。并发只经 child session/run，不并发调用同一 `prompt()`。机制：SDK `AgentSession` + `AgentSessionRuntime`（doc-level 分层，research §4.1）。
 - **调度边界**：`agent_settled` 作为"彻底空闲"信号（smoke S2/S5 实测事件），优于 `agent_end`。
 - **事件规范化**：Pi 事件 → Legion versioned events（`session.started/tool.completed/goal.state_changed/approval.requested/...`），Pi 原始事件不出 adapter。注意 `message_update` 为 delta-only 需拼装（research §4.1）。
-- **审批闸**：extension `pi.on('tool_call')` 返回 `{block:true}` + `ctx.ui.confirm` / RPC `extension_ui_request/response` 桥 → Legion approval queue（doc-level，M3 设计门细化）。
+- **审批闸**：extension `pi.on('tool_call')` 返回 `{block:true}`，交互面经 `ctx.ui.confirm` 或 RPC `extension_ui_request/response` 桥（两者均 doc-level 已核实，research §4.1）接入 Legion approval queue；M3 设计门细化工程量。
 - **证据闭环**：沿用 scheduler 证据校验器思路——完成判定 = executor settled + 验收命令 + fresh verifier + claims↔evidence 绑定，拒绝"assistant 自称完成"。pi-goal 官方亦自认 guardrail 非证明（research §4.3）。
 - **资源租约**：`repo:<worktree>` 单 writer、`browser:<profile>` mutation 串行、`desktop:<seat>` 独占、credential 按任务注入。设计种子：scheduler WI-06 locks。
+- **subagent 拓扑与预算的所有权划分**：Legion 拥有拓扑**决策**、预算**授予**与 durable 记录（谁、何时、为何、消耗多少、结果如何）；第一版执行委派给 pi-subagents（runtime 侧 extension）。代价：child 内部事件对 Legion 不完全可见，预算强制粒度受 extension 配置面限制。**切换判据**（M4 设计门落实）：当 fresh-reviewer 证据链要求 child 内部 tool 级事件可见、或预算需要 token 级强制、或租约需注入 child 启动路径时，backend 切换为 SDK child sessions（`AgentSessionRuntime` 直接派生）。pi-subagents 与 SDK backend 共用同一 `SubagentBackend` 接口，切换不改 goal/run 层。
 
 ## 7. Alternatives Considered
 
@@ -135,13 +136,13 @@ pi-web = operator/debug console（非 backend，M5）
 |------|--------------------|-------|------|----------|
 | M1 | `adopt-pi-interactive-runtime` | 个人 Pi profile：pin `pi@版本` + `pi-lens`；Legion skills 安装面（`~/.pi/agent/skills` 或共享 `~/.agents/skills`）；`REF_TOOLS.md` 等 CLI 路径参数化（去 `OPENCODE_HOME` 假设）；settings 模板；不装 pi-goal/pi-subagents | 无 | 任一 Legion-managed repo 中 `pi` 启动即触发 `legion-workflow` 入口门；日常回路（brainstorm→…→wiki）跑通一个真实小任务 |
 | M2 | `add-pi-worker-runner` | `scheduler/` worker runner 增加 Pi 启动路径（prompt artifact 复用；`-p --mode json` 或 `--mode rpc`；delta-only 事件流拼装；result block 与证据校验器不变）；设计门裁决进程 vs SDK | M1 | fixture WI 端到端产出完整 Legion 证据链并被 scheduler evidence verifier 接受；OpenCode 路径保持冻结原样 |
-| M3 | `build-legion-control-core` | Goal/Run 状态机 + SQLite store；SessionActor（Pi SDK）；Pi→Legion 事件规范化；审批闸（tool_call block + UI 桥）；evidence ledger；attention queue | M1（可与 M2 并行） | `POST /goals` 跑完全程：证据校验通过、审批可中断、进程重启后 durable resume |
+| M3 | `build-legion-control-core` | Goal/Run 状态机 + SQLite store；SessionActor（Pi SDK）；Pi→Legion 事件规范化；审批闸（tool_call block + UI 桥）；evidence ledger；attention queue。**颗粒度指引**：若设计门判定单阶段过大，按 M3a（状态机 + store + SessionActor + 事件规范化）/ M3b（审批闸 + evidence ledger + attention queue）拆成两个任务 | M1（可与 M2 并行） | 经**本地调用入口**（CLI/进程内 driver；versioned HTTP API 属 M5）提交 goal 并跑完全程：证据校验通过、审批可中断、进程重启后 durable resume |
 | M4 | `build-subagent-backend` | 资源租约模型落地；pi-subagents 作第一版 backend（pin 版本 + 启动矩阵 + 限制性 config）；fresh-reviewer 协议；budget/no-progress watchdog；supervisor 通信入 event log | M3 | 一个 goal 经 scout→worker→fresh reviewer 闭环，reviewer 无写权限且结论绑定证据；watchdog 能终止空转 |
-| M5 | `build-operator-plane` | pi-web 部署（loopback + Tailscale/反代认证，operator console）；Legion 自有 HTTP/SSE versioned API；最小 Web/TUI 读自有 API；GitHub Actions 入口从 OpenCode action 切到 Pi | M3 | 断网重连后续跑可视；审批经 API 完成；`/oc` 等价入口在 Pi 上工作 |
+| M5 | `build-operator-plane` | pi-web 部署（loopback + Tailscale/反代认证，operator console）；Legion 自有 HTTP/SSE versioned API；最小 Web/TUI 读自有 API；GitHub Actions 入口从 OpenCode action 切到 Pi（切换后 `.github/workflows/opencode.yml` 保留文件但停用触发条件并标注冻结，回滚=恢复触发条件；是否删除文件留待 M5 设计门） | M3 | 断网重连后续跑可视；审批经 API 完成；`/oc` 等价入口在 Pi 上工作 |
 | M6 | `build-fleet-computer-use` | Mac mini desktop worker（pi-computer-use，专用 automation OS 用户）；browser worker（pi-browser-harness，专用 Chrome profile，mutation 串行 + 高危动作审批）；NixOS 节点；outbound worker registration；容器/OpenShell 边界；Wayland PoC（X11 fallback） | M3, M4 | 三类 worker 各完成一个真实验收任务；桌面/browser 租约冲突被正确串行化 |
 
 - 每阶段独立 task、独立设计门（仓库既有规则：runtime 扩展重新入门）；M2 与 M3 可并行，M4/M5 可并行。
-- 验收指标：每阶段退出条件即验收；M3 起增加"无人值守连续运行 24h 无人工干预完成 ≥1 个真实 goal"作为稳定性信号。
+- 验收指标：每阶段退出条件即验收。"无人值守连续运行 24h 无人工干预完成 ≥1 个真实 goal"定义为 **M4 的强制退出条件之一**（subagent 闭环具备后才可考），M4 之后作为持续稳定性信号保留；M3 不作强制。
 
 ### 8.3 Rollback Plan（可执行）
 
