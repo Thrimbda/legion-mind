@@ -362,3 +362,10 @@
 
 - Promoted `task create` staging + rename materialization to a durable CLI pattern in `patterns.md`.
 - Removed the earlier open maintenance entry for one-off `task create` partial materialization after the invariant-hardening fix landed and success-path verification passed.
+
+## [2026-08-16] writeback | evaluate-pi-control-plane
+
+- Created `decisions.md` entry recording the GO decision and M1-M6 roadmap for the Pi control-plane migration, with hard boundaries (frozen OpenCode line, pi-web console-only, AGPL exclusion, pin/boot-matrix discipline).
+- Added task summary `tasks/evaluate-pi-control-plane.md` (status `delivery-ready`).
+- Promoted the first-source verification + evidence-grading (smoke-proven/doc-level/unknown) evaluation method to a durable pattern in `patterns.md`.
+- Updated `index.md` 当前重点 with the migration decision entry.

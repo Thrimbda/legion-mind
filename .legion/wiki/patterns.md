@@ -196,3 +196,11 @@
 - 适用边界：适用于 local-first verifier 需要注入测试、fixtures 或 probes 的 benchmark case。对 Docker/container 模式也同样适用：hidden content 应只存在于 verifier trust boundary 内。
 - 常见陷阱：不要只保证 adapter env 不暴露 verifier path；也要检查 verifier 是否把 hidden tests 写回 HUT workspace 或 persisted report artifacts。
 - 验证提示：检查 `results/**/workspace` 中不存在 injected hidden test 文件，且 `selfcheck` oracle/negative 仍能通过/失败于预期语义。
+
+## 模式：外部 runtime / 生态评估必须先一手核实并证据分级
+
+- 来源任务：`evaluate-pi-control-plane`
+- 背景：引入外部 runtime 或生态扩展的提案往往引用大量二手 claims（包名、能力、默认值、许可证），直接采纳会把失真带进架构决策。
+- 做法：桌面调研只做一手核实（官方文档、仓库、npm registry），输出 claim 到证据对照表并标注核实日期；可行性按 `smoke-proven` / `doc-level` / `unknown` 分级；关键链路在 repo-local 隔离环境（HOME/XDG/npm prefix 重定向）做最小冒烟，凭证经环境变量注入不落盘；结论标注版本快照，实施前复核。
+- 适用边界：适用于评估新 runtime、新扩展生态、新外部服务接入；不适用于仓库内常规改动。
+- 常见陷阱：不要相信二手聚合站的版本快照；同名包陷阱（无 scope 仿名/停更包）必须核对作者；注意许可证中途变更（以 npm manifest 为准而非 GitHub 检测）；"上游没有"不等于"生态没有"，成本分开计。
