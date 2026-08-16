@@ -3,8 +3,8 @@
 ## 快速恢复
 
 **当前阶段**: 阶段 6 - Phase 6 - walkthrough、PR lifecycle、wiki writeback
-**当前检查项**: report-walkthrough 交付摘要与 PR 创建跟进至终态
-**进度**: 11/13 任务完成
+**当前检查项**: legion-wiki 收口写回
+**进度**: 12/13 任务完成
 ---
 
 ## 阶段 1: Phase 1 - 契约物化与 worktree 准备 ✅ COMPLETE
@@ -38,10 +38,10 @@
 - [x] review-rfc 评审并处理意见直至 PASS | 验收: docs/review-rfc.md 记录 Verdict PASS
 ---
 
-## 阶段 6: Phase 6 - walkthrough、PR lifecycle、wiki writeback ⏳ NOT STARTED
+## 阶段 6: Phase 6 - walkthrough、PR lifecycle、wiki writeback 🟡 IN PROGRESS
 
-- [ ] report-walkthrough 交付摘要与 PR 创建跟进至终态 | 验收: PR merged 或 closed/confirmed abandoned 且记录；worktree 删除；主工作区刷新 ← CURRENT
-- [ ] legion-wiki 收口写回 | 验收: wiki 记录本任务决策与后续任务入口
+- [x] report-walkthrough 交付摘要与 PR 创建跟进至终态 | 验收: PR merged 或 closed/confirmed abandoned 且记录；worktree 删除；主工作区刷新
+- [ ] legion-wiki 收口写回 | 验收: wiki 记录本任务决策与后续任务入口 ← CURRENT
 ---
 
 ## 发现的新任务
@@ -49,4 +49,4 @@
 (暂无)
 ---
 
-*最后更新: 2026-08-16 11:39*
+*最后更新: 2026-08-16 12:00*
