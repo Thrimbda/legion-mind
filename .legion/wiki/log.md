@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-08-18] writeback | pi-distro-skeleton
+
+- 新增 `tasks/pi-distro-skeleton.md`，记录 Legion Pi 单配置、隔离 profile、精确 pins、setup lifecycle 与八行 credential-free startup matrix 的 delivery-ready 当前真相。
+- 更新 `index.md` 与 `decisions.md`，将 Node.js 24+、四包精确 pin、Web `0XC-302` 边界和 OpenCode 冻结线提升为后续 Pi 任务可查询的发行基线。
+- 当前独立验证与审查均为 `PASS`；没有把单用户单 writer 合同外的并发、其他 OS/runtime、credentialed startup 或供应链签名升级为 blocker。
+- Wiki writeback 完成时 PR lifecycle 尚未开始，因此任务仍为 `delivery-ready`，未伪造 merge、cleanup 或主工作区刷新完成。
+
 ## [2026-07-31] supersede | remove-pr-quota-enforcement-v1
 
 - 撤销 `enforce-single-pr-lifecycle-v1` 引入的 task 级 PR 数字配额、永久 identity binding、legacy migration 与跨 run worker gate。

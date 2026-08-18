@@ -94,9 +94,9 @@ Intent -> Plan -> Execute -> Verify -> Report -> Memory
 
 ## 快速开始
 
-从仓库根目录选择 project 或 global 范围安装一次，然后用 strict verify 证明安装结果可复核。本仓库当前只维护 OpenCode 与 OpenClaw 两条底层入口；其他运行时不在当前支持面，也没有通用 runtime orchestrator 承诺。默认 `lgmind install` 不再要求选择 OpenCode / OpenClaw，因为 first-run 用户真正需要决策的是安装到当前 project 还是全局。
+从仓库根目录选择 project 或 global 范围安装一次，然后用 strict verify 证明安装结果可复核。`lgmind` 通用入口仍只路由 OpenCode 与 OpenClaw；Legion Pi 使用独立 `setup-pi` 入口，避免把发行版安装与现有 skills 安装语义混在一起。默认 `lgmind install` 不再要求选择 OpenCode / OpenClaw，因为 first-run 用户真正需要决策的是安装到当前 project 还是全局。
 
-前置要求：Node.js `>=22.6.0`。
+前置要求：现有 `lgmind` 安装面使用 Node.js `>=22.6.0`；Legion Pi 使用 Node.js 24 或更新版本。
 
 ```bash
 node --version
@@ -112,6 +112,18 @@ npx lgmind@latest install --scope global
 ```
 
 在 TTY 中，`install` / `setup` 只会提示安装到当前 project 还是 global 默认位置。Project 安装默认写到当前目录下 `.legionmind/`；global 安装沿用默认全局位置。脚本或 CI 中不会等待交互，默认保持 `global`；请显式传 `--scope project|global`。默认文字输出只显示结果摘要与 warnings/errors；需要逐条生命周期事件时加 `--verbose`，自动化解析仍用 `--json`。
+
+### 安装 Legion Pi
+
+Legion Pi 把 Pi runtime、三个精确 pin 的扩展、生成配置、sessions、npm cache 和 managed lifecycle state 放在一个可删除的隔离 profile 中。用户只维护 `legion-pi/legion-pi.json`；provider/model/credential 不进入该文件。
+
+```bash
+node bin/setup-pi.js install --profile-dir .cache/legion-pi/profile
+node bin/setup-pi.js verify --profile-dir .cache/legion-pi/profile
+node scripts/verify-pi-startup-matrix.js --profile-dir .cache/legion-pi/profile
+```
+
+从零复现、rollback、默认工具面、限制性 subagent 配置和常驻 Web 后端边界见 [`legion-pi/README.md`](legion-pi/README.md)。
 
 ### 安装到 OpenCode
 
@@ -308,7 +320,7 @@ npm run test:regression
 - 发布、CI 和“默认可发布”信号还没有形成完整闭环，当前不能按成熟 OS 或稳定发行包来理解。
 - 还需要更多真实项目、长周期任务和多人协作场景的压力测试，验证这套门禁和记忆机制在仓库外持续成立。
 - CLI 仍然是 `.legion/tasks/**` 的本地初始化、查询和有限更新薄工具，不是 runtime orchestrator、状态注册表或审计层。
-- 当前维护的 runtime 支持面只有 OpenCode 与 OpenClaw；不要把 README 解读成对其他代理运行时的泛化支持承诺。
+- `lgmind` 通用 runtime router 当前只支持 OpenCode 与 OpenClaw；独立的 Legion Pi 固定发行版不构成对其他代理运行时的泛化支持承诺。
 - VibeHarnessBench 仍是 local-first v0.1，不是完整 sandbox、完整 full-stack benchmark，也不是生产级隔离执行平台。
 - 低摩擦产品化和 onboarding 还需要继续打磨，真实使用者仍可能需要理解 wiki、阶段技能和 PR lifecycle 才能顺畅使用。
 
@@ -326,13 +338,13 @@ npm run test:regression
 4. 发布、回滚、兼容性和 CI 形成完整闭环，而不是只在本地仓库里证明能跑。
 5. 真实项目压力测试覆盖足够多的任务类型、失败路径和多人协作场景。
 6. 真实使用者不需要读任务原始文档，也能通过 README + wiki + onboarding 理解系统怎么安装、怎么开工、怎么验收。
-7. 如果要扩展 runtime 支持或把 CLI 做成 orchestrator，必须按独立设计问题重新进入门禁，而不是从当前 OpenCode / OpenClaw 支持面自然外推。
+7. 如果要继续扩展 runtime 支持或把 CLI 做成 orchestrator，必须按独立设计问题重新进入门禁，而不是从 OpenCode / OpenClaw router 或 Legion Pi 发行版自然外推。
 
 README 在这个仓库里不只是入口文档，也应该是这个 v1 的目标约束。
 
 ## 适用对象
 
-- 已经使用 OpenCode 或 OpenClaw 承载工程代理工作流的人
+- 已经使用 OpenCode、OpenClaw 或 Pi 承载工程代理工作流的人
 - 已经意识到提示词工程不足以解决上下文、验证、汇报和治理问题的人
 - 需要设计门禁、交付物、评审协议和可持续记忆的复杂工程项目
 - 想把“我自己怎么扩展”变成“系统如何扩展我”的人

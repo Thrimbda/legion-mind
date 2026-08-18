@@ -9,8 +9,11 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 const runtimeFiles = [
   ['scripts/lib/setup-core.ts', 'scripts/lib/setup-core.js'],
+  ['scripts/lib/pi-distro.ts', 'scripts/lib/pi-distro.js'],
   ['scripts/setup-opencode.ts', 'scripts/setup-opencode.js'],
   ['scripts/setup-openclaw.ts', 'scripts/setup-openclaw.js'],
+  ['scripts/setup-pi.ts', 'scripts/setup-pi.js'],
+  ['scripts/verify-pi-startup-matrix.ts', 'scripts/verify-pi-startup-matrix.js'],
   ['scripts/lgmind.ts', 'scripts/lgmind.js'],
 ];
 
@@ -18,8 +21,11 @@ function toRuntimeJs(source, relativeSourcePath) {
   let output = stripTypeScriptTypes(source, { mode: 'strip' });
   output = output.replace(/^#!\/usr\/bin\/env node --experimental-strip-types\n/, '#!/usr/bin/env node\n');
 
-  if (relativeSourcePath === 'scripts/setup-opencode.ts' || relativeSourcePath === 'scripts/setup-openclaw.ts') {
+  if (relativeSourcePath === 'scripts/setup-opencode.ts' || relativeSourcePath === 'scripts/setup-openclaw.ts' || relativeSourcePath === 'scripts/setup-pi.ts') {
     output = output.replace("from './lib/setup-core.ts';", "from './lib/setup-core.js';");
+  }
+  if (relativeSourcePath === 'scripts/setup-pi.ts' || relativeSourcePath === 'scripts/verify-pi-startup-matrix.ts') {
+    output = output.replace("from './lib/pi-distro.ts';", "from './lib/pi-distro.js';");
   }
   if (relativeSourcePath === 'scripts/lgmind.ts') {
     output = output

@@ -27,7 +27,8 @@
   },
   "bin": {
     "lgmind": "bin/lgmind.js",
-    "setup-opencode": "bin/setup-opencode.js"
+    "setup-opencode": "bin/setup-opencode.js",
+    "setup-pi": "bin/setup-pi.js"
   },
   "files": [
     "bin/",
@@ -35,8 +36,13 @@
     "scripts/lgmind.js",
     "scripts/setup-opencode.js",
     "scripts/setup-openclaw.js",
+    "scripts/setup-pi.js",
+    "scripts/verify-pi-startup-matrix.js",
+    "scripts/pi-startup-probe.mjs",
     "scripts/lib/setup-core.js",
+    "scripts/lib/pi-distro.js",
     ".opencode/plugins/",
+    "legion-pi/",
     "skills/",
     "README.md",
     "LICENSE"
@@ -53,6 +59,10 @@
     "openclaw:verify": "node --experimental-strip-types scripts/setup-openclaw.ts verify --strict",
     "openclaw:rollback": "node --experimental-strip-types scripts/setup-openclaw.ts rollback",
     "openclaw:uninstall": "node --experimental-strip-types scripts/setup-openclaw.ts uninstall",
+    "pi:install": "node --experimental-strip-types scripts/setup-pi.ts install",
+    "pi:verify": "node --experimental-strip-types scripts/setup-pi.ts verify",
+    "pi:rollback": "node --experimental-strip-types scripts/setup-pi.ts rollback",
+    "pi:matrix": "node --experimental-strip-types scripts/verify-pi-startup-matrix.ts",
     "audit:context": "node skills/legion-workflow/scripts/audit-context.mjs --check",
     "pack:dry-run": "npm pack --dry-run --json",
     "test:regression": "node --test --experimental-strip-types --experimental-sqlite tests/regression/*.test.ts"
