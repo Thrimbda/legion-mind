@@ -64,7 +64,7 @@ function copyDryRunPackage(packageRoot: string) {
   }
 }
 
-function installedPackageBin(packageRoot: string, binName: 'lgmind' | 'setup-opencode', args: string[], options: { cwd?: string; input?: string } = {}) {
+function installedPackageBin(packageRoot: string, binName: 'lgmind' | 'setup-opencode' | 'setup-pi', args: string[], options: { cwd?: string; input?: string } = {}) {
   return execFileSync(process.execPath, [join(packageRoot, 'bin', `${binName}.js`), ...args], {
     cwd: options.cwd ?? packageRoot,
     encoding: 'utf-8',
@@ -326,17 +326,26 @@ test('npm dry-run package includes CLI and install assets only', () => {
   assert.equal(pack.name, 'lgmind');
   assert.equal(pkg.bin.lgmind, 'bin/lgmind.js');
   assert.equal(pkg.bin['setup-opencode'], 'bin/setup-opencode.js');
+  assert.equal(pkg.bin['setup-pi'], 'bin/setup-pi.js');
   assert.equal(pkg.publishConfig.access, 'public');
 
   const files = new Set(pack.files.map((file: { path: string }) => file.path));
   for (const expected of [
     'bin/lgmind.js',
     'bin/setup-opencode.js',
+    'bin/setup-pi.js',
     'scripts/build-runtime-js.mjs',
     'scripts/lgmind.js',
     'scripts/setup-opencode.js',
     'scripts/setup-openclaw.js',
+    'scripts/setup-pi.js',
+    'scripts/verify-pi-startup-matrix.js',
+    'scripts/pi-startup-probe.mjs',
     'scripts/lib/setup-core.js',
+    'scripts/lib/pi-distro.js',
+    'legion-pi/legion-pi.json',
+    'legion-pi/README.md',
+    'legion-pi/startup-matrix.md',
     'skills/legion-workflow/SKILL.md',
     'README.md',
     'LICENSE',
@@ -350,7 +359,10 @@ test('npm dry-run package includes CLI and install assets only', () => {
     'scripts/lgmind.ts',
     'scripts/setup-opencode.ts',
     'scripts/setup-openclaw.ts',
+    'scripts/setup-pi.ts',
+    'scripts/verify-pi-startup-matrix.ts',
     'scripts/lib/setup-core.ts',
+    'scripts/lib/pi-distro.ts',
   ]) {
     assert.equal(files.has(excludedRuntimeTs), false, `${excludedRuntimeTs} should not be used as npm runtime`);
   }
@@ -370,6 +382,7 @@ test('packed npm package bins run from node_modules without TypeScript stripping
     const pkg = readJson(join(packageRoot, 'package.json'));
     assert.equal(installedPackageBin(packageRoot, 'lgmind', ['--version']).trim(), pkg.version);
     assert.match(installedPackageBin(packageRoot, 'setup-opencode', ['--help']), /Use lgmind install --scope project\|global/);
+    assert.match(installedPackageBin(packageRoot, 'setup-pi', ['--help']), /one config file/);
 
     const opencodeRoot = join(root, 'opencode');
     assert.match(installedPackageBin(packageRoot, 'lgmind', [

@@ -38,3 +38,11 @@
 - 接入纪律：所有 Pi 生态接入物 pin 版本；扩展集合上线前做启动矩阵测试（跨扩展重名工具启动期 fail-closed）；同名包陷阱多，安装必须带 scope 核对作者。
 - 真源：`.legion/tasks/evaluate-pi-control-plane/docs/rfc.md` 与 `docs/research.md`；任务摘要 `tasks/evaluate-pi-control-plane.md`。
 - 时效：版本与默认值均为 2026-08-16 快照；实施任务启动时必须复核上游现状。
+
+## 决策：Legion Pi 发行基线使用单配置与隔离 profile
+
+- 来源任务：`pi-distro-skeleton`；任务摘要 `tasks/pi-distro-skeleton.md`。
+- 当前基线：Node.js 24+，用户只维护 `legion-pi/legion-pi.json`；它只接受 `schemaVersion`、`reviewedAt`、精确 `packages` 与 `skills`，不接受 provider、model、credential、tools 或 Web 配置。
+- 生命周期：`setup-pi install|verify|rollback` 只操作显式 Legion Pi profile；generated settings、受限 subagent config、managed manifest 与 package runtime 都在该 profile 内，并由 verify/startup probe 校验。
+- Package 快照：`@earendil-works/pi-coding-agent@0.84.2`、`pi-subagents@0.50.0`、`pi-mcp-adapter@2.26.0`、`pi-lens@4.0.1`；配置 `reviewedAt` 为 2026-08-17，独立验证于 2026-08-18 再次核对 registry。后续变更必须重新做版本复核和组合启动矩阵。
+- 范围边界：当前基线只承诺 Linux、Node.js 24+、单用户单 writer 和 credential-free startup；Web 继续属于 `0XC-302`，OpenCode 安装面保持冻结。

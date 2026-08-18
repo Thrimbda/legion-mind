@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "reviewedAt": "2026-08-17",
+  "packages": {
+    "pi": "@earendil-works/pi-coding-agent@0.84.2",
+    "extensions": [
+      "pi-subagents@0.50.0",
+      "pi-mcp-adapter@2.26.0",
+      "pi-lens@4.0.1"
+    ]
+  },
+  "skills": [
+    "~/.agents/skills"
+  ]
+}
