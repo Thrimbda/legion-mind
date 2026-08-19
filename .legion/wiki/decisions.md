@@ -39,10 +39,12 @@
 - 真源：`.legion/tasks/evaluate-pi-control-plane/docs/rfc.md` 与 `docs/research.md`；任务摘要 `tasks/evaluate-pi-control-plane.md`。
 - 时效：版本与默认值均为 2026-08-16 快照；实施任务启动时必须复核上游现状。
 
-## 决策：Legion Pi 发行基线使用单配置与隔离 profile
+## 决策：Legion Pi 发行基线使用 schema v2 单配置与隔离 profile
 
-- 来源任务：`pi-distro-skeleton`；任务摘要 `tasks/pi-distro-skeleton.md`。
-- 当前基线：Node.js 24+，用户只维护 `legion-pi/legion-pi.json`；它只接受 `schemaVersion`、`reviewedAt`、精确 `packages` 与 `skills`，不接受 provider、model、credential、tools 或 Web 配置。
+- 来源任务：`pi-distro-skeleton`、`configure-pi-model-access`；任务摘要 `tasks/pi-distro-skeleton.md`、`tasks/configure-pi-model-access.md`。后者取代前者“manifest 不接受 model”的旧边界。
+- 当前基线：Node.js 24+，用户只维护 `legion-pi/legion-pi.json`。Schema v2 接受 `schemaVersion`、`reviewedAt`、精确 `packages`、`skills` 与唯一固定 `models` policy；default 为 `openai-codex/gpt-5.6-sol`，enabled patterns 为 `openai-codex/*`、`deepseek/*`、`kimi-coding/k3`、`kimi-coding/k3-256k`。Schema v1 继续可 install/verify/rollback，但不渲染 model fields。
+- Credential 边界：manifest 不接受 credential、tools、Web 或 MCP 配置；`setup-pi` 不管理 `auth.json`。Codex OAuth 属于 Pi 独立 login state，不复制其他客户端 OAuth；static provider 可用经过独立安全门的 runtime reference，但 secret 不进入 repo 或 generated settings。
 - 生命周期：`setup-pi install|verify|rollback` 只操作显式 Legion Pi profile；generated settings、受限 subagent config、managed manifest 与 package runtime 都在该 profile 内，并由 verify/startup probe 校验。
+- 探针边界：startup probe 注入空 in-memory credential store、禁用 model refresh，不读取 live auth 或执行 credential resolver。Pi 模型切换会造成 managed settings drift，必须在关闭 session/隔离 writer 后 force reconcile、重启、verify 并 fresh-session 复核。
 - Package 快照：`@earendil-works/pi-coding-agent@0.84.2`、`pi-subagents@0.50.0`、`pi-mcp-adapter@2.26.0`、`pi-lens@4.0.1`；配置 `reviewedAt` 为 2026-08-17，独立验证于 2026-08-18 再次核对 registry。后续变更必须重新做版本复核和组合启动矩阵。
-- 范围边界：当前基线只承诺 Linux、Node.js 24+、单用户单 writer 和 credential-free startup；Web 继续属于 `0XC-302`，OpenCode 安装面保持冻结。
+- 范围边界：当前基线只承诺 Linux、Node.js 24+、单用户单 writer 和 credential-free startup；PI WEB 是 operator console，不属于 manifest；OpenCode 安装面保持冻结。

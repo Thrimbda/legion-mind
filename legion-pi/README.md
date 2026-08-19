@@ -12,12 +12,14 @@ Legion Pi is the pinned Pi distribution baseline for LegionMind. It keeps the ru
 
 `legion-pi.json` is the only configuration file a user maintains. It contains:
 
+- the schema version;
 - the review date;
 - one exact Pi runtime pin;
 - the three exact extension pins;
-- additional skill search paths.
+- additional skill search paths;
+- the reviewed default provider, default model, and enabled model patterns.
 
-It intentionally contains no provider, model, credential, web, or MCP server configuration.
+It intentionally contains no credentials, web configuration, or MCP server configuration. Schema v2 owns the model policy. Schema v1 remains accepted so an upgrade backup can be restored and verified, but it does not contain model settings.
 
 `setup-pi install` generates the upstream files that Pi and pi-subagents require:
 
@@ -31,7 +33,9 @@ These are managed outputs, not additional user configuration sources.
 
 - Pi keeps its native initial tool surface: `read`, `bash`, `edit`, and `write`.
 - `grep`, `find`, and `ls` remain available through Pi tool selection without adding another distribution setting.
-- Provider login and model selection use Pi login state, environment variables, or CLI flags.
+- New sessions default to `openai-codex/gpt-5.6-sol`.
+- Model cycling is limited to `openai-codex/*`, `deepseek/*`, `kimi-coding/k3`, and `kimi-coding/k3-256k`.
+- Provider credentials use Pi login state or environment-backed runtime references. The installer never owns `auth.json`.
 - No MCP server is bundled. `pi-mcp-adapter` starts with only its `mcpScript` and `mcp` proxy tools.
 - Subagents start foreground-first, with depth 1, at most 2 children per run, 4 per parent session, and 1 active async run. Missions and schedules are disabled. Worktree discard, destructive cleanup, and spawn-budget grants require confirmation; schedule creation is forbidden.
 
@@ -46,6 +50,31 @@ node bin/setup-pi.js rollback --profile-dir .cache/legion-pi/profile
 ```
 
 Use `--config <path>` to install from a customized single config; keep that source outside the profile's installer-owned `runtime/`, `agent/`, `sessions/`, and `.legionmind/` paths. Use `--force` only after reviewing a drift warning; the installer backs up replaced managed files. `rollback` restores a prior backup batch, but refuses if a target changed after that backup or a backup entry is missing. `rollback --force` first preserves newer drift in a separate recovery batch. To undo a first install that has no predecessor, remove the isolated profile directory.
+
+## Configure provider access
+
+`setup-pi` does not create, read, update, back up, or delete `<profile>/agent/auth.json`. After installation, start Pi or PI Web with the same agent directory and configure each provider through `/login`:
+
+1. Select **ChatGPT Plus/Pro (Codex)** and complete its OAuth flow. Use a dedicated Pi login rather than copying OAuth data from another client.
+2. Select **DeepSeek** and enter its API key.
+3. Select **Kimi For Coding** and enter its API key.
+
+Pi stores these credentials in `<profile>/agent/auth.json`, which must remain a regular owner-only (`0600`) file. API-key entries may instead use Pi's leading `!command` syntax to resolve a key from a host secret store. Such a resolver must return only the key on stdout, fail nonzero when its source is missing or unsafe, and never write the key to logs or repository files. Pi caches command-backed key output for the process lifetime, so restart Pi and PI Web after changing a resolver or its source.
+
+Open `/model` after login and confirm the configured Codex and DeepSeek catalogs plus `kimi-coding/k3` and `kimi-coding/k3-256k` are available. A fresh session must start on `openai-codex/gpt-5.6-sol`.
+
+Selecting another model can update the managed global `settings.json`. Treat that as temporary operator state. Switch back to `openai-codex/gpt-5.6-sol`, close the disposable Pi session, and confirm no model turn or settings writer is still active before reconciliation.
+
+For the systemd PI WEB deployment, use this complete sequence rather than running the installer against a live session:
+
+```bash
+systemctl --user stop pi-web.service pi-web-sessiond.service
+node bin/setup-pi.js install --force --profile-dir <profile>
+systemctl --user start pi-web-sessiond.service pi-web.service
+node bin/setup-pi.js verify --profile-dir <profile>
+```
+
+After the services restart and verify returns `READY`, open a new PI WEB session and confirm that it starts on `openai-codex/gpt-5.6-sol`. For a standalone Pi process, exit every session before reconciliation and start a fresh process afterward. Never use `--force` to overwrite unexplained drift.
 
 The installed Pi executable is:
 
@@ -101,7 +130,7 @@ Expected results:
 
 The reviewed matrix for the committed pins is in `startup-matrix.md`.
 
-The matrix removes its own scratch directory on every run, so it rejects a `--config` under that scratch root and requires `--output` to remain outside the Legion Pi profile. Setup and matrix bind package manifests, entrypoints, and the Pi binary to canonical in-profile roots. Startup probes isolate HOME/XDG/temp paths and build a minimal environment allowlist before loading extensions; they never inherit credential locators or treat a skipped probe as success.
+The matrix removes its own scratch directory on every run, so it rejects a `--config` under that scratch root and requires `--output` to remain outside the Legion Pi profile. Setup and matrix bind package manifests, entrypoints, and the Pi binary to canonical in-profile roots. Startup probes isolate HOME/XDG/temp paths, build a minimal environment allowlist, and inject an empty in-memory credential store before loading extensions. They never read live auth, refresh OAuth, execute key resolver commands, inherit credential locators, or treat a skipped probe as success.
 
 ## Persistent Web backend
 

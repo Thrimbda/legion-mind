@@ -124,9 +124,9 @@ Options:
   --help, -h            Show this help
   --version, -v         Print the CLI version
 
-Legion Pi requires Node.js 24 or newer. Provider credentials and model choices
-remain in Pi login state, environment variables, or CLI flags; they are not
-stored in legion-pi.json.
+Legion Pi requires Node.js 24 or newer. The reviewed default and enabled model
+policy is managed by legion-pi.json. Provider credentials remain in Pi login
+state or environment-backed runtime references and are never managed here.
 `);
 }
 

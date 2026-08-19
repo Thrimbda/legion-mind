@@ -8,15 +8,23 @@ if (!process.argv[2] || !process.argv[3]) {
 }
 
 const entrypoint = resolve(runtimeDir, 'node_modules', '@earendil-works', 'pi-coding-agent', 'dist', 'index.js');
+const authStorageEntrypoint = resolve(runtimeDir, 'node_modules', '@earendil-works', 'pi-coding-agent', 'dist', 'core', 'auth-storage.js');
 const codingAgent = await import(pathToFileURL(entrypoint).href);
+const { AuthStorage } = await import(pathToFileURL(authStorageEntrypoint).href);
 const loader = new codingAgent.DefaultResourceLoader({ cwd: process.cwd(), agentDir });
 await loader.reload();
+const modelRuntime = await codingAgent.ModelRuntime.create({
+  credentials: AuthStorage.inMemory(),
+  modelsPath: null,
+  refreshOnCreate: false,
+});
 const loaded = loader.getExtensions();
 const result = await codingAgent.createAgentSession({
   cwd: process.cwd(),
   agentDir,
   resourceLoader: loader,
   sessionManager: codingAgent.SessionManager.inMemory(process.cwd()),
+  modelRuntime,
 });
 
 try {

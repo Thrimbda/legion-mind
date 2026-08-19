@@ -8,7 +8,7 @@
 - `schema-version`: `2026-08 / report-data v1.1`
 - `historical`: `false`
 - `supersedes`: `(none)`
-- `superseded-by`: `(none)`
+- `superseded-by`: `configure-pi-model-access`（仅 schema/model-policy 边界）
 
 ## Outcome Summary
 
@@ -20,7 +20,7 @@
 
 ## Reusable Decisions
 
-- 用户配置只接受 `schemaVersion`、`reviewedAt`、精确 `packages` 与 `skills`；provider、model、credential、tools、Web 设置和未知字段 fail closed。
+- 本任务交付时用户配置只接受 `schemaVersion`、`reviewedAt`、精确 `packages` 与 `skills`；其中“model 不进入 manifest”已由 `configure-pi-model-access` 的 schema v2 当前决策取代。Credential、tools、Web 设置和未知字段仍 fail closed。
 - 安装、验证、探针与 rollback 只操作显式 profile；generated artifacts 不是第二个用户配置源。
 - Pi 生态 pin 变更必须重新核对 manifest、license、entrypoint，并运行完整扩展组合启动矩阵。
 - 当前信任模型是 Linux、Node.js 24+、单用户单 writer；不要把当前证据外推为并发文件系统、其他 OS/runtime、credentialed provider 或供应链签名保证。

@@ -16,6 +16,16 @@ export const PI_EXTENSION_ENTRYPOINTS                                           
   'pi-lens': 'dist/index.js',
 };
 
+export const LEGION_PI_MODEL_POLICY = {
+  defaultProvider: 'openai-codex',
+  defaultModel: 'gpt-5.6-sol',
+  enabledModels: [
+    'openai-codex/*',
+    'deepseek/*',
+    'kimi-coding/k3',
+    'kimi-coding/k3-256k',
+  ],
+}         ;
 
 
 
@@ -48,8 +58,16 @@ export const PI_EXTENSION_ENTRYPOINTS                                           
 
 
 
-const TOP_LEVEL_FIELDS = new Set(['schemaVersion', 'reviewedAt', 'packages', 'skills']);
+
+
+
+
+
+
+const TOP_LEVEL_FIELDS_V1 = new Set(['schemaVersion', 'reviewedAt', 'packages', 'skills']);
+const TOP_LEVEL_FIELDS_V2 = new Set([...TOP_LEVEL_FIELDS_V1, 'models']);
 const PACKAGE_FIELDS = new Set(['pi', 'extensions']);
+const MODEL_FIELDS = new Set(['defaultProvider', 'defaultModel', 'enabledModels']);
 const EXACT_VERSION = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const PACKAGE_NAME = /^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*$/;
 
@@ -272,10 +290,11 @@ export function validateLegionPiConfig(value         )                 {
   if (!isRecord(value)) {
     throw new Error('Legion Pi config must be a JSON object');
   }
-  rejectUnknownFields(value, TOP_LEVEL_FIELDS, 'Legion Pi config');
-  if (value.schemaVersion !== 1) {
-    throw new Error('schemaVersion must be 1');
+  if (value.schemaVersion !== 1 && value.schemaVersion !== 2) {
+    throw new Error('schemaVersion must be 1 or 2');
   }
+  const schemaVersion = value.schemaVersion;
+  rejectUnknownFields(value, schemaVersion === 1 ? TOP_LEVEL_FIELDS_V1 : TOP_LEVEL_FIELDS_V2, 'Legion Pi config');
   if (!isRecord(value.packages)) {
     throw new Error('packages must be a JSON object');
   }
@@ -306,14 +325,39 @@ export function validateLegionPiConfig(value         )                 {
     throw new Error('skills must not contain duplicate paths');
   }
 
+  let models                          ;
+  if (schemaVersion === 2) {
+    if (!isRecord(value.models)) {
+      throw new Error('models must be a JSON object for schemaVersion 2');
+    }
+    rejectUnknownFields(value.models, MODEL_FIELDS, 'models');
+    if (value.models.defaultProvider !== LEGION_PI_MODEL_POLICY.defaultProvider) {
+      throw new Error(`models.defaultProvider must be ${LEGION_PI_MODEL_POLICY.defaultProvider}`);
+    }
+    if (value.models.defaultModel !== LEGION_PI_MODEL_POLICY.defaultModel) {
+      throw new Error(`models.defaultModel must be ${LEGION_PI_MODEL_POLICY.defaultModel}`);
+    }
+    if (!Array.isArray(value.models.enabledModels)
+      || value.models.enabledModels.length !== LEGION_PI_MODEL_POLICY.enabledModels.length
+      || value.models.enabledModels.some((item, index) => item !== LEGION_PI_MODEL_POLICY.enabledModels[index])) {
+      throw new Error(`models.enabledModels must exactly match: ${LEGION_PI_MODEL_POLICY.enabledModels.join(', ')}`);
+    }
+    models = {
+      defaultProvider: LEGION_PI_MODEL_POLICY.defaultProvider,
+      defaultModel: LEGION_PI_MODEL_POLICY.defaultModel,
+      enabledModels: [...LEGION_PI_MODEL_POLICY.enabledModels],
+    };
+  }
+
   return {
-    schemaVersion: 1,
+    schemaVersion,
     reviewedAt: parseReviewedAt(value.reviewedAt),
     packages: {
       pi,
       extensions: PI_EXTENSION_PACKAGES.map((name) => byName.get(name) ),
     },
     skills,
+    ...(models ? { models } : {}),
   };
 }
 
@@ -336,6 +380,13 @@ export function renderActiveConfig(config                ) {
       extensions: config.packages.extensions.map((item) => item.spec),
     },
     skills: [...config.skills],
+    ...(config.models ? {
+      models: {
+        defaultProvider: config.models.defaultProvider,
+        defaultModel: config.models.defaultModel,
+        enabledModels: [...config.models.enabledModels],
+      },
+    } : {}),
   };
 }
 
@@ -343,6 +394,11 @@ export function renderPiSettings(config                ) {
   return {
     packages: config.packages.extensions.map((item) => `npm:${item.spec}`),
     ...(config.skills.length > 0 ? { skills: [...config.skills] } : {}),
+    ...(config.models ? {
+      defaultProvider: config.models.defaultProvider,
+      defaultModel: config.models.defaultModel,
+      enabledModels: [...config.models.enabledModels],
+    } : {}),
   };
 }
 

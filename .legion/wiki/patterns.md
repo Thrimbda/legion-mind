@@ -1,5 +1,14 @@
 # Legion Patterns
 
+## 模式：把 Pi model policy、catalog 与 credential 分层验证
+
+- 来源任务：`pi-distro-skeleton`、`configure-pi-model-access`
+- 做法：installer manifest 只拥有可复现的 default/selector policy，Pi `auth.json` 只拥有用户 credential。验证时分别证明 pinned package catalog、完整 authenticated catalog 与 `enabledModels` selector；完整 catalog 可以包含 policy 排除项，不能用 `pi --list-models` 代替 selector scope。
+- 启动边界：setup/startup probe 使用空 in-memory credential store 且禁止 model refresh，从而让 package/extension 启动证明不依赖付费 credential、不执行 command-backed resolver、不触发 OAuth refresh。Provider readiness 与 paid smoke 是后续独立证据。
+- Settings 边界：Pi model switch 会持久化 global default。测试或验收完成后，先切回 reviewed default，关闭 disposable session并隔离 settings writer，再 force reconcile、重启服务、strict verify，并在 fresh session 复核 default。
+- Secret 边界：credential 不进入 manifest、generated settings、Git、Nix 或报告。Command-backed key 需要固定 source/selector、owner-only regular files、锁内 conflict check、无 ambient provider fallback、fail-closed negative matrix和进程级 cache restart；共享其他客户端 OAuth refresh state 始终禁止。
+- 验证提示：至少覆盖 v1 compatibility、v2 exact literal/unknown-field rejection、v1→v2→v1→v2、READY-v2 idempotence、model-switch drift refusal/force backup、auth non-ownership、credential-free startup、selector exactness和 bounded provider smoke。
+
 ## 模式：按任务成本分层，并用预算守住默认上下文
 
 - 来源任务：`optimize-token-cognitive-efficiency`
