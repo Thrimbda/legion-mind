@@ -2,6 +2,7 @@
 
 ## Open follow-ups
 
+- `configure-pi-model-access` 的 live command references 依赖当前 OpenCode auth path/schema 与 host resolver；key rotation 后需要重启 PI WEB/sessiond。若未来把一次性 helper 产品化，应把 before-state classification 完全移入同一 Pi storage lock，并在 rollback 前验证 ownership record 的固定 provider set/checksum；当前已执行 rollout 在停服单 writer 条件下完成，现状不是 merge blocker。
 - `preserve-agent-review-loop` 可选的非阻塞后续：若要量化真实多任务、多模型下新版与旧版的总体效果，可使用固定模型与固定任务套件做 A/B，比较硬门违规、阶段轨迹、风险/停止点召回和 token 消耗。该评估不属于当前 task 的已登记 claim 或 merge gate；当前报告为 `claims=[]`、`attention: skim`，不得把这条维护建议升级成当前阻塞结论。
 - `optimize-token-cognitive-efficiency` 的强制 reference 自动发现目前仍是词法启发式，依赖现行中文动词、同一行反引号 locator 与相对路径形式；当前已知引用均由 manifest 覆盖并通过审计。若未来要把它提升为更强的持续门，应使用结构化依赖声明或递归闭包解析，避免仅改变措辞或 locator 形式就绕过发现。
 - `human-attention-verification-routing` 已交付注意力投影与认知验证路由协议，但尚未实现真实外部领域 verifier、权威来源 adapter、生产注意力负担指标及 `DEFERRED` 自动唤醒机制；这些属于独立集成与运行时观测任务，不影响当前 schema、回退规则和回归证据的交付结论。

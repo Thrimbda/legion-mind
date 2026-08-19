@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "reviewedAt": "2026-08-17",
+  "schemaVersion": 2,
+  "reviewedAt": "2026-08-19",
   "packages": {
     "pi": "@earendil-works/pi-coding-agent@0.84.2",
     "extensions": [
@@ -11,5 +11,15 @@
   },
   "skills": [
     "~/.agents/skills"
-  ]
+  ],
+  "models": {
+    "defaultProvider": "openai-codex",
+    "defaultModel": "gpt-5.6-sol",
+    "enabledModels": [
+      "openai-codex/*",
+      "deepseek/*",
+      "kimi-coding/k3",
+      "kimi-coding/k3-256k"
+    ]
+  }
 }

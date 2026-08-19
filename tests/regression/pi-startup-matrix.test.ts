@@ -37,10 +37,12 @@ function createMatrixProfile(profile: string, probeExit = 0) {
   const runtimeDist = join(runtimeRoot, 'dist');
   mkdirSync(runtimeDist, { recursive: true });
   writeJson(join(runtimeRoot, 'package.json'), { ...runtime, type: 'module', main: './dist/index.js', bin: { pi: 'dist/cli.js' } });
+  mkdirSync(join(runtimeDist, 'core'), { recursive: true });
+  writeFileSync(join(runtimeDist, 'core', 'auth-storage.js'), "export class AuthStorage { static inMemory() { return { kind: 'in-memory' }; } }\n");
   writeFileSync(join(runtimeDist, 'index.js'), `
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-const forbiddenEnvironment = ['OPENAI_API_KEY', 'SSH_AUTH_SOCK', 'KUBECONFIG', 'DOCKER_CONFIG', 'NPM_CONFIG_USERCONFIG', 'GNUPGHOME', 'GPG_AGENT_INFO', 'PGPASSFILE', 'CI_JOB_JWT', 'AZURE_CONFIG_DIR', 'NODE_OPTIONS'];
+const forbiddenEnvironment = ['OPENAI_API_KEY', 'DEEPSEEK_API_KEY', 'KIMI_API_KEY', 'SSH_AUTH_SOCK', 'KUBECONFIG', 'DOCKER_CONFIG', 'NPM_CONFIG_USERCONFIG', 'GNUPGHOME', 'GPG_AGENT_INFO', 'PGPASSFILE', 'CI_JOB_JWT', 'AZURE_CONFIG_DIR', 'NODE_OPTIONS'];
 if (forbiddenEnvironment.some((name) => process.env[name])) throw new Error('matrix probe inherited credential environment');
 function parseSpec(source) {
   const spec = source.slice(4);
@@ -64,7 +66,16 @@ export class DefaultResourceLoader {
   getExtensions() { return this.loaded; }
 }
 export const SessionManager = { inMemory() { return {}; } };
-export async function createAgentSession({ resourceLoader }) {
+export class ModelRuntime {
+  static async create(options) {
+    if (options?.credentials?.kind !== 'in-memory' || options.modelsPath !== null || options.refreshOnCreate !== false) {
+      throw new Error('matrix probe did not isolate model credentials');
+    }
+    return { credentialMode: 'in-memory' };
+  }
+}
+export async function createAgentSession({ resourceLoader, modelRuntime }) {
+  if (modelRuntime?.credentialMode !== 'in-memory') throw new Error('matrix probe omitted isolated model runtime');
   const tools = ['read', 'bash', 'edit', 'write'].map((name) => ({ name }));
   for (const extension of resourceLoader.getExtensions().extensions) {
     if (extension.path.includes('pi-subagents')) tools.push({ name: 'subagent' }, { name: 'subagent_wait' });
@@ -119,6 +130,8 @@ test('startup matrix binds evidence to exact installed package manifests and roo
     const fixture = createMatrixProfile(profile);
     runMatrix(['--profile-dir', profile, '--output', output], {
       OPENAI_API_KEY: 'must-not-reach-matrix-probe',
+      DEEPSEEK_API_KEY: 'must-not-reach-matrix-probe',
+      KIMI_API_KEY: 'must-not-reach-matrix-probe',
       KUBECONFIG: '/must/not/reach/matrix-probe',
       DOCKER_CONFIG: '/must/not/reach/matrix-probe',
       CI_JOB_JWT: 'must-not-reach-matrix-probe',

@@ -115,7 +115,7 @@ npx lgmind@latest install --scope global
 
 ### 安装 Legion Pi
 
-Legion Pi 把 Pi runtime、三个精确 pin 的扩展、生成配置、sessions、npm cache 和 managed lifecycle state 放在一个可删除的隔离 profile 中。用户只维护 `legion-pi/legion-pi.json`；provider/model/credential 不进入该文件。
+Legion Pi 把 Pi runtime、三个精确 pin 的扩展、生成配置、sessions、npm cache 和 managed lifecycle state 放在一个可删除的隔离 profile 中。用户只维护 `legion-pi/legion-pi.json`；其中固定默认 `openai-codex/gpt-5.6-sol`，并只启用 Codex、DeepSeek 和 Kimi K3/K3-256K。credential 不进入该文件，仍由 Pi 的独立 login state 或运行时引用管理。
 
 ```bash
 node bin/setup-pi.js install --profile-dir .cache/legion-pi/profile
@@ -123,7 +123,7 @@ node bin/setup-pi.js verify --profile-dir .cache/legion-pi/profile
 node scripts/verify-pi-startup-matrix.js --profile-dir .cache/legion-pi/profile
 ```
 
-从零复现、rollback、默认工具面、限制性 subagent 配置和常驻 Web 后端边界见 [`legion-pi/README.md`](legion-pi/README.md)。
+Provider 登录、模型切换后的 reconciliation、从零复现、rollback、默认工具面、限制性 subagent 配置和常驻 Web 后端边界见 [`legion-pi/README.md`](legion-pi/README.md)。
 
 ### 安装到 OpenCode
 

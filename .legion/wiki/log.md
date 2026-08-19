@@ -1,5 +1,12 @@
 # Legion Wiki Log
 
+## [2026-08-19] writeback | configure-pi-model-access
+
+- 新增 `tasks/configure-pi-model-access.md`，记录 schema v2 精确 model policy、schema v1 rollback compatibility、credential ownership 边界与 live 11-model selector 当前真相。
+- 更新 `index.md` 与 `decisions.md`，取代 `pi-distro-skeleton` 中“manifest 不接受 model”的旧边界；Pi/extension pins、隔离 profile 与 setup lifecycle 保持不变。
+- 新增 catalog/auth/settings 分层验证模式：完整 authenticated catalog 不等于 selector，startup probe 必须无凭证，model switch 后必须 quiesce/reconcile/restart/fresh-session 验证。
+- 记录 command reference 的 schema/path/cache 依赖与未来 productization hardening；当前 rollout、独立验证和安全复审均为 `PASS`，任务达到 delivery-ready，尚未预写 PR merge/cleanup/main refresh 事实。
+
 ## [2026-08-18] writeback | pi-distro-skeleton
 
 - 新增 `tasks/pi-distro-skeleton.md`，记录 Legion Pi 单配置、隔离 profile、精确 pins、setup lifecycle 与八行 credential-free startup matrix 的 delivery-ready 当前真相。

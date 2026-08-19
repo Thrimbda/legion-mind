@@ -48,6 +48,8 @@ if (process.env.LEGION_PI_FAKE_NO_RUNTIME !== '1') {
   mkdirSync(distDir, { recursive: true });
   copyFileSync(process.env.LEGION_PI_FAKE_RUNTIME_SOURCE, join(distDir, 'index.js'));
   copyFileSync(process.env.LEGION_PI_FAKE_PI_SOURCE, join(distDir, 'cli.js'));
+  mkdirSync(join(distDir, 'core'), { recursive: true });
+  writeFileSync(join(distDir, 'core', 'auth-storage.js'), "export class AuthStorage { static inMemory() { return { kind: 'in-memory' }; } }\\n");
   chmodSync(join(distDir, 'cli.js'), 0o755);
 }
 const binDir = join(prefix, 'node_modules', '.bin');
@@ -76,7 +78,7 @@ writeFileSync(entrypointPath, 'export default {};\\n');
   writeFileSync(fakeRuntime, `
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-const forbiddenEnvironment = ['OPENAI_API_KEY', 'SSH_AUTH_SOCK', 'KUBECONFIG', 'DOCKER_CONFIG', 'NPM_CONFIG_USERCONFIG', 'GNUPGHOME', 'GPG_AGENT_INFO', 'PGPASSFILE', 'CI_JOB_JWT', 'AZURE_CONFIG_DIR', 'NODE_OPTIONS'];
+const forbiddenEnvironment = ['OPENAI_API_KEY', 'DEEPSEEK_API_KEY', 'KIMI_API_KEY', 'SSH_AUTH_SOCK', 'KUBECONFIG', 'DOCKER_CONFIG', 'NPM_CONFIG_USERCONFIG', 'GNUPGHOME', 'GPG_AGENT_INFO', 'PGPASSFILE', 'CI_JOB_JWT', 'AZURE_CONFIG_DIR', 'NODE_OPTIONS'];
 if (forbiddenEnvironment.some((name) => process.env[name])) throw new Error('startup probe inherited credential environment');
 function packageName(source) {
   const spec = source.slice(4);
@@ -98,7 +100,16 @@ export class DefaultResourceLoader {
   getExtensions() { return this.loaded; }
 }
 export const SessionManager = { inMemory() { return {}; } };
-export async function createAgentSession({ resourceLoader }) {
+export class ModelRuntime {
+  static async create(options) {
+    if (options?.credentials?.kind !== 'in-memory' || options.modelsPath !== null || options.refreshOnCreate !== false) {
+      throw new Error('startup probe did not isolate model credentials');
+    }
+    return { credentialMode: 'in-memory' };
+  }
+}
+export async function createAgentSession({ resourceLoader, modelRuntime }) {
+  if (modelRuntime?.credentialMode !== 'in-memory') throw new Error('startup probe omitted isolated model runtime');
   const tools = ['read', 'bash', 'edit', 'write'].map((name) => ({ name }));
   for (const extension of resourceLoader.getExtensions().extensions) {
     if (extension.path.includes('pi-subagents')) tools.push({ name: 'subagent' }, { name: 'subagent_wait' });
@@ -124,7 +135,7 @@ function setupPi(args: string[], env: NodeJS.ProcessEnv) {
 
 test('Legion Pi config pins the required package set exactly', () => {
   const config = readJson(join(repoRoot, 'legion-pi', 'legion-pi.json'));
-  assert.equal(config.schemaVersion, 1);
+  assert.equal(config.schemaVersion, 2);
   assert.match(config.reviewedAt, /^\d{4}-\d{2}-\d{2}$/);
   assert.deepEqual(exactSpec(config.packages.pi), {
     name: '@earendil-works/pi-coding-agent',
@@ -135,8 +146,16 @@ test('Legion Pi config pins the required package set exactly', () => {
     'pi-mcp-adapter',
     'pi-lens',
   ]);
-  assert.equal(Object.hasOwn(config, 'defaultProvider'), false);
-  assert.equal(Object.hasOwn(config, 'defaultModel'), false);
+  assert.deepEqual(config.models, {
+    defaultProvider: 'openai-codex',
+    defaultModel: 'gpt-5.6-sol',
+    enabledModels: [
+      'openai-codex/*',
+      'deepseek/*',
+      'kimi-coding/k3',
+      'kimi-coding/k3-256k',
+    ],
+  });
   assert.equal(Object.hasOwn(config, 'tools'), false);
 });
 
@@ -145,11 +164,17 @@ test('setup-pi lifecycle works from one config in an isolated profile', () => {
   try {
     const profile = join(root, 'profile');
     const { fakeNpm, fakePi, fakeRuntime } = createFakePackageCommands(root);
+    const authPath = join(profile, 'agent', 'auth.json');
+    const authBefore = '{"deepseek":{"type":"command","command":"must-not-run"}}\n';
+    mkdirSync(resolve(authPath, '..'), { recursive: true });
+    writeFileSync(authPath, authBefore, { mode: 0o600 });
     const env = {
       LEGION_PI_NPM_BIN: fakeNpm,
       LEGION_PI_FAKE_PI_SOURCE: fakePi,
       LEGION_PI_FAKE_RUNTIME_SOURCE: fakeRuntime,
       OPENAI_API_KEY: 'must-not-reach-startup-probe',
+      DEEPSEEK_API_KEY: 'must-not-reach-startup-probe',
+      KIMI_API_KEY: 'must-not-reach-startup-probe',
       KUBECONFIG: '/must/not/reach/startup-probe',
       DOCKER_CONFIG: '/must/not/reach/startup-probe',
       CI_JOB_JWT: 'must-not-reach-startup-probe',
@@ -163,7 +188,16 @@ test('setup-pi lifecycle works from one config in an isolated profile', () => {
     assert.deepEqual(readJson(join(profile, 'agent', 'settings.json')), {
       packages: source.packages.extensions.map((spec: string) => `npm:${spec}`),
       skills: source.skills,
+      defaultProvider: 'openai-codex',
+      defaultModel: 'gpt-5.6-sol',
+      enabledModels: [
+        'openai-codex/*',
+        'deepseek/*',
+        'kimi-coding/k3',
+        'kimi-coding/k3-256k',
+      ],
     });
+    assert.equal(readFileSync(authPath, 'utf-8'), authBefore);
     assert.deepEqual(readJson(join(profile, 'agent', 'extensions', 'subagent', 'config.json')), {
       asyncByDefault: false,
       maxSubagentDepth: 1,
@@ -215,6 +249,101 @@ test('setup-pi lifecycle works from one config in an isolated profile', () => {
     assert.match(setupPi(['install', '--force', '--profile-dir', profile], env), /OK_INSTALL/);
     assert.throws(() => setupPi(['rollback', '--profile-dir', profile], env));
     assert.equal(readFileSync(activeConfigPath, 'utf-8'), invalidActiveConfig);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('setup-pi round-trips schema v1 through the v2 upgrade backup', () => {
+  const root = tmpRoot('schema-migration');
+  try {
+    const profile = join(root, 'profile');
+    const { fakeNpm, fakePi, fakeRuntime } = createFakePackageCommands(root);
+    const authPath = join(profile, 'agent', 'auth.json');
+    const authBefore = '{"unrelated":{"type":"api_key","key":"unchanged-fixture"}}\n';
+    mkdirSync(resolve(authPath, '..'), { recursive: true });
+    writeFileSync(authPath, authBefore, { mode: 0o600 });
+    const env = {
+      LEGION_PI_NPM_BIN: fakeNpm,
+      LEGION_PI_FAKE_PI_SOURCE: fakePi,
+      LEGION_PI_FAKE_RUNTIME_SOURCE: fakeRuntime,
+    };
+    const sourceV2 = readJson(join(repoRoot, 'legion-pi', 'legion-pi.json'));
+    const sourceV1 = {
+      schemaVersion: 1,
+      reviewedAt: '2026-08-17',
+      packages: sourceV2.packages,
+      skills: sourceV2.skills,
+    };
+    const v1ConfigPath = join(root, 'legion-pi-v1.json');
+    writeJson(v1ConfigPath, sourceV1);
+
+    assert.match(setupPi(['install', '--profile-dir', profile, '--config', v1ConfigPath], env), /OK_INSTALL/);
+    assert.match(setupPi(['verify', '--profile-dir', profile], env), /READY/);
+    const activeConfigPath = join(profile, '.legionmind', 'active-config.v1.json');
+    const settingsPath = join(profile, 'agent', 'settings.json');
+    const v1ActiveConfig = readFileSync(activeConfigPath, 'utf-8');
+    const v1Settings = readFileSync(settingsPath, 'utf-8');
+
+    assert.match(setupPi(['install', '--profile-dir', profile], env), /OK_INSTALL/);
+    assert.match(setupPi(['verify', '--profile-dir', profile], env), /READY/);
+    const upgrade = readJson(join(profile, '.legionmind', 'backup-index.v1.json')).backups.at(-1);
+    assert.ok(upgrade?.backupId);
+    assert.equal(upgrade.entries.some((entry: { targetPath: string }) => entry.targetPath === activeConfigPath), true);
+    assert.equal(upgrade.entries.some((entry: { targetPath: string }) => entry.targetPath === settingsPath), true);
+
+    assert.match(setupPi(['rollback', '--to', upgrade.backupId, '--profile-dir', profile], env), /OK_ROLLBACK/);
+    assert.equal(readFileSync(activeConfigPath, 'utf-8'), v1ActiveConfig);
+    assert.equal(readFileSync(settingsPath, 'utf-8'), v1Settings);
+    assert.match(setupPi(['verify', '--profile-dir', profile], env), /READY/);
+
+    assert.match(setupPi(['install', '--profile-dir', profile], env), /OK_INSTALL/);
+    assert.match(setupPi(['verify', '--profile-dir', profile], env), /READY/);
+    assert.equal(readJson(settingsPath).defaultModel, 'gpt-5.6-sol');
+
+    const managedPaths = [
+      activeConfigPath,
+      settingsPath,
+      join(profile, 'agent', 'extensions', 'subagent', 'config.json'),
+    ];
+    const managedBefore = managedPaths.map((path) => readFileSync(path, 'utf-8'));
+    const backupIndexPath = join(profile, '.legionmind', 'backup-index.v1.json');
+    const backupCount = readJson(backupIndexPath).backups.length;
+    assert.match(setupPi(['install', '--profile-dir', profile], env), /OK_INSTALL/);
+    assert.match(setupPi(['verify', '--profile-dir', profile], env), /READY/);
+    assert.deepEqual(managedPaths.map((path) => readFileSync(path, 'utf-8')), managedBefore);
+    assert.equal(readFileSync(authPath, 'utf-8'), authBefore);
+    assert.equal(readJson(backupIndexPath).backups.length, backupCount);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('setup-pi reconciles interactive model switching only with force', () => {
+  const root = tmpRoot('model-switch');
+  try {
+    const profile = join(root, 'profile');
+    const { fakeNpm, fakePi, fakeRuntime } = createFakePackageCommands(root);
+    const env = {
+      LEGION_PI_NPM_BIN: fakeNpm,
+      LEGION_PI_FAKE_PI_SOURCE: fakePi,
+      LEGION_PI_FAKE_RUNTIME_SOURCE: fakeRuntime,
+    };
+    setupPi(['install', '--profile-dir', profile], env);
+    const settingsPath = join(profile, 'agent', 'settings.json');
+    const switched = {
+      ...readJson(settingsPath),
+      defaultProvider: 'deepseek',
+      defaultModel: 'deepseek-v4-pro',
+    };
+    writeJson(settingsPath, switched);
+
+    assert.throws(() => setupPi(['install', '--profile-dir', profile], env));
+    assert.deepEqual(readJson(settingsPath), switched);
+    assert.match(setupPi(['install', '--force', '--profile-dir', profile], env), /OK_INSTALL/);
+    assert.match(setupPi(['verify', '--profile-dir', profile], env), /READY/);
+    assert.equal(readJson(settingsPath).defaultProvider, 'openai-codex');
+    assert.equal(readJson(settingsPath).defaultModel, 'gpt-5.6-sol');
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
@@ -364,6 +493,27 @@ test('setup-pi rejects extra config surfaces and floating versions', () => {
     const expanded = join(root, 'expanded.json');
     writeJson(expanded, { ...base, defaultProvider: 'example' });
     assert.throws(() => setupPi(['install', '--profile-dir', join(root, 'expanded-profile'), '--config', expanded], env));
+
+    const invalidPolicies = [
+      { name: 'missing-models', value: { ...base, models: undefined } },
+      { name: 'unsupported-schema', value: { ...base, schemaVersion: 3 } },
+      { name: 'v1-with-models', value: { ...base, schemaVersion: 1 } },
+      { name: 'missing-enabled-models', value: { ...base, models: { defaultProvider: base.models.defaultProvider, defaultModel: base.models.defaultModel } } },
+      { name: 'wrong-provider', value: { ...base, models: { ...base.models, defaultProvider: 'openai' } } },
+      { name: 'wrong-model', value: { ...base, models: { ...base.models, defaultModel: 'gpt-5.6-terra' } } },
+      { name: 'provider-case-change', value: { ...base, models: { ...base.models, defaultProvider: 'OpenAI-Codex' } } },
+      { name: 'model-whitespace', value: { ...base, models: { ...base.models, defaultModel: 'gpt-5.6-sol ' } } },
+      { name: 'reordered-patterns', value: { ...base, models: { ...base.models, enabledModels: [...base.models.enabledModels].reverse() } } },
+      { name: 'duplicate-pattern', value: { ...base, models: { ...base.models, enabledModels: [...base.models.enabledModels.slice(0, 3), base.models.enabledModels[2]] } } },
+      { name: 'missing-pattern', value: { ...base, models: { ...base.models, enabledModels: base.models.enabledModels.slice(0, -1) } } },
+      { name: 'additional-pattern', value: { ...base, models: { ...base.models, enabledModels: [...base.models.enabledModels, 'kimi-coding/kimi-for-coding'] } } },
+      { name: 'unknown-model-field', value: { ...base, models: { ...base.models, extra: true } } },
+    ];
+    for (const policy of invalidPolicies) {
+      const invalidPolicy = join(root, `invalid-policy-${policy.name}.json`);
+      writeJson(invalidPolicy, policy.value);
+      assert.throws(() => setupPi(['install', '--profile-dir', join(root, `invalid-policy-profile-${policy.name}`), '--config', invalidPolicy], env));
+    }
 
     const floating = join(root, 'floating.json');
     writeJson(floating, {

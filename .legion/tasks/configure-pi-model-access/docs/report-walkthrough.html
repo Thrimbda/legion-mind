@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>配置 Legion Pi 模型访问 | 交付审阅</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: oklch(96% 0.012 92);
+      --surface: oklch(99% 0.006 92);
+      --ink: oklch(24% 0.018 132);
+      --muted: oklch(49% 0.025 132);
+      --line: oklch(82% 0.018 105);
+      --accent: oklch(45% 0.12 153);
+      --soft: oklch(91% 0.05 144);
+      --warn: oklch(91% 0.06 82);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--paper); color: var(--ink); font-family: ui-sans-serif, system-ui, sans-serif; line-height: 1.62; }
+    main { width: min(1120px, calc(100vw - 32px)); margin: 0 auto; padding: 48px 0 72px; }
+    h1, h2 { line-height: 1.18; text-wrap: balance; }
+    h1 { max-width: 22ch; font-size: clamp(2.1rem, 6vw, 4.8rem); margin: .3rem 0 1rem; }
+    h2 { margin-top: 0; }
+    p, li { max-width: 72ch; }
+    code { overflow-wrap: anywhere; }
+    a { color: var(--accent); }
+    .hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 360px); gap: 32px; align-items: end; margin-bottom: 32px; }
+    .kicker { color: var(--accent); font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
+    .status, section { border: 1px solid var(--line); border-radius: 22px; background: var(--surface); padding: 24px; }
+    .status p { margin: .45rem 0; }
+    .pill { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; background: var(--soft); padding: .08rem .58rem; font-weight: 750; }
+    .layout { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 28px; align-items: start; }
+    nav { position: sticky; top: 18px; display: grid; gap: 8px; }
+    nav a { text-decoration: none; padding: .36rem .55rem; border-radius: 8px; }
+    nav a:hover { background: var(--soft); }
+    section { margin-bottom: 20px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; font-size: .94rem; }
+    th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 10px; overflow-wrap: anywhere; }
+    th { color: var(--muted); }
+    ul, ol { padding-left: 1.35rem; }
+    .empty { color: var(--muted); }
+    .boundary { background: var(--warn); border-radius: 12px; padding: 12px 14px; }
+    @media (max-width: 820px) {
+      .hero, .layout { grid-template-columns: 1fr; }
+      nav { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      section { overflow-x: auto; }
+    }
+    @media print {
+      body { background: var(--surface); }
+      main { width: 100%; padding: 0; }
+      nav { display: none; }
+      .status, section { break-inside: avoid; box-shadow: none; }
+      a { color: inherit; text-decoration: none; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="hero">
+      <div>
+        <p class="kicker">configure-pi-model-access · 交付审阅</p>
+        <h1>配置 Legion Pi 模型访问</h1>
+        <p>把 Codex、DeepSeek 与 Kimi K3 的精确模型策略纳入 Legion Pi 受管配置，同时保持凭证隔离、旧 schema 回滚能力和 PI WEB 可验证运行。</p>
+        <p>审阅者：LegionMind 维护者与 Legion Pi operator</p>
+      </div>
+      <aside class="status" aria-label="当前结论与动作">
+        <p><span class="pill">交付类型 implementation</span> <span class="pill">Profile strict</span> <span class="pill">风险 high</span> <span class="pill">结论 PASS</span></p>
+        <p>审查：<strong>PASS</strong></p>
+        <p>注意力：<strong>skim</strong></p>
+
+        <p><strong>当前唯一人类动作</strong></p>
+        <p>快速浏览关键变更与验证摘要，然后按仓库保护规则审阅并合并当前 delivery PR。</p>
+        <p class="boundary"><strong>停止点：</strong>允许继续 commit、rebase、push、PR、checks/review、merge、cleanup 与主工作区刷新；本报告不证明这些 PR lifecycle 步骤已完成。</p>
+        <p><strong>最终状态：</strong>Legion Pi schema v2 model policy、live provider access、rollback/idempotence、独立验证、安全复审、walkthrough 与 Wiki writeback已达到delivery-ready；PR lifecycle尚未完成。</p>
+      </aside>
+    </header>
+    <div class="layout">
+      <nav aria-label="交付审阅导航">
+        <a href="#summary">审阅结论</a>
+        <a href="#attention">当前动作</a>
+        <a href="#claims">认知状态</a>
+        <a href="#verifiers">领域验证</a>
+        <a href="#scope">范围</a>
+        <a href="#evidence">证据地图</a>
+        <a href="#path">交付路径</a>
+        <a href="#changes">变更决定</a>
+        <a href="#verification">验证审查</a>
+        <a href="#risks">风险限制</a>
+        <a href="#checklist">审阅清单</a>
+        <a href="#render">渲染交接</a>
+        <a href="#final">下一阶段</a>
+      </nav>
+      <div>
+        <section id="summary"><h2>审阅结论</h2><p>Legion Pi manifest 已升级为 schema v2，默认 openai-codex/gpt-5.6-sol，selector 精确包含 7 个 Codex、2 个 DeepSeek 与 Kimi k3/k3-256k；schema v1 继续支持 install、verify 与 rollback。Startup probe 使用空 in-memory auth 且禁止 refresh，setup-pi 不拥有 auth.json。61/61 regression、7/7 TS/JS parity、72-file pack、三 provider bounded smoke、live v1 rollback/v2 reinstall/idempotence、独立验证与安全复审均为 PASS。</p></section>
+        <section id="attention"><h2>人类注意力与当前动作</h2><p>实现、live rollout、独立验证与安全复审均通过；reviewer 只需快速确认模型策略、credential boundary、回滚锚点和非阻塞运行风险。</p><p><strong>当前唯一人类动作：</strong>快速浏览关键变更与验证摘要，然后按仓库保护规则审阅并合并当前 delivery PR。</p><p class="boundary"><strong>lifecycle 边界：</strong>允许继续 commit、rebase、push、PR、checks/review、merge、cleanup 与主工作区刷新；本报告不证明这些 PR lifecycle 步骤已完成。</p><p><strong>证据：</strong><code>.legion/tasks/configure-pi-model-access/docs/test-report.md</code>、<code>.legion/tasks/configure-pi-model-access/docs/verify-change.md</code>、<code>.legion/tasks/configure-pi-model-access/docs/review-change.md</code></p></section>
+        <section id="claims"><h2>未解决的认知状态</h2><p class="empty">当前证据未登记需要单独聚合的未解决 claim。</p></section>
+        <section id="verifiers"><h2>领域验证摘要</h2><p class="empty">当前证据未登记领域或权威 verifier。</p></section>
+        <section id="scope"><h2>范围</h2><h3>范围内</h3><ul><li>Schema v2 精确 default/selector model policy 与 schema v1 compatibility parser</li><li>Generated active config/settings、model-switch drift reconciliation 与 explicit rollback</li><li>Credential-free startup probe、strict validation、migration/idempotence regression 与 operator 文档</li><li>Live DeepSeek/Kimi command references、Pi 独立 Codex OAuth、selector/default/smoke 验收</li><li>Reviewer walkthrough、Wiki current-truth writeback 与 PR delivery evidence</li></ul><h3>范围外</h3><ul><li>Pi、extension 或 PI WEB package 升级</li><li>OpenCode auth 内容、OAuth state 或安装面修改</li><li>Credential 写入 manifest、Git、generated settings 或 Nix</li><li>PI WEB 网络、FRP、TLS、Origin guard 或其他 dotfiles 拓扑变更</li><li>多用户/multi-writer credential bridge 产品化或其他 provider/model 扩展</li></ul></section>
+        <section id="evidence"><h2>证据地图</h2><table><thead><tr><th scope="col">证据</th><th scope="col">类型</th><th scope="col">状态</th><th scope="col">locator</th></tr></thead><tbody><tr><td>稳定任务合同与高风险验收边界</td><td>plan</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/plan.md</code></td></tr><tr><td>批准的 schema、auth、rollout 与 rollback RFC</td><td>rfc</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/rfc.md</code></td></tr><tr><td>review-rfc-swift-sparrow 独立设计审查</td><td>review-rfc</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/review-rfc.md</code></td></tr><tr><td>Repository 与 live verification report</td><td>test-report</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/test-report.md</code></td></tr><tr><td>verify-change-playful-dolphin 独立验证</td><td>other</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/verify-change.md</code></td></tr><tr><td>review-change-clever-otter 安全复审</td><td>review-change</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/review-change.md</code></td></tr></tbody></table></section>
+        <section id="path"><h2>交付路径</h2><ol><li>确认 Pi 0.84.2 pinned catalog 已包含全部目标模型，并把 manifest/auth/provider catalog 分成独立责任层</li><li>通过 Standard RFC 与两轮独立设计审查关闭 schema rollback、settings drift、auth ownership 与 catalog oracle 风险</li><li>实现 schema v1/v2 parser、精确 policy rendering、in-memory startup credentials、generated JS、tests 与 operator docs</li><li>在停服单 writer 窗口升级 live profile、配置 runtime references、完成 Pi 独立 OAuth 与三 provider smoke</li><li>执行 v2-to-v1-to-v2 live rollback、READY-v2 idempotence、secret scan、独立验证和安全复审</li><li>生成 reviewer artifacts 与 Wiki writeback后进入 squash PR lifecycle</li></ol></section>
+        <section id="changes"><h2>变更与决定</h2><ul><li>legion-pi.json 使用 schema v2，固定 defaultProvider、defaultModel 与四项 ordered enabledModels policy。</li><li>pi-distro parser 继续接受严格 v1，并对 v2 provider/model/pattern literal、顺序、大小写、空格、缺失、重复、附加值和未知字段 fail closed。</li><li>active config 保留 schema；settings 对 v1 不写 model fields，对 v2 写入完整 policy。</li><li>startup probe 注入 AuthStorage.inMemory() 与 refreshOnCreate=false，避免 setup 验证触碰 live auth 或网络 refresh。</li><li>Regression 新增 v1-v2-v1-v2、READY-v2 no-op reinstall、model-switch drift、auth non-ownership 与 credential isolation。</li><li>README 明确 Pi 独立 OAuth、API-key/runtime-reference boundary 与 PI WEB quiesce/reconcile/restart/fresh-session 流程。</li><li>Wiki current truth 由旧的 no-model manifest 边界更新为 schema v2 policy，并沉淀 catalog/selector/credential 分层模式。</li></ul></section>
+        <section id="verification"><h2>验证与审查状态</h2><table><thead><tr><th scope="col">检查</th><th scope="col">状态</th><th scope="col">证据</th></tr></thead><tbody><tr><td>完整 regression suite 61/61 与 startup matrix</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/test-report.md</code></td></tr><tr><td>Generated TS/JS parity 7/7、npm pack 72 files、context audit 与 diff check</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/verify-change.md</code></td></tr><tr><td>Pinned 11-model oracle、exact selector、fresh default 与三 provider smoke</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/test-report.md</code></td></tr><tr><td>Live schema v1 rollback、v2 reinstall、READY-v2 no-op install 与 final anchor</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/test-report.md</code></td></tr><tr><td>Exact-secret exclusion、resolver fail-closed matrix 与 ambient credential denylist</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/verify-change.md</code></td></tr><tr><td>当前实现快照的独立 security-aware change review</td><td>PASS</td><td><code>.legion/tasks/configure-pi-model-access/docs/review-change.md</code></td></tr></tbody></table></section>
+        <section id="risks"><h2>风险与限制</h2><table><thead><tr><th scope="col">风险</th><th scope="col">缓解</th></tr></thead><tbody><tr><td>Provider entitlement、OAuth expiry 与上游服务可用性仍会随时间变化。</td><td>当前三 provider bounded smoke 与 auth/selector/default checks 已通过；运行故障按 provider readiness 排查，不复制 token 或扩大 selector 作为 fallback。</td></tr><tr><td>Command-backed keys 依赖 host OpenCode auth path/schema，结果按 Pi process lifetime cache。</td><td>Resolver 固定 source/selector并对 file type/owner/mode fail closed；服务无 ambient fallback，schema/key rotation 后必须重新配置并重启。</td></tr><tr><td>Pi model switch 会持久化 managed global settings。</td><td>文档要求关闭 disposable session、隔离 settings writer、force reconcile、重启、verify 与 fresh-session default；regression 和 live no-op reinstall覆盖该边界。</td></tr><tr><td>PR checks、review、merge、worktree cleanup 与主工作区刷新尚未完成。</td><td>继续 squash PR lifecycle；terminal 前只声明 delivery-ready，不预写 merge 或 cleanup 状态。</td></tr></tbody></table></section>
+        <section id="checklist"><h2>审阅清单</h2><ul><li>确认 schema v2 policy 与 exact 11-model selector一致，legacy Kimi 只存在于 full catalog。</li><li>确认 schema v1 compatibility、explicit rollback 与 READY-v2 idempotence都有 committed regression和 live evidence。</li><li>确认 startup probe 使用 in-memory auth且不读取/执行 live credential或 OAuth refresh。</li><li>确认 credential未进入 Git/generated settings/Nix/report，OpenCode OAuth未复制，service env无 ambient fallback。</li><li>确认 PI WEB model switch reconciliation包含 session close、service quiesce/restart、READY与fresh default。</li><li>确认当前 final rollback anchor为1787113970531-7675a002，旧 anchor已消费。</li><li>确认本报告只表示 delivery-ready，PR checks/merge/cleanup/main refresh仍需 lifecycle完成。</li></ul></section>
+        <section id="render"><h2>渲染交接</h2><p><strong>PR-backed：</strong>是</p><p><strong>状态：</strong>local</p><p>使用仓库内本地 HTML artifact；reviewer可在PR中查看由同一report-data.json生成的HTML、Markdown与PR body，不新增公开托管面。</p></section>
+        <section id="final"><h2>最终状态与下一阶段</h2><p><strong>当前状态：</strong>Legion Pi schema v2 model policy、live provider access、rollback/idempotence、独立验证、安全复审、walkthrough 与 Wiki writeback已达到delivery-ready；PR lifecycle尚未完成。</p><p><strong>下一阶段：</strong>完成closing hygiene checks，commit、rebase、push并创建squash PR，跟进checks/review/merge、cleanup与主工作区刷新。</p><p class="boundary">本报告只证明当前工作树的实现、验证、独立审查与reviewer artifacts已准备，不证明PR已创建、checks/review已满足、PR已合并、worktree已清理或主工作区已刷新。</p></section>
+      </div>
+    </div>
+  </main>
+</body>
+</html>
