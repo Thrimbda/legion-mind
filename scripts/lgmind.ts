@@ -55,7 +55,7 @@ function printVersion() {
 function printHelp() {
   console.log(`lgmind ${packageVersion()}
 
-Set up LegionMind assets for coding agents.
+Install independent LegionMind skills for coding agents.
 
 Usage:
   lgmind setup [--scope project|global] [options]
@@ -64,8 +64,8 @@ Usage:
   npx lgmind@latest setup
 
 Commands:
-  setup       Guided first-run setup; installs LegionMind assets
-  install     Install or update LegionMind assets
+  setup       Guided first-run setup; installs LegionMind skills
+  install     Install or update LegionMind skills
   verify      Check installed assets; use --strict for checksum ownership checks
   rollback    Restore latest backup batch, or --to <backup-id>
   uninstall   Remove managed, non-drifted assets
@@ -95,6 +95,7 @@ Runtime-specific options:
   --runtime <opencode|openclaw> Alias for --agent
   OpenCode: --opencode-home <path>
   OpenClaw: --openclaw-home <path> --skills-dir <path> --no-extra-dir
+            (--no-extra-dir skips cleanup of obsolete LegionMind source paths)
 
 Examples:
   npx lgmind@latest setup

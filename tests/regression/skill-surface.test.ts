@@ -2,34 +2,24 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { INSTALLED_SKILLS } from '../../scripts/lib/skill-library.ts';
 
 const repoRoot = resolve(new URL('../..', import.meta.url).pathname);
-const requiredPhaseSkills = [
+const expectedSkills = [
   'brainstorm',
-  'legion-workflow',
   'git-worktree-pr',
-  'spec-rfc',
-  'review-rfc',
-  'engineer',
-  'verify-change',
-  'review-change',
-  'report-walkthrough',
-  'legion-wiki',
   'legion-docs',
-];
-
-const requiredSupportSkills = [
+  'legion-wiki',
+  'llm-wiki',
   'pr-html-render',
-];
+  'report-walkthrough',
+  'review-change',
+  'review-rfc',
+  'spec-rfc',
+  'verify-change',
+].sort();
 
-function opencodeInstalledSkills(): string[] {
-  const source = readFileSync(join(repoRoot, 'scripts', 'setup-opencode.ts'), 'utf-8');
-  const match = source.match(/const INSTALLED_SKILLS = \[([\s\S]*?)\] as const;/);
-  assert.ok(match, 'setup-opencode.ts should declare INSTALLED_SKILLS');
-  return [...match[1].matchAll(/'([^']+)'/g)].map((item) => item[1]).sort();
-}
-
-function openclawDiscoveredSkills(): string[] {
+function discoveredSkills(): string[] {
   return readdirSync(join(repoRoot, 'skills'), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
@@ -37,23 +27,42 @@ function openclawDiscoveredSkills(): string[] {
     .sort();
 }
 
-test('OpenCode installed skill list exists on disk and includes required skills', () => {
-  const opencode = opencodeInstalledSkills();
-  for (const skill of opencode) {
-    assert.equal(existsSync(join(repoRoot, 'skills', skill, 'SKILL.md')), true, `${skill} should have SKILL.md`);
-  }
-  for (const skill of requiredPhaseSkills) {
-    assert.equal(opencode.includes(skill), true, `OpenCode should install ${skill}`);
-  }
-  for (const skill of requiredSupportSkills) {
-    assert.equal(opencode.includes(skill), true, `OpenCode should install support skill ${skill}`);
+test('OpenCode and OpenClaw expose the same independent skill library', () => {
+  assert.deepEqual([...INSTALLED_SKILLS].sort(), expectedSkills);
+  assert.deepEqual(discoveredSkills(), expectedSkills);
+  for (const skill of expectedSkills) {
+    assert.equal(existsSync(join(repoRoot, 'skills', skill, 'SKILL.md')), true);
   }
 });
 
-test('OpenClaw dynamic skill surface is an OpenCode superset', () => {
-  const opencode = opencodeInstalledSkills();
-  const openclaw = openclawDiscoveredSkills();
-  for (const skill of opencode) {
-    assert.equal(openclaw.includes(skill), true, `OpenClaw skill surface should include ${skill}`);
+test('retired orchestration skills are absent from the active source surface', () => {
+  for (const skill of ['legion-workflow', 'engineer']) {
+    assert.equal(existsSync(join(repoRoot, 'skills', skill, 'SKILL.md')), false, `${skill} must not remain discoverable`);
   }
+});
+
+test('active skill entrypoints do not depend on the retired task workflow', () => {
+  const forbidden = [
+    'REF_HUMAN_ATTENTION',
+    'workflowProfile',
+    '.legion/tasks/',
+    'profile-policy',
+    '交回 `legion-workflow`',
+    '退回 `engineer`',
+  ];
+  for (const skill of expectedSkills) {
+    const source = readFileSync(join(repoRoot, 'skills', skill, 'SKILL.md'), 'utf-8');
+    for (const token of forbidden) {
+      assert.equal(source.includes(token), false, `${skill} must not depend on ${token}`);
+    }
+  }
+});
+
+test('repository policy keeps git-worktree-pr as the sole mandatory delivery shell', () => {
+  const agents = readFileSync(join(repoRoot, 'AGENTS.md'), 'utf8');
+  const gitSkill = readFileSync(join(repoRoot, 'skills', 'git-worktree-pr', 'SKILL.md'), 'utf8');
+  assert.match(agents, /会修改仓库的任务必须使用 `git-worktree-pr`/);
+  assert.match(agents, /squash PR、checks、合并、cleanup 与主工作区刷新/);
+  assert.doesNotMatch(gitSkill, /legion-workflow|profile|attention|plan\.md|tasks\.md|log\.md/);
+  assert.match(gitSkill, /squash merge/);
 });

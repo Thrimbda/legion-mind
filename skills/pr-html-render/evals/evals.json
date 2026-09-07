@@ -3,7 +3,7 @@
   "evals": [
     {
       "id": 1,
-      "prompt": "我们的 Legion task 已经生成 .legion/tasks/add-widget/docs/report-walkthrough.html。给每个 GitHub PR comment 加一个最快、成本最低的 rendered preview link。",
+      "prompt": "我们已经在 artifacts/report/report-walkthrough.html 生成审阅报告。给每个 GitHub PR comment 加一个最快、成本最低的 rendered preview link。",
       "expected_output": "为 same-repository PR 选择 GitHub Pages Actions static preview，指向已有 walkthrough HTML artifact，创建或更新稳定的 /pr-<number>/ rendered preview link，并提醒 Pages visibility 风险。"
     },
     {

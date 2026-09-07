@@ -1,28 +1,31 @@
-# Implementation Plan（从 RFC Milestones 抽取）
+# Implementation Plan: <Title>
 
-> 目标：把 RFC 的 Milestones 变成可执行的工程任务清单（便于 tasks.md 更新与分阶段交付）。
+## Outcome
 
----
+- 目标：
+- 完成标准：
 
-## Milestone 1: <...>
-### Scope
-- files/modules:
-  - `...`
+## Scope
 
-### Steps
-- [ ] ...
-- [ ] ...
+- 包含：
+- 不包含：
 
-### Verification
-- Commands:
-  - `...`
-- Expected:
-  - ...
+## Changes
 
-### Rollback Notes
-- ...
+1. `<module/path>`：要改变的行为与原因。
+2. `<module/path>`：依赖或迁移顺序。
 
----
+## Verification
 
-## Milestone 2: <...>
-...
+- 检查：
+- 预期结果：
+- 失败路径：
+
+## Rollback
+
+- 触发条件：
+- 恢复方式：
+
+## Open questions
+
+- 只保留会阻止安全实施的问题。

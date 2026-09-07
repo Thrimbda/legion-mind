@@ -8,7 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from 'fs';
-import { dirname, join, relative, resolve } from 'path';
+import { dirname, join, relative, resolve, sep } from 'path';
 import { homedir } from 'os';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
@@ -27,6 +27,7 @@ import {
   emptyManagedState,
   formatInstallStateSummary,
   loadJsonOrDefault,
+  pruneRetiredManagedFilesCore,
   rollbackCore,
   syncOneFileCore,
   uninstallCore,
@@ -35,6 +36,7 @@ import {
   verifyStrictItemCore,
   writeJsonAtomic,
 } from './lib/setup-core.js';
+import { INSTALLED_SKILLS, RETIRED_SKILLS } from './lib/skill-library.js';
 
 
 
@@ -121,7 +123,7 @@ function parseArgs(argv          )             {
     verbose: argv.includes('--verbose'),
     strategy: strategyValue,
     toBackupId: getValue('--to'),
-    configureExtraDir: !argv.includes('--no-extra-dir'),
+    cleanupExtraDirs: !argv.includes('--no-extra-dir'),
     configDir,
     openclawHome,
     sourceSkillsDir: resolve(getValue('--skills-dir') ?? join(PROJECT_ROOT, 'skills')),
@@ -184,16 +186,28 @@ function getExtraDirs(config                , configPath        )           {
   return extraDirs;
 }
 
-function withSkillsDir(config                , skillsDir        , configPath        )                                               {
+function isLgmindSourceSkillsDir(skillsDir        , configPath        )          {
+  const absolute = resolve(dirname(configPath), skillsDir);
+  if (absolute.endsWith(`${sep}node_modules${sep}lgmind${sep}skills`)) return true;
+  try {
+    const manifest = JSON.parse(readFileSync(join(absolute, '..', 'package.json'), 'utf-8'))                      ;
+    return manifest.name === 'lgmind';
+  } catch {
+    return false;
+  }
+}
+
+function withoutLgmindSourceSkillsDirs(config                , configPath        )                                               {
   const extraDirs = getExtraDirs(config, configPath);
-  if (extraDirs.includes(skillsDir)) {
+  const retained = extraDirs.filter((skillsDir) => !isLgmindSourceSkillsDir(skillsDir, configPath));
+  if (retained.length === extraDirs.length) {
     return { config, changed: false };
   }
 
   const nextSkills = isRecord(config.skills) ? { ...config.skills } : {};
   const nextLoad = isRecord(nextSkills.load) ? { ...nextSkills.load } : {};
 
-  nextLoad.extraDirs = [...extraDirs, skillsDir];
+  nextLoad.extraDirs = retained;
   nextSkills.load = nextLoad;
 
   return {
@@ -225,18 +239,6 @@ function isIgnoredRelativePath(relPath        )          {
   }
 
   return false;
-}
-
-function discoverSkillNames(sourceSkillsDir        )           {
-  if (!existsSync(sourceSkillsDir) || !statSync(sourceSkillsDir).isDirectory()) {
-    return [];
-  }
-
-  return readdirSync(sourceSkillsDir, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
-    .map((entry) => entry.name)
-    .filter((name) => existsSync(join(sourceSkillsDir, name, 'SKILL.md')))
-    .sort();
 }
 
 function collectFilesRecursive(sourceRoot        , targetRoot        )             {
@@ -275,7 +277,7 @@ function collectFilesRecursive(sourceRoot        , targetRoot        )          
 
 function collectExpectedSyncItems(opts            )             {
   const syncItems             = [];
-  for (const skill of discoverSkillNames(opts.sourceSkillsDir)) {
+  for (const skill of INSTALLED_SKILLS) {
     const skillSource = join(opts.sourceSkillsDir, skill);
     syncItems.push(...collectFilesRecursive(skillSource, join(opts.openclawHome, 'skills', skill)));
   }
@@ -289,8 +291,10 @@ function collectMissingExpectedSourceRoots(opts            )           {
     return missing;
   }
 
-  if (discoverSkillNames(opts.sourceSkillsDir).length === 0) {
-    missing.push(join(opts.sourceSkillsDir, '<skill>/SKILL.md'));
+  for (const skill of INSTALLED_SKILLS) {
+    if (!existsSync(join(opts.sourceSkillsDir, skill, 'SKILL.md'))) {
+      missing.push(join(opts.sourceSkillsDir, skill));
+    }
   }
 
   return missing;
@@ -305,31 +309,48 @@ function loadManagedStateForVerify(opts            )                     {
   return validateManagedStateFile(path, MANAGED_FILE_ACTIONS);
 }
 
-function configureExtraSkillsDir(opts            , reporter          )          {
-  if (!opts.configureExtraDir) {
-    reporter.emit('OK_CONFIG', 'config', 'extra-dir-skipped', opts.sourceSkillsDir, 'skipped because --no-extra-dir was provided');
+function removeLegacyExtraSkillsDirs(opts            , reporter          )          {
+  if (!opts.cleanupExtraDirs) {
+    reporter.emit('OK_CONFIG', 'config', 'extra-dir-skipped', opts.sourceSkillsDir, 'legacy extraDirs cleanup skipped because --no-extra-dir was provided');
     return false;
   }
 
   const configPath = join(opts.configDir, 'openclaw.json');
+  if (!existsSync(configPath)) {
+    reporter.emit('OK_CONFIG', 'config', 'local-skills-only', configPath, 'no OpenClaw config update needed; local managed skills are sufficient');
+    return false;
+  }
   const existing = loadConfig(configPath);
-  const { config, changed } = withSkillsDir(existing, opts.sourceSkillsDir, configPath);
+  const { config, changed } = withoutLgmindSourceSkillsDirs(existing, configPath);
 
   if (changed) {
     writeJsonAtomic(configPath, config, opts.dryRun);
   }
 
-  reporter.emit('OK_CONFIG', 'config', changed ? 'extra-dir-updated' : 'extra-dir-present', configPath, changed ? 'OpenClaw config includes the source skills directory' : 'OpenClaw config already includes the source skills directory');
+  reporter.emit('OK_CONFIG', 'config', changed ? 'legacy-extra-dir-removed' : 'local-skills-only', configPath, changed ? 'removed obsolete LegionMind source directories; managed local skills remain active' : 'no obsolete LegionMind source directory was configured');
   return changed;
 }
 
 function runInstall(opts            , runId        , reporter          )               {
   assertDirectory(opts.sourceSkillsDir, 'Source skills directory');
-  const skillNames = discoverSkillNames(opts.sourceSkillsDir);
-  if (skillNames.length === 0) {
-    throw new Error(`Source skills directory does not contain any skill with SKILL.md: ${opts.sourceSkillsDir}`);
+  const missingSources = collectMissingExpectedSourceRoots(opts);
+  if (missingSources.length > 0) {
+    for (const sourceRoot of missingSources) {
+      reporter.emit('E_PRECHECK', 'install', 'required-source-missing', sourceRoot, 'required skill source is missing; no managed assets were changed');
+    }
+    return {
+      version: 1,
+      timestamp: new Date().toISOString(),
+      runId,
+      command: 'install',
+      code: 'E_PRECHECK',
+      configPath: join(opts.configDir, 'openclaw.json'),
+      openclawHome: opts.openclawHome,
+      sourceSkillsDir: opts.sourceSkillsDir,
+      targetSkillsDir: join(opts.openclawHome, 'skills'),
+      summary: { copied: 0, linked: 0, skipped: 0, warnings: reporter.warnings, failures: reporter.failures },
+    };
   }
-
   const stateDir = join(opts.openclawHome, MANAGED_DIR_NAME);
   const managedFilePath = join(stateDir, MANAGED_FILES_FILE);
   const backupIndexPath = join(stateDir, BACKUP_INDEX_FILE);
@@ -343,7 +364,7 @@ function runInstall(opts            , runId        , reporter          )        
     entries: [],
   };
 
-  configureExtraSkillsDir(opts, reporter);
+  removeLegacyExtraSkillsDirs(opts, reporter);
 
   const syncItems = collectExpectedSyncItems(opts);
   const counters = { copied: 0, linked: 0, skipped: 0 };
@@ -351,6 +372,23 @@ function runInstall(opts            , runId        , reporter          )        
   for (const item of syncItems) {
     syncOneFileCore(item, lifecycleContext, managedState, backupBatch, reporter, counters);
   }
+
+  const managedSkillRoots = [...INSTALLED_SKILLS, ...RETIRED_SKILLS]
+    .map((skill) => resolve(opts.openclawHome, 'skills', skill));
+  const expectedSkillTargets = new Set(syncItems.map((item) => resolve(item.targetPath)));
+  const obsoleteTargetPaths = new Set(Object.keys(managedState.files).filter((targetPath) => {
+    const resolvedTarget = resolve(targetPath);
+    return !expectedSkillTargets.has(resolvedTarget)
+      && managedSkillRoots.some((root) => resolvedTarget.startsWith(`${root}${sep}`));
+  }));
+  const obsoleteSkills = pruneRetiredManagedFilesCore({
+    managedState,
+    retiredTargetPaths: obsoleteTargetPaths,
+    backupBatch,
+    ctx: { ...lifecycleContext, force: true },
+    reporter,
+  });
+  counters.skipped += obsoleteSkills.skipped;
 
   managedState.updatedAt = new Date().toISOString();
   backupIndex.updatedAt = new Date().toISOString();
@@ -382,37 +420,49 @@ function runInstall(opts            , runId        , reporter          )        
 }
 
 function verifyConfigExtraDir(opts            , reporter          )         {
-  if (!opts.configureExtraDir) {
+  if (!opts.cleanupExtraDirs) {
     reporter.emit('OK_VERIFY', 'verify', 'config.extra-dir-skipped', opts.sourceSkillsDir, 'skipped because --no-extra-dir was provided');
     return 0;
   }
 
   const configPath = join(opts.configDir, 'openclaw.json');
   if (!existsSync(configPath)) {
-    reporter.emit('W_VERIFY_CONFIG', 'verify', 'config.openclaw-json', configPath, 'OpenClaw config not found; managed/local skills may still be discoverable from openclaw home');
+    reporter.emit('OK_VERIFY', 'verify', 'config.openclaw-json', configPath, 'OpenClaw config is not required for managed local skills');
     return 0;
   }
 
   const config = loadConfig(configPath);
-  const configured = getExtraDirs(config, configPath).includes(opts.sourceSkillsDir);
-  if (configured) {
-    reporter.emit('OK_VERIFY', 'verify', 'config.extra-dir', configPath, 'source skills directory configured in skills.load.extraDirs');
+  const legacy = getExtraDirs(config, configPath).filter((skillsDir) => isLgmindSourceSkillsDir(skillsDir, configPath));
+  if (legacy.length === 0) {
+    reporter.emit('OK_VERIFY', 'verify', 'config.extra-dir', configPath, 'no obsolete LegionMind source directory is configured');
     return 0;
   }
 
-  reporter.emit('W_VERIFY_CONFIG', 'verify', 'config.extra-dir', configPath, 'source skills directory is not configured; run install to update openclaw.json or verify with --no-extra-dir');
+  reporter.emit('W_VERIFY_CONFIG', 'verify', 'config.extra-dir', configPath, 'obsolete LegionMind source directories remain; run install to remove them or use --no-extra-dir to manage this configuration manually');
   return 0;
 }
 
 function requiredVerifyChecks(opts            ) {
-  return discoverSkillNames(opts.sourceSkillsDir).map((skill) => ({
+  return INSTALLED_SKILLS.map((skill) => ({
     checkId: `assets.skill.${skill}`,
     target: join(opts.openclawHome, 'skills', skill, 'SKILL.md'),
   }));
 }
 
+function verifyNoRetiredSkillEntrypoints(opts            , reporter          )         {
+  let failures = 0;
+  for (const skill of RETIRED_SKILLS) {
+    const target = join(opts.openclawHome, 'skills', skill, 'SKILL.md');
+    if (!existsSync(target)) continue;
+    reporter.emit(opts.strict ? 'E_VERIFY_RETIRED_SKILL' : 'W_VERIFY_RETIRED_SKILL', 'verify', `retired-skill.${skill}`, target, 'remove or archive this legacy entrypoint; it is not part of the capability library');
+    if (opts.strict) failures += 1;
+  }
+  return failures;
+}
+
 function runVerify(opts            , runId        , reporter          )               {
   let hardFailures = 0;
+  hardFailures += verifyNoRetiredSkillEntrypoints(opts, reporter);
 
   hardFailures += verifyConfigExtraDir(opts, reporter);
 

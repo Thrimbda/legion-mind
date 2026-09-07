@@ -33,6 +33,7 @@ import {
   verifyStrictItemCore,
   writeJsonAtomic,
 } from './lib/setup-core.js';
+import { INSTALLED_SKILLS, RETIRED_SKILLS } from './lib/skill-library.js';
 
 
 
@@ -61,25 +62,6 @@ const MANAGED_DIR_NAME = '.legionmind';
 const INSTALL_STATE_FILE = 'install-state.v1.json';
 const MANAGED_FILES_FILE = 'managed-files.v1.json';
 const BACKUP_INDEX_FILE = 'backup-index.v1.json';
-
-const SOURCE_TARGETS = [
-  { sourceRoot: '.opencode/plugins', targetRoot: 'plugins', optional: true },
-]         ;
-
-const INSTALLED_SKILLS = [
-  'brainstorm',
-  'legion-docs',
-  'legion-wiki',
-  'legion-workflow',
-  'git-worktree-pr',
-  'spec-rfc',
-  'review-rfc',
-  'engineer',
-  'verify-change',
-  'review-change',
-  'report-walkthrough',
-  'pr-html-render',
-]         ;
 
 const SENSITIVE_BASENAMES = new Set(['opencode.json', 'antigravity-accounts.json']);
 
@@ -113,7 +95,7 @@ function printVersion() {
 function printHelp() {
   console.log(`setup-opencode ${packageVersion()}
 
-Install, verify, rollback, and uninstall LegionMind assets for OpenCode.
+Install, verify, rollback, and uninstall LegionMind skills for OpenCode.
 Use lgmind install --scope project|global for the product-level setup flow.
 
 Usage:
@@ -121,8 +103,8 @@ Usage:
   lgmind <setup|install|verify|rollback|uninstall> --agent opencode [options]
 
 Commands:
-  install      Install or update managed OpenCode assets (default)
-  verify       Check installed assets; use --strict for checksum ownership checks
+  install      Install or update managed OpenCode skills (default)
+  verify       Check installed skills; use --strict for checksum ownership checks
   rollback     Restore the latest backup batch, or --to <backup-id>
   uninstall    Remove managed, non-drifted assets
   help         Show this help
@@ -194,7 +176,7 @@ function managedRootPaths(opts            )           {
   return [
     join(opts.configDir, 'agents'),
     join(opts.configDir, 'plugins'),
-    ...INSTALLED_SKILLS.map((skill) => join(opts.opencodeHome, 'skills', skill)),
+    ...[...INSTALLED_SKILLS, ...RETIRED_SKILLS].map((skill) => join(opts.opencodeHome, 'skills', skill)),
   ];
 }
 
@@ -256,14 +238,6 @@ function collectFilesRecursive(sourceRoot        , targetRoot        )          
 
 function collectExpectedSyncItems(opts            )             {
   const syncItems             = [];
-  for (const map of SOURCE_TARGETS) {
-    const src = join(PROJECT_ROOT, map.sourceRoot);
-    if (!existsSync(src) && map.optional) {
-      continue;
-    }
-    syncItems.push(...collectFilesRecursive(src, join(opts.configDir, map.targetRoot)));
-  }
-
   for (const skill of INSTALLED_SKILLS) {
     const skillSource = join(PROJECT_ROOT, 'skills', skill);
     if (!existsSync(skillSource)) {
@@ -277,15 +251,9 @@ function collectExpectedSyncItems(opts            )             {
 
 function collectMissingExpectedSourceRoots()           {
   const missing           = [];
-  for (const map of SOURCE_TARGETS) {
-    const src = join(PROJECT_ROOT, map.sourceRoot);
-    if (!existsSync(src) && !map.optional) {
-      missing.push(src);
-    }
-  }
   for (const skill of INSTALLED_SKILLS) {
     const skillSource = join(PROJECT_ROOT, 'skills', skill);
-    if (!existsSync(skillSource)) {
+    if (!existsSync(join(skillSource, 'SKILL.md'))) {
       missing.push(skillSource);
     }
   }
@@ -345,6 +313,23 @@ function runInstall(opts            , runId        , reporter          )        
   });
   counters.skipped += pruned.skipped;
 
+  const managedSkillRoots = [...INSTALLED_SKILLS, ...RETIRED_SKILLS]
+    .map((skill) => resolve(opts.opencodeHome, 'skills', skill));
+  const expectedSkillTargets = new Set(syncItems.map((item) => resolve(item.targetPath)));
+  const obsoleteSkillTargetPaths = new Set(Object.keys(managedState.files).filter((targetPath) => {
+    const resolvedTarget = resolve(targetPath);
+    return !expectedSkillTargets.has(resolvedTarget)
+      && managedSkillRoots.some((root) => resolvedTarget.startsWith(`${root}${sep}`));
+  }));
+  const obsoleteSkills = pruneRetiredManagedFilesCore({
+    managedState,
+    retiredTargetPaths: obsoleteSkillTargetPaths,
+    backupBatch,
+    ctx: { ...lifecycleContext, force: true },
+    reporter,
+  });
+  counters.skipped += obsoleteSkills.skipped;
+
   managedState.updatedAt = new Date().toISOString();
   backupIndex.updatedAt = new Date().toISOString();
   if (backupBatch.entries.length > 0) {
@@ -370,57 +355,28 @@ function runInstall(opts            , runId        , reporter          )        
   };
 }
 
-function parseMcpConfigured(configPath        )          {
-  if (!existsSync(configPath)) {
-    return false;
-  }
-  try {
-    const parsed = JSON.parse(readFileSync(configPath, 'utf-8'))
-
-     ;
-    return !!parsed.mcp?.legionmind;
-  } catch {
-    return false;
-  }
+function requiredVerifyChecks(opts            ) {
+  return INSTALLED_SKILLS.map((skill) => ({
+    checkId: `assets.skill.${skill}`,
+    target: join(opts.opencodeHome, 'skills', skill, 'SKILL.md'),
+    required: true,
+  }));
 }
 
-function requiredVerifyChecks(opts            ) {
-  return [
-    {
-      checkId: 'assets.skill-workflow',
-      target: join(opts.opencodeHome, 'skills', 'legion-workflow', 'SKILL.md'),
-      required: true,
-    },
-    {
-      checkId: 'assets.skill-docs',
-      target: join(opts.opencodeHome, 'skills', 'legion-docs', 'SKILL.md'),
-      required: true,
-    },
-    {
-      checkId: 'assets.legion-cli',
-      target: join(opts.opencodeHome, 'skills', 'legion-workflow', 'scripts', 'legion.ts'),
-      required: true,
-    },
-    {
-      checkId: 'fallback.filesystem',
-      target: join(opts.opencodeHome, 'skills', 'legion-docs', 'references', 'REF_SCHEMAS.md'),
-      required: true,
-    },
-    {
-      checkId: 'assets.skill-spec-rfc',
-      target: join(opts.opencodeHome, 'skills', 'spec-rfc', 'SKILL.md'),
-      required: true,
-    },
-    ...INSTALLED_SKILLS.filter((skill) => !['legion-docs', 'legion-workflow', 'spec-rfc'].includes(skill)).map((skill) => ({
-      checkId: `assets.skill.${skill}`,
-      target: join(opts.opencodeHome, 'skills', skill, 'SKILL.md'),
-      required: true,
-    })),
-  ];
+function verifyNoRetiredSkillEntrypoints(opts            , reporter          )         {
+  let failures = 0;
+  for (const skill of RETIRED_SKILLS) {
+    const target = join(opts.opencodeHome, 'skills', skill, 'SKILL.md');
+    if (!existsSync(target)) continue;
+    reporter.emit(opts.strict ? 'E_VERIFY_RETIRED_SKILL' : 'W_VERIFY_RETIRED_SKILL', 'verify', `retired-skill.${skill}`, target, 'remove or archive this legacy entrypoint; it is not part of the capability library');
+    if (opts.strict) failures += 1;
+  }
+  return failures;
 }
 
 function runVerify(opts            , runId        , reporter          )               {
   let hardFailures = 0;
+  hardFailures += verifyNoRetiredSkillEntrypoints(opts, reporter);
 
   const verifyManifest = loadManagedStateForVerify(opts);
   if (verifyManifest.kind !== 'ok') {
@@ -462,14 +418,6 @@ function runVerify(opts            , runId        , reporter          )         
         reporter.emit('W_VERIFY_MISSING', 'verify', check.checkId, check.target, 'missing required file');
       }
     }
-  }
-
-  const mcpConfigured = parseMcpConfigured(join(opts.configDir, 'opencode.json'))
-    || parseMcpConfigured(join(opts.opencodeHome, 'opencode.json'));
-  if (!mcpConfigured) {
-    reporter.emit('W_MCP_OPTIONAL', 'verify', 'mcp.optional', 'mcp.legionmind', 'not configured; filesystem-backed CLI remains optional tooling, while legion-workflow stays the control-plane entry');
-  } else {
-    reporter.emit('OK_VERIFY', 'verify', 'mcp.optional', 'mcp.legionmind', 'configured as historical compatibility');
   }
 
   const strictFailed = opts.strict && hardFailures > 0;

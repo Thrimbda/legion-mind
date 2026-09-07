@@ -1,40 +1,25 @@
 ---
 name: legion-wiki
-description: 当需要建立、更新或查询 `.legion/wiki` 的任务摘要、当前决定、可复用模式、维护事项或当前真相时使用。
+description: 当仓库已经使用 `.legion/wiki` 作为 Markdown 知识库，需要查询、整理或更新其中的当前决定、模式和维护事项时使用。普通项目或任务状态记录不使用。
 ---
 
 # legion-wiki
 
-维护 Legion synthesis 层。`.legion/tasks/**` 是 raw evidence，`.legion/wiki/**` 是跨任务当前知识，`skills/**` 与 `.opencode/**` 是 schema。仅当任务产生跨任务仍有效的知识，或 disposition 已明确为 `wiki:write` 时运行；`no-change` 是有效结论，不创建占位页。默认用中文；路径、字段、命令和错误原文保持原样。
+这是 `.legion/wiki` 布局的可选适配能力，不是 Legion 工作流或任务 closeout 阶段。它与 `llm-wiki` 共享“raw evidence 与 durable knowledge 分离”的原则，但可以独立使用。
 
-## 何时使用
+## 查询
 
-- 为 repo evidence 已完成的任务写可查询摘要，或在适用的 report/render evidence 后写回 durable knowledge。
-- 查询当前有效决定、模式、维护债务或任务综合结论。
-- 标记 `historical`、`superseded-by`、`schema-version`。
-
-单任务日志/checklist/设计/验证仍写 raw task docs；schema 规则不写 wiki。
-
-## 查询路径
-
-涉及当前规则或执行行为时先读 schema；其他问题按：
-
-`wiki/index.md -> wiki/tasks/<task-id>.md 或 decisions/patterns/maintenance -> 必要时 raw task docs`
-
-不要直接 grep 全部 raw docs 来回答“当前真相”。
+先读 `.legion/wiki/index.md`，再读与问题直接相关的 decisions、patterns、maintenance 或 task summary；只有需要核对来源时才回到 raw 文档。若页面声明 historical 或 superseded，不把它当作当前规则。
 
 ## 写回
 
-- 后续值得查询的任务结果写 `tasks/<task-id>.md`，链接 raw evidence，不复制正文。
-- 跨任务仍有效的强约束/结论写 `decisions.md`；可复用工作方式写 `patterns.md`；待补证据、迁移或清理写 `maintenance.md`。
-- `index.md` 只维护导航；durable writeback 后按需同步 `log.md`。
-- 不创建平行 playbook，不把 task-local 结论误提升为通用规则。
-- 若判定 `no-change`，在任务交接中写一句理由即可，不创建 task summary 或空 Wiki 条目。
-- closing handoff 使用五字段 `结果 / 变化 / 风险 / 下一步 / 证据`，变化最多三条、证据最多三个 locator，不复制 task 文档。
-- PR-backed task 的 summary 在当前 delivery PR terminal 前写为 `delivery-ready`，只描述该 commit 可证明的当前规则与证据。merge/closed、cleanup、refresh 或 publish/deploy 结果留在 GitHub/Scheduler/最终交接；禁止为改成 `completed` 或追写终态自动创建 closeout/follow-up PR。
+只有信息跨任务仍然有效、目标页面可判定且证据充分时才写回：
 
-## 条件引用
+- 当前强约束或架构决定写入 decisions；
+- 可复用方法写入 patterns；
+- 未完成的维护工作写入 maintenance；
+- 导航变化同步 index。
 
-- 新建/调整页面布局：`references/REF_WIKI_LAYOUT.md`
-- 写 task summary：`references/TEMPLATE_TASK_SUMMARY.md`
-- 提升 durable 知识：`references/REF_WRITEBACK_RULES.md`
+没有 durable knowledge 时直接回答，不创建占位页。用户或宿主未授权写入时保持只读。不要创建任务台账、阶段状态、固定 handoff，或为了记录 PR/发布终态而制造额外提交。
+
+需要调整既有 `.legion/wiki` 布局时，可按需读取 `references/REF_WIKI_LAYOUT.md`、`REF_WRITEBACK_RULES.md` 或 `TEMPLATE_TASK_SUMMARY.md`，并先移除其中与当前宿主不相容的历史假设。

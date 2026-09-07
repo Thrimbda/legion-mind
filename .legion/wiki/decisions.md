@@ -1,5 +1,17 @@
 # Legion Decisions
 
+> Historical archive: except for the pivot recorded immediately below, entries in this file describe 0.5.x or earlier behavior and are not current execution rules.
+
+## 决策：LegionMind 转为纯能力库
+
+- 生效日期：2026-09-07。
+- 当前产品只分发彼此独立的 skills，不再提供 mandatory workflow、Lite/Standard/Strict profile、attention 状态机、任务台账或控制平面。
+- `legion-workflow` 与 `engineer` 退出安装面；其余 skills 解除阶段和文件前置依赖。
+- `git-worktree-pr` 仍是本仓库修改任务的强制 Git/PR 安全外壳，但不再依赖任何 Legion 阶段或证据 schema。
+- 本决策取代下文关于固定 workflow profile、Pi control plane、Linear scheduler 当前产品路线及报告收口协议的决定；旧内容只保留历史依据。
+
+## 以下为历史决定
+
 ## 决策：terminal 状态外部化，不设 task 级 PR 数量或 identity 限制
 
 - 来源任务：`remove-pr-quota-enforcement-v1`；取代 `enforce-single-pr-lifecycle-v1` 的 hard quota/binding 结论。

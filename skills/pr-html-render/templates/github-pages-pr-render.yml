@@ -21,7 +21,7 @@ permissions: {}
 
 env:
   HTML_RENDER_COMMAND: ":"
-  HTML_ARTIFACT_DIR: ".legion/tasks/<task-id>/docs"
+  HTML_ARTIFACT_DIR: "artifacts/report"
   HTML_ENTRYPOINT: "report-walkthrough.html"
   PREVIEW_BRANCH: "pr-preview-pages"
 
