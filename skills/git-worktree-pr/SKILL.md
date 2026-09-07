@@ -1,68 +1,34 @@
 ---
 name: git-worktree-pr
-description: 为 Legion 修改型开发任务提供隔离 worktree、PR、checks/review、终态、cleanup 与主工作区刷新外壳。
+description: 为需要仓库修改和 GitHub PR 交付的任务提供隔离 worktree、提交、rebase、squash PR、checks、合并、cleanup 与主工作区刷新。仓库规则要求时必须使用。
 ---
 
 # git-worktree-pr
 
-这是修改型 Legion 任务的 Git/PR lifecycle envelope，不定义阶段顺序，也不是第四种模式。默认中文记录；命令、hash、URL 和平台字段保持原样。
+这是独立的 Git/PR 交付能力，不依赖任务系统、设计阶段、验证报告或其他 Legion skill。
 
-## 硬门
+## 安全不变量
 
-- `legion-workflow` 接管并稳定 contract 后、任何可写探索或实现前进入本 envelope。
-- 默认 base 为 `origin/master`；worktree 只能是仓库内 `.worktrees/<task-id>/`，从最新远端 base 创建。推荐分支 `legion/<task-id>-<slug>`。
-- 主工作区只做入口/恢复、只读准备和最终刷新；不得实现、提交或推进 PR 分支。禁止直接 commit/push `master/main`。
-- 所有文档、日志、临时输出和缓存留在仓库内。
-- 进入后 commit、rebase、push、PR、auto-merge 尝试、checks/review、终态、cleanup、刷新均为默认动作。用户沉默或提速表达不是停止条件；只有明确禁止或 bypass 才改变，并记录 explicit bypass/blocker。
-- 当前 delivery PR open 时在其 branch 上继续 scope 内修订。不得自动为 terminal 状态写回创建 closeout、publish-result、deploy-result 或 wiki-only PR；terminal 后若需要新的仓库改动，停止当前自动 lifecycle、报告原因并等待用户明确授权，授权后的交付可以使用新的 PR。
+- 从最新远端默认分支创建独立 worktree；优先使用仓库约定路径和分支前缀。
+- 主工作区只做准备、只读检查、最终 cleanup 和刷新；实现与提交都在 worktree。
+- 不混入用户或并发任务的改动，不直接 commit/push `master` 或 `main`，不强推覆盖他人工作。
+- push 前 fetch 并 rebase 最新远端 base；冲突时在 worktree 内解决并重新验证。
+- PR 使用 squash merge，遵守 required checks、review 和 branch protection。
+- 外部交付推进到用户请求或仓库持久政策指定的目标；用户明确要求合并时持续跟进到 terminal、cleanup 和 refresh。
 
 ## 生命周期
 
-1. **Prepare**：主工作区 `git fetch origin`；确认 task、scope、base、状态、分支和 worktree 路径。
-2. **Open**：从最新远端 base 创建 worktree；所有 Legion 阶段和写入在其中完成。
-3. **Commit**：提交 scope 内变更，不混入用户或无关改动。
-4. **Rebase**：push 前在 worktree 运行 `git fetch origin && git rebase origin/master`，或仓库明确覆盖的 base。
-5. **Push/PR**：先查询当前 branch 的既有 PR。已有 open PR 时更新该开发分支与 PR；没有时创建 squash PR。PR 链接适用的 plan/RFC/test/review/walkthrough/wiki 证据与 disposition。已 terminal 的 PR 不作为状态写回目标；后续仓库改动必须先取得用户明确授权。
-6. **Auto-merge**：PR 创建后立即尝试启用；`review/decide` attention 未解除时停在其门禁。不得绕过 branch protection、checks 或审批。
-7. **Follow**：优先 `gh pr checks <pr> --watch --required`；scope 内 check/review 失败继续修。落后 base、冲突或更新要求仍在同一 worktree/branch/PR 中 rebase 后继续。
-8. **Terminal**：merged 是成功；closed/confirmed abandoned 是非成功终态。terminal 后的原因、影响、publish/deploy、cleanup 与 refresh 只写外部状态/最终交接，不为记录这些事实自动提交仓库；blocked handoff 不是终态。
-9. **Cleanup**：终态且后续 review 已处理后删除 worktree；仍有动作不得删。
-10. **Refresh**：回主工作区运行安全刷新脚本；它先 fetch，再切回本地默认分支并 fast-forward，不 checkout 远端 tracking ref。
+1. 核对主工作区状态、远端、默认分支、现有 worktrees 和目标范围。
+2. 在仓库内 `.worktrees/<task-id>/` 或仓库指定位置创建隔离 worktree。
+3. 在 worktree 中实施并运行与风险相称的检查。
+4. 只提交本次范围内变更。
+5. fetch/rebase 远端 base，必要时重跑检查，然后 push 当前开发分支。
+6. 创建或更新一个 squash PR；处理当前范围内的 checks 和 review。
+7. 用户或仓库政策要求 merge 时启用或执行 squash merge并确认 terminal 状态。
+8. terminal 且无后续动作后删除本次 worktree，再安全 fast-forward 主工作区。
 
-默认 base 为 `origin/master` 时使用：
+## 停止条件
 
-```sh
-node skills/git-worktree-pr/scripts/refresh-main-workspace.mjs \
-  --repo <main-workspace-absolute-path> \
-  --remote origin \
-  --branch master
-```
+权限不足、base 分叉、无法安全保留用户改动、required check 或 review 需要范围外修复、PR 被关闭未合并时，报告精确 blocker、branch/worktree/PR 状态和恢复条件。不得用 reset、强推或删除用户内容绕过阻塞。
 
-脚本仅在本地默认分支不存在时创建 tracking branch，并用 `merge --ff-only` 对齐。若分支被其他 worktree 占用、工作区改动阻止切换或本地分支已分叉，记录 blocked 并停止，不 reset、不覆盖用户状态。仓库覆盖 base 时显式传入对应 remote/branch。
-
-## Attention 边界
-
-- `none/skim`：按 lifecycle 正常推进。
-- `review`：允许 commit、push、PR、checks；禁止 auto-merge、merge、cleanup 和完成声明，直至复核落盘。
-- `decide`：只允许保存证据/决策说明；受影响实现和 merge lifecycle 等待决定。
-
-定义和恢复只认 `legion-workflow/references/REF_HUMAN_ATTENTION.md`。
-
-## 完成定义
-
-必须同时满足：
-
-- Legion 适用阶段、verification/review 与 delivery/wiki disposition 已满足；
-- PR 已 merged，或 closed/confirmed abandoned 且记录完整；
-- 无 blocking review、冲突、required check 失败或保护规则阻塞；
-- worktree 已删除；主工作区已刷新到远端 base。
-
-PR created、branch pushed、blocked handoff、保留 worktree或跳过刷新都不是完成。
-
-repo 内 task/wiki 在当前 delivery PR 中达到 `delivery-ready`。完成判断来自当前 PR、GitHub/checks/review 与本地 lifecycle 的直接观察；不得为了把仓库状态改成 `completed` 而自动创建 closeout、publish-result、deploy-result 或 wiki-only PR。
-
-## 阻塞交接与记录
-
-权限、平台、checks/review 或保护规则阻塞时在外部交接记录：blocker，已完成/未完成动作，base、branch、worktree、当前 PR URL/state，checks/review state，cleanup/refresh state，下一步 owner 与恢复条件；不得称 done。PR terminal 后不得仅为记录 blocker 或恢复状态修改仓库；需要代码变更时停止自动 lifecycle 并等待用户明确授权。
-
-禁止强推覆盖他人工作、使用非 squash 合并或把 lifecycle 写成 Legion 新模式。pre-terminal 仓库证据留在 repo；post-terminal 事实属于外部 lifecycle。这个边界约束自动状态写回，不设 task 级 PR 数量或永久 identity 限制。
+默认 base 为 `origin/master` 时可使用 `scripts/refresh-main-workspace.mjs` 完成安全刷新；其他默认分支显式传入对应 remote 与 branch。

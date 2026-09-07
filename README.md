@@ -1,135 +1,50 @@
 # LegionMind
 
-LegionMind 不是另一个“让智能体多写一点代码”的工作流包。
+LegionMind 是一组可安装、可独立调用的 Agent 能力。
 
-它试图成为一套面向高级智能体使用者的**多智能体工程操作系统内核**：把任务记忆、设计门禁、评审协议、验证与汇报收敛成一套**可安装、可验证、可迭代**的智能体编排内核，让人类从执行者转向指挥、验收者和系统迭代者。
+它不接管 Agent 的默认工作方式，不提供统一阶段链，也不要求普通工程任务创建任务台账。安装后，每个 skill 只在用户明确调用或请求与其 description 直接匹配时发挥作用。
 
-> 当前状态：`可运行内核 / v1 前硬化中`
+## 产品边界
 
-## 为什么需要 LegionMind
+LegionMind 提供：
 
-当我们开始使用 Multi-Agent Vibe Coding 体协作运行起来，最先碰到的问题通常是这些更底层的问题。
+- 需求探索与方向比较；
+- RFC 编写和设计审查；
+- 变更验证与只读代码审查；
+- 工程文档与长期知识维护；
+- worktree、PR 和 HTML review 等专门交付能力；
+- 安装、校验、回滚和卸载这些能力的本地工具。
 
-- 并行执行能放大 token 吞吐量，但也会把错误方向一起放大。
-- 真正的瓶颈会从“写代码”转移到人的上下文管理、验收和决策。
-- 智能体最容易翻车的不是世界知识，而是项目里的隐含知识墙，也就是本项目中具备主见的部分：各类历史决策，局部的最佳实践。
-- 没有分层设计门禁（所有任务先稳定 `.legion/tasks/<task-id>/plan.md`；Strict 或存在真实设计分叉时再用 `docs/rfc.md` 说清影响、取舍与回滚）、分层验证（把安装校验、任务验证、文档一致性分开检查）和证据化汇报（用 profile 要求的 `test-report.md`、可选/强制的 walkthrough 与 PR body 带着证据交付），多智能体只会更快地返工。
-- 当模型越来越强，工作流不该只靠感觉调参，而要走向证据驱动的工程化迭代。
+LegionMind 不提供：
 
-LegionMind 试图把这些问题当成系统问题来处理，而不是继续堆提示词、堆技能、堆智能体数量。
+- mandatory first gate；
+- Lite / Standard / Strict 工作流；
+- 固定阶段跳转或 attention 状态机；
+- 自动创建 `.legion/tasks/**`、`plan.md`、`log.md` 或 `tasks.md`；
+- 因加载一个 skill 而自动触发另一个 skill；
+- 未经用户或宿主策略授权的 GitHub、发布或部署动作。
 
-它的北极星不是“自治更多”，而是三件更朴素的事：
+## 能力目录
 
-- 尽量少打扰人
-- 尽量多产生有效工作
-- 尽可能提高可靠性和可验证性
+| Skill | 用途 |
+|---|---|
+| `brainstorm` | 在目标、验收或方向存在真实歧义时收敛问题 |
+| `spec-rfc` | 为有设计分叉、迁移或回滚风险的工作编写 RFC |
+| `review-rfc` | 独立检查设计中的弱假设、复杂度与验证缺口 |
+| `verify-change` | 为已有改动选择并执行比例化验证 |
+| `review-change` | 只读审查 correctness、scope、维护性与安全风险 |
+| `legion-docs` | 创建和整理面向工程读者的文档 |
+| `report-walkthrough` | 从一个数据文件确定性生成 HTML、Markdown 与 PR body |
+| `pr-html-render` | 为已有 HTML artifact 选择安全的 review 路径 |
+| `llm-wiki` | 维护受宿主约束的通用 Markdown wiki |
+| `legion-wiki` | 维护使用 `.legion/wiki` 布局的可选知识库 |
+| `git-worktree-pr` | 在隔离 worktree 中完成安全的 PR lifecycle |
 
-## 它是什么
+这些 skills 彼此独立。一个任务可以只使用其中一个，也可以由 Agent 根据实际需要组合多个；组合不是固定流程。
 
-从目标态上看，LegionMind 应该同时是两样东西：
+## 安装
 
-1. **多智能体工程操作系统内核**
-   - 提供稳定的工作主干，而不是依赖会话临场发挥。
-   - 明确编排器、子代理、技能、任务记忆和知识库记忆的边界。
-   - 把“意图对齐 -> 执行 -> 验证 -> 交付 -> 记忆”收敛为按风险分层、可审计的闭环。
-
-2. **可安装的智能体编排内核**
-   - 能安装到真实工作环境中，而不只是停留在仓库内工作流。
-   - 能通过 `install / verify / rollback` 证明自己不是只会写文档。
-   - 当前迭代优先收敛工作流内核本身，而不是同时承诺所有验证层都已经稳定。
-
-## 系统模型
-
-LegionMind 的主模型不是“命令列表”，而是下面这条工程闭环：
-
-```text
-Intent -> Plan -> Execute -> Verify -> Report -> Memory
-```
-
-当前仓库把这条闭环拆成几层：
-
-- **任务记忆**：`.legion/tasks/**`
-  - `plan.md`: 任务契约与设计索引
-  - `log.md`: 过程日志与决策记录
-  - `tasks.md`: 状态板与阶段进度
-- **Wiki 记忆**：`.legion/wiki/**`
-  - **它不保存任务过程，只沉淀跨任务仍然有效的当前知识**
-  - 没有 durable knowledge 时明确 `no-change`，不创建占位页
-- **规则 / 运行时层**：`skills/**` + `.opencode/**` + OpenClaw 安装入口
-  - 工作流真源、技能边界、代理接线，以及本地管理脚本
-
-在由 Legion 管理的仓库中，任何非简单的多步骤工程工作都必须先过 `legion-workflow` 这一 mandatory first gate；在完成入口判断前，不应先做代码、git 或文件探索，也不应开始实现或派生子代理。
-
-会修改仓库文件的开发任务还必须进入 `git-worktree-pr` envelope：从默认 `origin/master` 基线创建 `.worktrees/<task-id>/` worktree，在其中实现并通过 PR lifecycle 交付。进入该 envelope 后，commit、push PR branch、创建或更新当前 delivery PR、跟进 checks/review/auto-merge、cleanup 和主工作区基线刷新都是默认生命周期动作，不需要用户逐项显式授权；用户沉默不是跳过 commit / push / PR 的理由。只有用户明确要求不提交、不 push、不开 PR、不继续 PR lifecycle，或明确 bypass 时，才改变默认闭环，并记录为 explicit bypass/blocker。push 前必须在 worktree 内 `git fetch origin && git rebase origin/master`。完成不等于“已开 PR”或 blocked handoff，而是 Legion 证据闭环加上当前 PR 合并/关闭/确认废弃、review/checks 处理完成、worktree 删除和主工作区基线刷新。PR terminal 后的 GitHub、发布、部署、cleanup 与 refresh 事实只写外部 lifecycle 证据和最终交接，不得自动为这些状态创建 closeout / publish-result / deploy-result / wiki-only PR；若后续确需仓库改动，先报告并等待用户明确授权，授权后的交付可以使用新的 PR。
-
-这里所说的 active task，只指当前请求明确恢复并继续推进的 `.legion/tasks/<task-id>/` 任务目录，不是 CLI 持久化注册表。
-
-它的核心边界也应该是显式的：
-
-- `legion-workflow` 负责门禁、恢复、路由、写回与只读综合（按当前 schema / wiki / raw docs 给出收敛后的判断）
-- `skills/legion-workflow/scripts/legion.ts` 只负责本地初始化、查询和有限更新（不解释工作流阶段）
-- `brainstorm` 负责收敛任务契约
-- `spec-rfc` / `review-rfc` 负责设计门禁
-- `engineer` 负责受边界约束的实现
-- `verify-change` / `review-change` 负责验证证据与交付判断
-- `report-walkthrough` 负责 Strict 或显式升级后的 reviewer artifact；其余任务使用简洁 summary
-- `legion-wiki` 只在产生跨任务当前知识时写回
-
-换句话说，LegionMind 的重点不是“自动化更多动作”，而是让每个阶段的职责边界清晰、可回放、可审计。
-
-## 核心能力
-
-一个成熟的 LegionMind，至少应该稳定提供这些能力：
-
-- **任务契约优先**
-  - 没有稳定契约，就不进入实现。
-- **分层设计门禁**
-  - Lite 只保留有界实现与验证；Standard 增加独立 change review；Strict 强制 RFC、独立验证/审查与 walkthrough。
-- **评审即协议**
-  - 评审不是聊天记录，而是可追踪、可响应、可阻塞的结构化状态。
-- **条件交付与记忆**
-  - walkthrough 与 Wiki 分别按 reviewer 价值和 durable knowledge 判定；两者可以独立升级。
-- **安装 / 校验 / 回滚**
-  - 工作流资产可以安全同步、严格校验、必要时回滚。
-
-## 快速开始
-
-从仓库根目录选择 project 或 global 范围安装一次，然后用 strict verify 证明安装结果可复核。`lgmind` 通用入口仍只路由 OpenCode 与 OpenClaw；Legion Pi 使用独立 `setup-pi` 入口，避免把发行版安装与现有 skills 安装语义混在一起。默认 `lgmind install` 不再要求选择 OpenCode / OpenClaw，因为 first-run 用户真正需要决策的是安装到当前 project 还是全局。
-
-前置要求：现有 `lgmind` 安装面使用 Node.js `>=22.6.0`；Legion Pi 使用 Node.js 24 或更新版本。
-
-```bash
-node --version
-```
-
-`lgmind` 提供 Context7-style 的交互安装入口：TTY 中默认只选择 project / global 安装范围。
-
-```bash
-npx lgmind@latest install
-npx lgmind@latest setup
-npx lgmind@latest install --scope project
-npx lgmind@latest install --scope global
-```
-
-在 TTY 中，`install` / `setup` 只会提示安装到当前 project 还是 global 默认位置。Project 安装默认写到当前目录下 `.legionmind/`；global 安装沿用默认全局位置。脚本或 CI 中不会等待交互，默认保持 `global`；请显式传 `--scope project|global`。默认文字输出只显示结果摘要与 warnings/errors；需要逐条生命周期事件时加 `--verbose`，自动化解析仍用 `--json`。
-
-### 安装 Legion Pi
-
-Legion Pi 把 Pi runtime、三个精确 pin 的扩展、生成配置、sessions、npm cache 和 managed lifecycle state 放在一个可删除的隔离 profile 中。用户只维护 `legion-pi/legion-pi.json`；其中固定默认 `openai-codex/gpt-5.6-sol`，并只启用 Codex、DeepSeek 和 Kimi K3/K3-256K。credential 不进入该文件，仍由 Pi 的独立 login state 或运行时引用管理。
-
-```bash
-node bin/setup-pi.js install --profile-dir .cache/legion-pi/profile
-node bin/setup-pi.js verify --profile-dir .cache/legion-pi/profile
-node scripts/verify-pi-startup-matrix.js --profile-dir .cache/legion-pi/profile
-```
-
-Provider 登录、模型切换后的 reconciliation、从零复现、rollback、默认工具面、限制性 subagent 配置和常驻 Web 后端边界见 [`legion-pi/README.md`](legion-pi/README.md)。
-
-### 安装到 OpenCode
-
-OpenCode 安装入口现在是 npm package `lgmind` 提供的 CLI。它会同步 `.opencode/plugins`（如果存在）和固定核心 skill set，并记录 managed manifest / backup index；不再安装 custom agents。升级时，未漂移的旧 managed agents 会进入可回滚备份，用户已修改的旧文件会保留并告警。`setup-opencode` 仍作为描述性 alias 保留。
-
-和 Context7 CLI 一样，推荐优先使用一次性的 `npx <package>@latest` 形态：
+需要 Node.js `>=22.6.0`。
 
 ```bash
 npx lgmind@latest install --scope project
@@ -137,242 +52,44 @@ npx lgmind@latest install --scope global
 npx lgmind@latest verify --strict
 ```
 
-也可以全局安装后复用：
-
-```bash
-npm install -g lgmind
-lgmind install --scope global
-lgmind verify --strict
-```
-
-Global 默认目标：
-
-- config: `~/.config/opencode`
-- skills: `~/.agents/skills`
-- managed state: `~/.config/opencode/.legionmind`
-
-Project 默认目标：
-
-- config: `<project>/.legionmind/opencode/config`
-- skills: `<project>/.legionmind/opencode/home/skills`
-- managed state: `<project>/.legionmind/opencode/config/.legionmind`
-
-如果要先在仓库内隔离目录里试跑：
-
-```bash
-node bin/setup-opencode.js install --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
-node bin/setup-opencode.js verify --strict --config-dir .cache/opencode-config --opencode-home .cache/opencode-home
-```
-
-回滚最近一次由安装脚本创建的备份：
-
-```bash
-npx lgmind@latest rollback
-```
-
-卸载由 manifest 管理且未漂移的文件：
-
-```bash
-npx lgmind@latest uninstall
-```
-
-本地开发时仍可使用仓库脚本，它们会走同一个 npm bin wrapper：
-
-```bash
-npm run opencode:install
-npm run opencode:verify
-npm run opencode:rollback
-npm run opencode:uninstall
-npm run opencode:help
-```
-
-### 安装到 OpenClaw
-
-OpenClaw 文档支持从 `~/.openclaw/skills`、workspace `skills/` 和 `skills.load.extraDirs` 发现 skills。本仓库仍保留底层 OpenClaw 安装脚本和 `--agent openclaw` 兼容入口，但它不再出现在默认 `lgmind install` 交互中。OpenClaw 安装脚本把 local skills root 作为主路径，并保留 `extraDirs` 兼容；文件资产的 `install / verify / rollback / uninstall` 语义与 OpenCode 对齐：
-
-- 默认把 `skills/<name>/` 安装到 `~/.openclaw/skills/<name>/`
-- 同时把当前 checkout 的 `skills/` 加入 `~/.openclaw/openclaw.json` 的 `skills.load.extraDirs`（可用 `--no-extra-dir` 跳过）
-- 在 `~/.openclaw/.legionmind` 记录 managed manifest / backup index
-- 用 strict verify 校验 managed ownership 与 checksum drift
-- rollback 只恢复 backup index 记录的 managed skills 文件；uninstall 默认只删除 manifest 管理且未本地漂移的文件，`--force` 才删除漂移目标
-- `openclaw.json` 不作为 managed file 管理，安装只追加缺失的 `skills.load.extraDirs`，回滚/卸载不会删除用户配置；extraDirs 兼容项在 verify 中保持 warning-only，可用 `--no-extra-dir` 跳过
+TTY 中省略 `--scope` 时会询问安装到当前项目还是全局位置；非交互环境默认使用 global。默认目标仍为 OpenCode-compatible shared skill home，OpenClaw 可通过显式兼容参数使用。
 
 ```bash
 npx lgmind@latest install --agent openclaw --scope project
-npx lgmind@latest install --agent openclaw --scope global
 npx lgmind@latest verify --agent openclaw --strict
-npx lgmind@latest rollback --agent openclaw
-npx lgmind@latest uninstall --agent openclaw
-
-npm run test:regression
 ```
 
-如果只是想在当前 repo workspace 中试用 OpenClaw，优先使用 `--scope project`；全局安装的价值是让这些 skills 在其他 workspace 也可用。
-
-Project 默认目标：
-
-- config / home: `<project>/.legionmind/openclaw`
-- skills: `<project>/.legionmind/openclaw/skills`
-- managed state: `<project>/.legionmind/openclaw/.legionmind`
-
-仓库内隔离目录试跑：
+常用生命周期命令：
 
 ```bash
-node --experimental-strip-types scripts/setup-openclaw.ts install --config-dir .cache/openclaw-home
-node --experimental-strip-types scripts/setup-openclaw.ts verify --strict --config-dir .cache/openclaw-home
-node bin/lgmind.js setup --agent openclaw --config-dir .cache/openclaw-home --openclaw-home .cache/openclaw-home --no-extra-dir
+npx lgmind@latest install
+npx lgmind@latest verify --strict
+npx lgmind@latest rollback
+npx lgmind@latest uninstall
 ```
 
-回滚或卸载 managed skills 文件：
+- `install`/`setup`：安装或更新能力；
+- `verify --strict`：校验 managed ownership 与内容完整性；
+- `rollback`：恢复最近一次备份；
+- `uninstall`：移除未漂移的 managed assets；
+- `--force`：仅在审阅本地漂移后使用，操作前仍会备份。
+
+### 从 0.5.0 升级
+
+升级器会把由 LegionMind 管理的 `legion-workflow`、`engineer` 以及保留 skill 内已废弃的旧协议文件退出活动路径，并保留可回滚备份。用户修改过的受管文件同样先备份再禁用，不会被静默丢弃。`verify --strict` 也会拒绝仍然活动但不受 manifest 管理的旧 workflow 入口；它会报告位置，但不会擅自删除陌生文件。
+
+如果某个项目自己的 `AGENTS.md`、prompt 或第三方配置仍显式要求 `legion-workflow`，安装器不会擅自改写这些用户文件；请在升级后移除对应引用。
+
+## 开发与验证
 
 ```bash
-npx lgmind@latest rollback --agent openclaw
-npx lgmind@latest uninstall --agent openclaw
-```
-
-遇到已有本地文件冲突时，安装默认会 safe-skip；确认要备份并覆盖后再使用：
-
-```bash
-npx lgmind@latest setup --agent openclaw --force
-```
-
-如果只想把 skills 安装到 OpenClaw local root，而不改 `openclaw.json`：
-
-```bash
-npx lgmind@latest setup --agent openclaw --no-extra-dir
-```
-
-### 常用脚本
-
-```bash
-npm run opencode:install
-npm run opencode:verify
-npm run opencode:rollback
-npm run opencode:uninstall
-
-npm run openclaw:install
-npm run openclaw:verify
-npm run openclaw:rollback
-npm run openclaw:uninstall
-
+npm run build:runtime-js
 npm run test:regression
 npm run pack:dry-run
 ```
 
-当前 npm package 名称是 `lgmind`，primary bin 是 `lgmind`，并保留 `setup-opencode` alias；`lgmind` 默认只负责 project / global scope selection，`--agent` / `--runtime` 仅作为兼容的高级路由选项保留。可用 `npm run pack:dry-run` 检查待发布文件集。
+回归重点覆盖：fresh install、strict verify、rollback、uninstall、0.5.0 受管技能的安全退役、skill 独立性、standalone report 以及 npm package-like 执行。
 
-### 本地管理命令
+## 历史材料
 
-CLI 在当前架构里更适合被理解为 `.legion/tasks/**` 的本地初始化、查询和更新薄工具，而不是状态注册表或审计层；真正的入口门禁与阶段主干真源仍然是 `legion-workflow`。
-
-`init` 当前只保证 `.legion/tasks/` 存在；`.legion/wiki/**` 由后续 writeback 按需建立。
-
-```bash
-node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" init
-node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" task list --format json
-node --experimental-strip-types "${OPENCODE_HOME:-$HOME/.opencode}/skills/legion-workflow/scripts/legion.ts" status --task-id your-task-id --format json
-```
-
-### GitHub Actions 入口
-
-把 `.github/workflows/opencode.yml` 放进目标仓库后，可以在 issue/PR 评论里使用：
-
-- `/oc fix this`
-- `/opencode implement ...`
-
-## 验证模型
-
-LegionMind 不应该靠“看起来能跑”来证明自己，而应该把检查拆层：先看能不能安装和回滚，再看任务级证据是否完整，最后看当前真源文档是否一致。
-
-当前验证模型分成三层:
-
-1. **安装 / 严格校验 / 回滚**
-    - 证明它能安全进入用户环境，也能在失败时恢复。
-2. **任务级验证证据**
-    - 按 profile 证明要求的行为已验证：Lite 至少有 `test-report.md`，Standard 增加 `review-change.md`，Strict 再增加 RFC/review 与 walkthrough。
-3. **真源收敛**
-    - 证明 README、AGENTS、工作流内核、`.legion/wiki/**`、skills 与 benchmark README 对当前入口和阶段主干的说法一致。
-
-核心本地回归入口：
-
-```bash
-npm run test:regression
-```
-
-当前核心迭代**不**把已删除的工作流本地回归脚本视为默认验收路径；验证叙事只承认当前仍存在的安装 / 校验 / 回滚主路径。
-
-## 当前现实
-
-如果把北极星目标放在前面，那这里必须诚实写现实。
-
-### 已经成型的部分
-
-- 有明确的工作流内核：`legion-workflow` 负责入口门禁、恢复、路由、写回与只读综合，阶段技能围绕它形成稳定分工。
-- 有任务记忆 / wiki 记忆 / 规则层的三层分工：`.legion/tasks/**` 保存任务证据，`.legion/wiki/**` 沉淀当前知识，`skills/**` 与 runtime 配置承载执行规则。
-- OpenCode / OpenClaw 两条维护入口已经对齐到共享 setup core，具备 managed manifest、strict verify、rollback / uninstall 等安装资产 lifecycle。
-- `npm run test:regression` 已经覆盖 setup lifecycle、skill surface、CLI 文件系统不变量，以及 destructive rollback / uninstall path safety。
-- VibeHarnessBench v0.1 已经落地为 local-first semantic benchmark，用来给工作流内核演化提供可重复的本地评估入口。
-- 有 GitHub Actions OpenCode 接线，可以把 LegionMind 工作流带到仓库外的 issue / PR 评论入口中运行。
-- 根 `docs/` 历史材料已经退出 current truth；当前真源收敛到 README、`.legion/wiki/**`、`skills/**` 与 `vibe-harness-bench/README.md`。
-
-### 还没有毕业的部分
-
-- 发布、CI 和“默认可发布”信号还没有形成完整闭环，当前不能按成熟 OS 或稳定发行包来理解。
-- 还需要更多真实项目、长周期任务和多人协作场景的压力测试，验证这套门禁和记忆机制在仓库外持续成立。
-- CLI 仍然是 `.legion/tasks/**` 的本地初始化、查询和有限更新薄工具，不是 runtime orchestrator、状态注册表或审计层。
-- `lgmind` 通用 runtime router 当前只支持 OpenCode 与 OpenClaw；独立的 Legion Pi 固定发行版不构成对其他代理运行时的泛化支持承诺。
-- VibeHarnessBench 仍是 local-first v0.1，不是完整 sandbox、完整 full-stack benchmark，也不是生产级隔离执行平台。
-- 低摩擦产品化和 onboarding 还需要继续打磨，真实使用者仍可能需要理解 wiki、阶段技能和 PR lifecycle 才能顺畅使用。
-
-所以今天更准确的说法不是“LegionMind 已经是一套成熟的智能体操作系统”，而是：
-
-> LegionMind 已经跨过了想法阶段，进入了可运行的编排内核阶段。
-
-## 通往 v1
-
-如果要把这个仓库推进到真正可交付的 v1，我会用下面这些硬门槛来判断：
-
-1. 入口门禁、README / wiki 叙事、阶段技能、本地 CLI 薄工具和实际行为持续一致。
-2. OpenCode / OpenClaw 安装后的 `verify --strict`、rollback / uninstall 与 `npm run test:regression` 成为稳定默认验收路径。
-3. 除本地回归和 smoke 外，存在可重复、可审计的 CI / release 信号，能判断一次变更是否真的可发布。
-4. 发布、回滚、兼容性和 CI 形成完整闭环，而不是只在本地仓库里证明能跑。
-5. 真实项目压力测试覆盖足够多的任务类型、失败路径和多人协作场景。
-6. 真实使用者不需要读任务原始文档，也能通过 README + wiki + onboarding 理解系统怎么安装、怎么开工、怎么验收。
-7. 如果要继续扩展 runtime 支持或把 CLI 做成 orchestrator，必须按独立设计问题重新进入门禁，而不是从 OpenCode / OpenClaw router 或 Legion Pi 发行版自然外推。
-
-README 在这个仓库里不只是入口文档，也应该是这个 v1 的目标约束。
-
-## 适用对象
-
-- 已经使用 OpenCode、OpenClaw 或 Pi 承载工程代理工作流的人
-- 已经意识到提示词工程不足以解决上下文、验证、汇报和治理问题的人
-- 需要设计门禁、交付物、评审协议和可持续记忆的复杂工程项目
-- 想把“我自己怎么扩展”变成“系统如何扩展我”的人
-
-## 不适用对象
-
-- 只想要一个轻量提示词包或技能集合的人
-- 只做一次性小任务、不需要持久化记忆与治理闭环的人
-- 不愿意接受设计门禁、结构化评审、交付证据这些约束的人
-- 只关心模型多聪明，不关心系统是否可验证、可维护、可迭代的人
-
-## 相关文档
-
-- 产品入口与支持边界：`README.md`
-- wiki 当前知识：`.legion/wiki/**`
-- 工作流内核与阶段真源：`skills/**`
-- benchmark 当前真源：`vibe-harness-bench/README.md`
-
-## 最后再说一句
-
-LegionMind 的真正目标，从来不是“让智能体更像人”。
-
-它更像是在反过来逼人类承认几件事：注意力比 token 更贵，返工比失败更痛，隐含知识比代码更容易让系统翻车，而真正可用的自治，必须建立在设计门禁、分层验证和证据化汇报之上。
-
-如果这套系统最终成立，它成立的标志不会是“它看起来很聪明”，而是：
-
-- 它更少打扰人
-- 它能稳定多做事
-- 它的错误能更早暴露
-- 它的结论能被更低成本地验收
-- 它能随着模型变强一起向上演化，而不是被下一波海浪拍死
+`.legion/**` 中的旧任务与路线图保留为 0.5.x 及更早版本的历史证据，不再构成当前产品承诺或执行规则。旧 Linear scheduler、Pi runtime distribution、workflow 和旧报告 schema 的源码已退出当前树；需要复现时使用提交 `83f7fd1` 或 `lgmind@0.5.0`。

@@ -1,78 +1,34 @@
 ---
 name: report-walkthrough
-description: 在 RFC 审查或实现审查已有有效证据后，用单一 report-data.json 生成 HTML、Markdown 与 PR body 交付材料。
+description: 当已有事实和证据需要被整理成一致的 HTML、Markdown 与 PR body 审阅材料时使用。输入是 standalone JSON，不要求任何任务系统或阶段产物。
 ---
 
 # report-walkthrough
 
-## 职责
+从一个数据源确定性生成三份审阅材料。它不补造验证、不决定 Git lifecycle，也不要求 `.legion`、profile、attention 或固定上游文档。
 
-把当前 task 已通过前置阶段的证据整理成 reviewer 可扫读的交付材料。它不补设计、验证或审查，不发布预览，不替代 `legion-wiki` 与 PR lifecycle。
+## 使用
 
-所有正文默认使用中文；路径、命令、schema key、状态和错误原文保持可识别。
-
-## 入口门
-
-- `implementation`：按已解析 `workflowProfile` 验证。Lite 需要当前 `docs/test-report.md`；Standard 还需 `docs/review-change.md`；Strict 还需 `docs/rfc.md`、`docs/review-rfc.md`。显式设计门用 `designRequired=true` 保留。
-- `rfc-only`：无论风险等级都必须有当前 `docs/rfc.md`、`docs/review-rfc.md`，且本次只交付设计。
-- `contract-only`：只用于 Lite design-only 的稳定 contract walkthrough，不伪造 RFC 或 review；`reviewStatus=NOT_REQUIRED`。
-- 只认唯一 `## Verdict` 后的精确 `PASS`；缺失、重复、非精确、当前 `FAIL` 或历史文字冒充当前结论都拒绝。
-- 上游 `## 会话注意力摘要`、claim 状态与领域 verifier 记录必须互相一致；语义分别服从 `../legion-workflow/references/REF_HUMAN_ATTENTION.md` 与 `../verify-change/references/REF_COGNITIVE_VERIFICATION.md`。
-- 任一完成性主张必须能回到当前 task 的 repo-relative evidence locator。
-
-证据缺失或冲突时，退回生成该证据的 `review-rfc`、`verify-change` 或 `review-change`，不得在本阶段补写结论。
-
-## 唯一生成流程
-
-1. 只从已审查证据提取事实，不重跑命令、不重算 verifier、不重新判定 attention。
-2. 填写 `docs/report-data.json`。它只认 `references/report-data.schema.json` 的 v1.1；v1.0 仅为历史 artifact，必须按当前证据重建，不能重渲染。
-3. 执行：
+1. 将已确认的事实整理为符合 `references/report-data.schema.json` 的 JSON。
+2. 运行：
 
 ```bash
-node skills/report-walkthrough/scripts/render-report.mjs \
-  --input .legion/tasks/<task-id>/docs/report-data.json
+node skills/report-walkthrough/scripts/render-report.mjs --input <report-data.json>
 ```
 
-4. 脚本一次生成同目录下的：
+3. 脚本在输入文件目录原子生成：
    - `report-walkthrough.html`
    - `report-walkthrough.md`
    - `pr-body.md`
-5. PR-backed HTML 交给 `pr-html-render` 获取预览路径或记录显式 bypass/blocker；仅当 Wiki disposition 为 `write` 时进入 `legion-wiki`。
 
-Agent 禁止手写或局部修补上述三个生成产物。要改变内容，修改 `report-data.json` 后重新运行脚本；要改变布局，维护共享模板并重新生成。
+使用 `--check` 时只校验并在内存中渲染。要修改内容就修改 JSON 后重新生成；不要手工修补派生产物。
 
-## 数据要求
+## 证据边界
 
-- 新报告必须写已解析的 `workflowProfile=lite|standard|strict` 与 `designRequired`；workflowProfile 不得低于 risk 默认值。旧数据缺字段时仅保留 legacy 兼容，不作为新任务模板。
-- 必需 evidence 必须以 `PASS` 精确指向当前 task 的 locator；Lite 无 change review 时用 `reviewStatus=NOT_REQUIRED`，不得虚报 PASS。
-- `evidence.status` 与 `verification.status` 只允许 `PASS|INFO`；claim 只允许 `INCONCLUSIVE|DEFERRED|RECOMMENDATION`，不得把 FAIL/BLOCKED 包装成 PASS 报告。
-- 页面靠前并列呈现 profile、risk、阶段结论、最高 attention、当前唯一人类动作、停止点和最终状态。
-- `INCONCLUSIVE`、`DEFERRED`、`RECOMMENDATION` 必须填写各自状态专属字段。
-- `domain` / `authority` claim 可以没有真实 verifier，且每个缺失 verifier 的 claim 都必须在详细产物中明确显示“未获得 verifier”，不得补造 provenance。只有其中状态为 `INCONCLUSIVE|DEFERRED` 的未决项才额外要求至少 `review` attention、唯一人类动作、停止点，以及每个 claim 的 evidence locator 映射；`RECOMMENDATION` 不因缺 verifier 自动进入这个 attention 集合。`INCONCLUSIVE` 必填证据缺口和升级路径；`DEFERRED` 必填完整触发、所需数据、停止条件、后续任务及 `onPass/onFail` 协议。
-- 若提供 `domain` / `authority` verifier，仍必须完整校验 kind、provenance、独立性、未证明范围与残余不确定性；不得伪造。
-- evidence locator 必须是无 `..` 的 repo-relative 路径；预览 URL 只允许 `https:`。
-- PR body 必须明确：它只是 PR 输入，不证明 checks、review、merge、cleanup 或主工作区刷新已完成。
-- PR body 服务当前 delivery PR；不得生成仅用于终态写回的 closeout、publish-result、deploy-result、wiki-only 或 follow-up PR 输入。报告最终状态使用 `delivery-ready` 表达 repo evidence，terminal 后不为状态收口重渲染仓库 artifact。
+- `complete`、`partial`、`blocked`、`informational` 必须符合现有证据；
+- 每项检查单独标明 `pass`、`fail`、`info` 或 `not-run`；
+- locator 是可选引用，不因缺少仓库 task 路径而拒绝报告；
+- 风险和未验证内容保持可见，不把生成成功冒充实现、review、PR 或发布完成；
+- 输入和 URL 不得包含 secret，HTML 内容必须转义。
 
-## 输出与停止条件
-
-- 输出真源：`docs/report-data.json`。
-- reviewer artifacts：`docs/report-walkthrough.html`、`docs/report-walkthrough.md`、`docs/pr-body.md`。
-- schema、当前阶段 Verdict、taskId、evidence locator、模板、转义、确定性与事务写入由脚本统一执行；任一失败时不得留下混合版本。
-- attention 为 `review` 时不得越过 merge；为 `decide` 时不得越过阶段转换。
-- HTML 生成后才可进入 `pr-html-render`。walkthrough 与 Wiki disposition 独立；需要两者时先完成 walkthrough，再写 Wiki。
-
-## 禁止
-
-- 不手写 HTML/CSS、Markdown walkthrough 或 PR body。
-- 不把 FAIL、blocked、stale 或未验证 claim 包装成可交付结论。
-- 不让 reviewer 为理解当前动作、关键不确定性或 verifier 边界而必须遍历原始文件。
-- 不把生成 artifact、PR body 或 preview URL 当作 PR lifecycle 完成。
-- 不把 post-merge 新事实自动写回 report-data 或三份派生产物，也不因这些事实自动创建 PR；用户明确授权的后续仓库交付另行处理。
-
-## 按需资源
-
-- 数据契约：`references/report-data.schema.json`
-- 固定 HTML 模板：`templates/report-walkthrough.html`
-- 生成器：`scripts/render-report.mjs --help`
-- 预览发布：`pr-html-render`
+HTML 需要对外预览时，可独立使用 `pr-html-render`。

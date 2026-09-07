@@ -1,40 +1,19 @@
-# <task-id>
+# <Topic or change>
 
-## Metadata
+## Summary
 
-- `task-id`: `<task-id>`
-- `status`: `active | delivery-ready | completed | historical | archived`
-- `risk`: `low | medium | high`
-- `schema-version`: `<current-schema-generation>`
-- `historical`: `true | false`
-- `supersedes`: `(none)`
-- `superseded-by`: `(none)`
+- 发生了什么，以及现在什么结论仍然有效。
 
-## Outcome Summary
+## Reusable knowledge
 
-用 3-6 行写清：
+- 决定、模式或限制及其适用边界。
 
-- 这个任务解决了什么
-- 现在什么是当前有效结论
-- 哪些地方仍然只是历史快照
+## Evidence
 
-## Reusable Decisions
+- `source/path/url`：能够重查上述结论的来源。
 
-- `<decision 1>`
-- `<decision 2>`
+## Limits
 
-## Related Raw Sources
+- 历史快照、未验证内容、失效条件或后续维护事项。
 
-- `plan`: `.legion/tasks/<task-id>/plan.md`
-- `log`: `.legion/tasks/<task-id>/log.md`
-- `tasks`: `.legion/tasks/<task-id>/tasks.md`
-- `rfc`: `.legion/tasks/<task-id>/docs/rfc.md`
-- `reviews`: `.legion/tasks/<task-id>/docs/...`
-- `report`: `.legion/tasks/<task-id>/docs/report-walkthrough.md`
-
-## Notes
-
-- 这里写 summary，不复制 raw docs 正文
-- 若需要更多证据，回到 raw docs
-- 若某个 raw source 在当前 schema 下不存在，就省略该条，不要制造死链，也不要引入 legacy 命名兼容说明。
-- PR-backed task 使用 `delivery-ready`，不在 PR terminal 后自动追写 `completed`；delivery terminal 查当前 PR、Scheduler 或最终交接。
+只有确实需要按一次变更建立摘要页时使用本模板；优先更新已有主题、decision 或 pattern 页面。

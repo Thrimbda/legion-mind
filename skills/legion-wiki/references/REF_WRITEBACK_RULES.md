@@ -1,53 +1,13 @@
-# Legion Wiki 写回规则
+# `.legion/wiki` 写回判断
 
-## 何时写 `tasks/<task-id>.md`
+写回前依次确认：
 
-- 一个 task 已经产出值得复用或再次查询的结果
-- 当前查询需要先读 task summary，而不是直接读 raw docs
+1. 结论是否跨当前对话仍有价值；
+2. 是否有足够来源支持；
+3. 能否定位既有页面或合理的新主题页；
+4. 页面是否属于允许写入范围；
+5. 新结论是否取代旧结论，需要显式标记 superseded 或 historical。
 
-## 何时写 `decisions.md`
+写入时保留结论、适用边界、证据入口和失效条件，不复制原始材料。没有 durable knowledge、证据不足或宿主禁止写入时保持只读。
 
-- 结论是“当前有效规则”
-- 它跨越单个 task，且短期内不会因为 task 结束而失效
-- 条目更像“必须 / 禁止 / 当前标准”，而不是经验性做法
-
-## 何时写 `patterns.md`
-
-- 结论是可复用工作模式、实践或约定
-- 它不像 decisions 那样是硬规则，但能显著减少重复调研
-- former playbook 风格的 durable conventions 默认落在这里
-
-## 何时写 `maintenance.md`
-
-- 缺少 task summary
-- 旧任务缺少 `historical` / `superseded-by`
-- 某个关键结论只留在 raw docs，尚未进入 wiki
-- 需要后续 lint 或迁移
-- 当前还无法稳定判断该写 decisions 还是 patterns
-
-## former playbook 条目映射
-
-- 带有背景、做法、适用边界、陷阱、最小示例的条目 → `patterns.md`
-- 带有“必须 / 禁止 / 当前规则”语义的条目 → `decisions.md`
-- 证据不足或分类不稳的条目 → `maintenance.md`
-- 不再创建独立 playbook 文件承接这些内容
-
-## 最小 task summary 字段
-
-- `task-id`
-- `status`
-- `risk`
-- `schema-version`
-- `historical`
-- `supersedes / superseded-by`
-- `outcome summary`
-- `reusable decisions`
-- raw source links
-
-## PR-backed task 状态边界
-
-- 当前 delivery PR 内 repo evidence 完成时使用 `delivery-ready`。
-- `delivery-ready` 不声称 PR merged，也不需要 terminal 后改成 `completed`。
-- GitHub/checks/review、cleanup、refresh 与 publish/deploy 终态只写外部 lifecycle。
-- 禁止仅为终态写回自动创建 closeout、publish-result、deploy-result 或 wiki-only PR；用户明确授权的后续仓库交付可以使用新的 PR。
-- `completed` 只用于无 PR 即可在当前仓库快照内完整证明的任务和历史兼容。
+PR、发布或部署状态只有在它形成长期有效知识时才进入 wiki；不要为了流水线收口制造额外写回。

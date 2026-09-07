@@ -1,99 +1,17 @@
-# RFC Profiles
+# RFC 深度选择
 
-## Purpose
+选择文档深度是为了服务当前决策，不是按风险自动进入固定流程。
 
-选择 RFC 档位的目标不是写更长的文档，而是让设计密度和任务风险匹配。
+## Short design note
 
-## Profiles
+适合局部、可逆且边界明确的设计分歧。通常只需问题、选择、理由、影响和验证方式。
 
-### Design-lite
+## Standard RFC
 
-适用：
+适合跨模块、公共接口或存在多个真实方案的设计。通常包含 context、goals/non-goals、现状、options、decision、详细设计、验证和 rollback。
 
-- 低风险
-- 局部改动
-- 可直接回滚
-- 不涉及外部合约、迁移或权限边界
+## Research-backed RFC
 
-最低要求：
+适合关键事实尚未核实、外部生态快速变化、数据迁移、安全边界或难回滚设计。先记录一手证据、版本/日期和 unknowns，再形成 RFC；按需补 observability、rollout、threat model 和 milestones。
 
-- 问题定义
-- Scope
-- 假设 / 约束 / 风险
-- 验收方式
-- 1-2 段设计摘要
-
-落点：
-
-- `plan.md` 为主
-- 若需要设计索引，可在 `docs/rfc.md` 中保留简短 design-lite 章节
-
-### Standard RFC
-
-适用：
-
-- Medium risk
-- 多模块联动
-- 新增或修改公共 API / 配置
-- 存在 2+ 真实设计选项
-
-必备章节：
-
-- Context
-- Goals / Non-goals
-- Options
-- Decision
-- Scope
-- Verification
-- Rollback
-
-落点：
-
-- `docs/rfc.md`
-
-### Heavy RFC
-
-适用：
-
-- High risk or Epic
-- auth / permission / protocol / secrets / data migration
-- rollback 困难
-- unknowns 多，必须先调研
-
-必备交付物：
-
-- `docs/research.md`
-- `docs/rfc.md`
-- `docs/review-rfc.md`
-- optional `docs/implementation-plan.md`
-
-Heavy RFC 必备章节：
-
-- Executive Summary
-- Context / Evidence
-- Goals / Non-goals
-- Options
-- Decision
-- Milestones
-- Verification
-- Rollback
-- Observability
-- Open Questions
-
-## Auto-Heavy Triggers
-
-满足以下任一条件时，直接升为 Heavy RFC：
-
-- auth / permission / identity / token / session
-- protocol / wire format / storage format change
-- migration or persistent schema change
-- secrets / signing / crypto / webhook verification
-- external contract change with compatibility risk
-- 需要分 2 个以上 milestone 才能安全交付
-
-## Anti-Patterns
-
-- 低风险也强行写 heavy RFC
-- 把实现细节和测试输出堆进 RFC 主文
-- 缺少 rollback 或 verification
-- 明明存在设计分歧，却只写单一路径且不给取舍
+不要因为文档较短就省略真实风险，也不要为了符合档位而制造章节、备选方案或里程碑。

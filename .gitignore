@@ -108,6 +108,9 @@ dist
 benchmark-runs/
 jobs/
 
+# Isolated Git delivery worktrees
+.worktrees/
+
 # Keep Nix dev shell tracked (overrides global ignore in some setups)
 !shell.nix
 
